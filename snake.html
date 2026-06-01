@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Snake Game</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -10,29 +11,115 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 16px 10px;
       font-family: 'Courier New', monospace;
       color: #e0e0e0;
     }
-    h1 { font-size: 2rem; margin-bottom: 10px; color: #00d4aa; letter-spacing: 4px; }
-    #info {
-      display: flex;
-      gap: 40px;
-      margin-bottom: 14px;
-      font-size: 1.1rem;
-    }
+    h1 { font-size: 1.8rem; margin-bottom: 8px; color: #00d4aa; letter-spacing: 4px; }
+    #info { display: flex; gap: 30px; margin-bottom: 10px; font-size: 1rem; }
     #info span { color: #00d4aa; font-weight: bold; }
-    canvas {
-      border: 2px solid #00d4aa;
-      box-shadow: 0 0 20px rgba(0, 212, 170, 0.4);
-    }
-    #message {
+    #canvas-wrap { position: relative; }
+    canvas { display: block; border: 2px solid #00d4aa; box-shadow: 0 0 20px rgba(0,212,170,0.4); }
+    #message { margin-top: 10px; font-size: 0.9rem; color: #aaa; height: 1.2em; text-align: center; }
+
+    /* D-pad */
+    #dpad {
       margin-top: 16px;
-      font-size: 1rem;
-      color: #aaa;
-      height: 1.2em;
+      display: grid;
+      grid-template-areas: ". up ." "left . right" ". down .";
+      grid-template-columns: 60px 60px 60px;
+      grid-template-rows: 60px 60px 60px;
+      gap: 4px;
     }
+    .dpad-btn {
+      background: #1e1e2e;
+      border: 1px solid #444;
+      border-radius: 8px;
+      color: #ccc;
+      font-size: 1.4rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .dpad-btn:active { background: #2e2e4e; border-color: #00d4aa; color: #00d4aa; }
+    #dpad-up    { grid-area: up; }
+    #dpad-left  { grid-area: left; }
+    #dpad-right { grid-area: right; }
+    #dpad-down  { grid-area: down; }
+
+    /* ヘルプ */
+    #help-toggle {
+      position: fixed; top: 14px; right: 14px;
+      background: #1e1e2e; border: 1px solid #444; border-radius: 6px;
+      color: #888; font-family: 'Courier New', monospace; font-size: 0.72rem;
+      padding: 5px 10px; cursor: pointer; letter-spacing: 1px; z-index: 10;
+    }
+    #help-toggle:hover { color: #ccc; border-color: #666; }
+    #help-panel {
+      display: none; position: fixed; top: 44px; right: 14px;
+      background: #13131f; border: 1px solid #333; border-radius: 8px;
+      padding: 14px 16px; z-index: 10; min-width: 190px;
+    }
+    #help-panel.open { display: block; }
+    .hp-title { font-size: 0.6rem; letter-spacing: 3px; color: #555; margin-bottom: 10px; }
+    .hp-row { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; font-size: 0.72rem; }
+    .key { display: inline-block; background: #1e1e2e; border: 1px solid #444; border-radius: 3px; padding: 1px 5px; font-size: 0.68rem; color: #ccc; }
+    .hp-sep { border: none; border-top: 1px solid #222; margin: 8px 0; }
+    .hp-note { font-size: 0.65rem; color: #444; line-height: 1.7; }
+
+    /* 評価・コメント */
+    #rating-section {
+      margin-top: 20px;
+      width: 100%;
+      max-width: 420px;
+      border-top: 1px solid #222;
+      padding-top: 16px;
+    }
+    #rating-toggle {
+      cursor: pointer; font-size: 0.8rem; color: #555; letter-spacing: 2px;
+      text-align: center; padding: 6px;
+    }
+    #rating-toggle:hover { color: #00d4aa; }
+    #rating-form { display: none; margin-top: 12px; }
+    #rating-form.open { display: block; }
+    #star-input { display: flex; gap: 6px; justify-content: center; margin-bottom: 10px; }
+    .star {
+      font-size: 1.8rem; cursor: pointer; color: #333; transition: color 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .star.active { color: #ffd700; }
+    #comment-input {
+      width: 100%; background: #0d0d1a; border: 1px solid #333; border-radius: 6px;
+      color: #ccc; font-family: 'Courier New', monospace; font-size: 0.78rem;
+      padding: 8px 10px; resize: vertical; min-height: 60px; margin-bottom: 10px;
+    }
+    #submit-rating {
+      display: block; width: 100%; padding: 9px;
+      background: linear-gradient(135deg, #00d4aa, #0088cc);
+      border: none; border-radius: 6px; color: #000;
+      font-family: 'Courier New', monospace; font-size: 0.8rem;
+      letter-spacing: 2px; cursor: pointer; font-weight: bold;
+    }
+    #submit-rating:hover { opacity: 0.85; }
+    #ratings-list { margin-top: 14px; }
+    .rating-item {
+      border-top: 1px solid #1a1a2a; padding: 10px 0;
+      font-size: 0.75rem;
+    }
+    .rating-stars { color: #ffd700; font-size: 0.9rem; }
+    .rating-date { color: #444; margin-left: 8px; font-size: 0.65rem; }
+    .rating-comment { color: #777; margin-top: 4px; line-height: 1.5; }
+    .no-ratings { color: #333; text-align: center; font-size: 0.72rem; padding: 8px 0; }
+    .avg-display { text-align: center; font-size: 0.8rem; color: #666; margin-bottom: 6px; }
+    .avg-display span { color: #ffd700; font-size: 1rem; }
+
+    .back { display: block; margin-top: 16px; margin-bottom: 8px; font-size: 0.75rem; color: #444; text-decoration: none; letter-spacing: 2px; text-align: center; }
+    .back:hover { color: #888; }
   </style>
 </head>
 <body>
@@ -41,20 +128,81 @@
     スコア: <span id="score">0</span>
     &nbsp;&nbsp;ハイスコア: <span id="hi">0</span>
   </div>
-  <canvas id="c" width="400" height="400"></canvas>
-  <div id="message">スペースキーでスタート</div>
+  <div id="canvas-wrap">
+    <canvas id="c"></canvas>
+  </div>
+  <div id="message">スペースキー または 画面タップでスタート</div>
+
+  <div id="dpad">
+    <button class="dpad-btn" id="dpad-up">▲</button>
+    <button class="dpad-btn" id="dpad-left">◀</button>
+    <button class="dpad-btn" id="dpad-right">▶</button>
+    <button class="dpad-btn" id="dpad-down">▼</button>
+  </div>
+
+  <div id="rating-section">
+    <div class="avg-display" id="avg-display"></div>
+    <div id="rating-toggle">★ このゲームを評価する</div>
+    <div id="rating-form">
+      <div id="star-input">
+        <span class="star" data-v="1">★</span>
+        <span class="star" data-v="2">★</span>
+        <span class="star" data-v="3">★</span>
+        <span class="star" data-v="4">★</span>
+        <span class="star" data-v="5">★</span>
+      </div>
+      <textarea id="comment-input" placeholder="コメントを入力（任意）..."></textarea>
+      <button id="submit-rating">送信</button>
+    </div>
+    <div id="ratings-list"></div>
+  </div>
+
+  <a href="index.html" class="back">← ARCADE</a>
+
+  <button id="help-toggle">? 操作方法</button>
+  <div id="help-panel">
+    <div class="hp-title">CONTROLS</div>
+    <div class="hp-row">
+      <span><span class="key">↑</span><span class="key">↓</span><span class="key">←</span><span class="key">→</span></span>
+      <span style="color:#666">移動方向</span>
+    </div>
+    <div class="hp-row">
+      <span><span class="key">Space</span></span>
+      <span style="color:#666">スタート / リスタート</span>
+    </div>
+    <div class="hp-row">
+      <span style="color:#888">📱</span>
+      <span style="color:#666">D-pad ボタンで操作</span>
+    </div>
+    <hr class="hp-sep">
+    <div class="hp-note">
+      🟥 赤いエサを食べるとスコア+1<br>
+      壁・自分の体に当たるとゲームオーバー<br>
+      逆方向への転換は不可
+    </div>
+  </div>
 
 <script>
+const GAME_KEY = 'snake';
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
-const CELL = 20, COLS = 20, ROWS = 20;
+const COLS = 20, ROWS = 20;
+let CELL, W, H;
+
+function resizeCanvas() {
+  const maxW = Math.min(window.innerWidth - 20, 420);
+  CELL = Math.floor(maxW / COLS);
+  W = CELL * COLS; H = CELL * ROWS;
+  canvas.width = W; canvas.height = H;
+}
+resizeCanvas();
+window.addEventListener('resize', () => { resizeCanvas(); if (!running) draw(); });
 
 let snake, dir, next, food, score, hiScore = 0, running = false, loop;
 
 function init() {
-  snake = [{x:10, y:10}, {x:9, y:10}, {x:8, y:10}];
-  dir = {x:1, y:0};
-  next = {x:1, y:0};
+  snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+  dir = {x:1,y:0}; next = {x:1,y:0};
   score = 0;
   placeFood();
   document.getElementById('score').textContent = 0;
@@ -62,113 +210,144 @@ function init() {
 
 function placeFood() {
   let pos;
-  do {
-    pos = {x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS)};
-  } while (snake.some(s => s.x===pos.x && s.y===pos.y));
+  do { pos = {x:Math.floor(Math.random()*COLS), y:Math.floor(Math.random()*ROWS)}; }
+  while (snake.some(s => s.x===pos.x && s.y===pos.y));
   food = pos;
 }
 
 function step() {
   dir = next;
-  const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
-
-  if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS ||
-      snake.some(s => s.x===head.x && s.y===head.y)) {
-    gameOver();
-    return;
+  const head = {x: snake[0].x+dir.x, y: snake[0].y+dir.y};
+  if (head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS||snake.some(s=>s.x===head.x&&s.y===head.y)) {
+    gameOver(); return;
   }
-
   snake.unshift(head);
-
-  if (head.x === food.x && head.y === food.y) {
+  if (head.x===food.x&&head.y===food.y) {
     score++;
     document.getElementById('score').textContent = score;
-    if (score > hiScore) {
-      hiScore = score;
-      document.getElementById('hi').textContent = hiScore;
-    }
+    if (score > hiScore) { hiScore = score; document.getElementById('hi').textContent = hiScore; }
     placeFood();
-  } else {
-    snake.pop();
-  }
-
+  } else { snake.pop(); }
   draw();
 }
 
 function draw() {
-  ctx.fillStyle = '#0f0f1a';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // grid (subtle)
-  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-  ctx.lineWidth = 0.5;
-  for (let i = 0; i <= COLS; i++) {
-    ctx.beginPath(); ctx.moveTo(i*CELL, 0); ctx.lineTo(i*CELL, canvas.height); ctx.stroke();
-  }
-  for (let j = 0; j <= ROWS; j++) {
-    ctx.beginPath(); ctx.moveTo(0, j*CELL); ctx.lineTo(canvas.width, j*CELL); ctx.stroke();
-  }
-
-  // food
-  ctx.fillStyle = '#ff6b6b';
-  ctx.shadowColor = '#ff6b6b';
-  ctx.shadowBlur = 10;
-  ctx.fillRect(food.x*CELL+2, food.y*CELL+2, CELL-4, CELL-4);
-  ctx.shadowBlur = 0;
-
-  // snake
-  snake.forEach((seg, i) => {
-    const ratio = 1 - i / snake.length;
-    ctx.fillStyle = `rgba(0, ${Math.floor(180 + 75*ratio)}, ${Math.floor(100 + 110*ratio)}, 1)`;
-    ctx.shadowColor = i === 0 ? '#00d4aa' : 'transparent';
-    ctx.shadowBlur = i === 0 ? 8 : 0;
-    ctx.fillRect(seg.x*CELL+1, seg.y*CELL+1, CELL-2, CELL-2);
+  ctx.fillStyle = '#0f0f1a'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 0.5;
+  for (let i=0;i<=COLS;i++){ctx.beginPath();ctx.moveTo(i*CELL,0);ctx.lineTo(i*CELL,H);ctx.stroke();}
+  for (let j=0;j<=ROWS;j++){ctx.beginPath();ctx.moveTo(0,j*CELL);ctx.lineTo(W,j*CELL);ctx.stroke();}
+  ctx.fillStyle='#ff6b6b'; ctx.shadowColor='#ff6b6b'; ctx.shadowBlur=10;
+  ctx.fillRect(food.x*CELL+2,food.y*CELL+2,CELL-4,CELL-4); ctx.shadowBlur=0;
+  snake.forEach((seg,i)=>{
+    const ratio = 1-i/snake.length;
+    ctx.fillStyle=`rgba(0,${Math.floor(180+75*ratio)},${Math.floor(100+110*ratio)},1)`;
+    ctx.shadowColor = i===0?'#00d4aa':'transparent'; ctx.shadowBlur = i===0?8:0;
+    ctx.fillRect(seg.x*CELL+1,seg.y*CELL+1,CELL-2,CELL-2);
   });
-  ctx.shadowBlur = 0;
+  ctx.shadowBlur=0;
 }
 
 function gameOver() {
-  clearInterval(loop);
-  running = false;
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#ff6b6b';
-  ctx.font = 'bold 2rem Courier New';
-  ctx.textAlign = 'center';
-  ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2 - 10);
-  ctx.fillStyle = '#aaa';
-  ctx.font = '1rem Courier New';
-  ctx.fillText('スペースキーでリスタート', canvas.width/2, canvas.height/2 + 24);
-  document.getElementById('message').textContent = '';
+  clearInterval(loop); running=false;
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#ff6b6b'; ctx.font=`bold ${CELL}px Courier New`; ctx.textAlign='center';
+  ctx.fillText('GAME OVER',W/2,H/2-10);
+  ctx.fillStyle='#aaa'; ctx.font=`${CELL*0.6}px Courier New`;
+  ctx.fillText('スペース または タップでリスタート',W/2,H/2+CELL);
+  document.getElementById('message').textContent='';
 }
 
 function start() {
   if (running) return;
-  init();
-  draw();
-  running = true;
-  document.getElementById('message').textContent = '矢印キーで操作';
-  loop = setInterval(step, 120);
+  init(); draw(); running=true;
+  document.getElementById('message').textContent='矢印キー または D-padで操作';
+  loop = setInterval(step, 130);
 }
 
+// キーボード操作
 document.addEventListener('keydown', e => {
-  if (e.code === 'Space') { start(); return; }
-  const map = {
-    ArrowUp:    {x:0, y:-1},
-    ArrowDown:  {x:0, y:1},
-    ArrowLeft:  {x:-1, y:0},
-    ArrowRight: {x:1, y:0},
-  };
-  const d = map[e.key];
-  if (d && !(d.x === -dir.x && d.y === -dir.y)) {
-    next = d;
-    e.preventDefault();
-  }
+  if (e.code==='Space'){start();return;}
+  const map={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0}};
+  const d=map[e.key];
+  if(d&&!(d.x===-dir.x&&d.y===-dir.y)){next=d;e.preventDefault();}
 });
 
-// initial draw
-init();
-draw();
+// タッチ（画面タップでスタート）
+canvas.addEventListener('touchend', e => { e.preventDefault(); start(); }, {passive:false});
+
+// D-pad ボタン
+function setDir(dx,dy){
+  if(!(dx===-dir.x&&dy===-dir.y)) next={x:dx,y:dy};
+  start();
+}
+document.getElementById('dpad-up').addEventListener('touchstart',    e=>{e.preventDefault();setDir(0,-1);},{passive:false});
+document.getElementById('dpad-down').addEventListener('touchstart',  e=>{e.preventDefault();setDir(0,1);},{passive:false});
+document.getElementById('dpad-left').addEventListener('touchstart',  e=>{e.preventDefault();setDir(-1,0);},{passive:false});
+document.getElementById('dpad-right').addEventListener('touchstart', e=>{e.preventDefault();setDir(1,0);},{passive:false});
+document.getElementById('dpad-up').addEventListener('click',    ()=>setDir(0,-1));
+document.getElementById('dpad-down').addEventListener('click',  ()=>setDir(0,1));
+document.getElementById('dpad-left').addEventListener('click',  ()=>setDir(-1,0));
+document.getElementById('dpad-right').addEventListener('click', ()=>setDir(1,0));
+
+// ヘルプ
+document.getElementById('help-toggle').addEventListener('click', () => {
+  document.getElementById('help-panel').classList.toggle('open');
+});
+
+// ---- 評価・コメント ----
+let selectedStars = 0;
+
+function loadRatings() {
+  return JSON.parse(localStorage.getItem('ratings_'+GAME_KEY)||'[]');
+}
+function saveRating(stars, comment) {
+  const list = loadRatings();
+  list.unshift({stars, comment, date: new Date().toLocaleDateString('ja-JP')});
+  localStorage.setItem('ratings_'+GAME_KEY, JSON.stringify(list));
+}
+function renderAvg() {
+  const list = loadRatings();
+  const el = document.getElementById('avg-display');
+  if (!list.length) { el.textContent=''; return; }
+  const avg = (list.reduce((s,r)=>s+r.stars,0)/list.length).toFixed(1);
+  el.innerHTML=`<span>${'★'.repeat(Math.round(avg))}</span> ${avg} (${list.length}件の評価)`;
+}
+function renderRatings() {
+  const list = loadRatings();
+  const el = document.getElementById('ratings-list');
+  if (!list.length){el.innerHTML='<p class="no-ratings">まだ評価がありません</p>';return;}
+  el.innerHTML = list.map(r=>`
+    <div class="rating-item">
+      <span class="rating-stars">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</span>
+      <span class="rating-date">${r.date}</span>
+      ${r.comment?`<p class="rating-comment">${r.comment.replace(/</g,'&lt;')}</p>`:''}
+    </div>`).join('');
+}
+
+document.getElementById('rating-toggle').addEventListener('click', ()=>{
+  document.getElementById('rating-form').classList.toggle('open');
+});
+
+document.querySelectorAll('.star').forEach(s=>{
+  s.addEventListener('click',()=>{
+    selectedStars = parseInt(s.dataset.v);
+    document.querySelectorAll('.star').forEach((st,i)=>st.classList.toggle('active',i<selectedStars));
+  });
+});
+
+document.getElementById('submit-rating').addEventListener('click',()=>{
+  if (!selectedStars){ alert('星を選んでください'); return; }
+  const comment = document.getElementById('comment-input').value.trim();
+  saveRating(selectedStars, comment);
+  selectedStars=0;
+  document.querySelectorAll('.star').forEach(s=>s.classList.remove('active'));
+  document.getElementById('comment-input').value='';
+  document.getElementById('rating-form').classList.remove('open');
+  renderAvg(); renderRatings();
+});
+
+renderAvg(); renderRatings();
+init(); draw();
 </script>
 </body>
 </html>
