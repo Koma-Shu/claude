@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>SHOGI</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#0d0d1a; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:16px 10px; font-family:'Courier New',monospace; color:#eee; user-select:none; }
+    h1 { font-size:1.8rem; letter-spacing:4px; color:#cc88ff; margin-bottom:6px; text-shadow:0 0 20px rgba(204,136,255,0.4); }
+    #info-row { display:flex; gap:12px; margin-bottom:4px; align-items:center; }
+    .hand-box { display:flex; gap:4px; align-items:center; padding:4px 10px; border-radius:10px; border:1px solid #222; background:#13131f; min-height:30px; flex-wrap:wrap; }
+    .hand-box.active { border-color:#cc88ff; }
+    .hand-label { font-size:0.6rem; color:#555; margin-right:4px; }
+    .hand-piece { font-size:0.8rem; cursor:pointer; padding:2px 3px; border-radius:4px; border:1px solid transparent; }
+    .hand-piece:hover { border-color:#cc88ff; background:#1a0a2a; }
+    .hand-piece.selected { border-color:#cc88ff; background:#1a0a2a; }
+    #status { font-size:0.78rem; color:#666; margin-bottom:6px; height:1.2em; text-align:center; letter-spacing:1px; min-width:200px; }
+    #mode-buttons { display:flex; gap:10px; margin-bottom:8px; }
+    .mbtn { padding:7px 18px; border-radius:6px; border:1px solid #333; background:#13131f; color:#666; font-family:'Courier New',monospace; font-size:0.78rem; cursor:pointer; letter-spacing:1px; transition:all .15s; }
+    .mbtn:hover { border-color:#555; color:#aaa; }
+    .mbtn.active { border-color:#cc88ff; color:#cc88ff; background:#0f0020; }
+    #diff-row { display:flex; gap:6px; margin-bottom:8px; }
+    .dbtn { padding:5px 14px; border-radius:6px; border:1px solid #333; background:#13131f; color:#555; font-family:'Courier New',monospace; font-size:0.72rem; cursor:pointer; transition:all .15s; }
+    .dbtn:hover { border-color:#555; color:#aaa; }
+    .dbtn.active { border-color:#cc88ff; color:#cc88ff; background:#0f0020; }
+    #lang-btn { position:fixed; top:14px; left:14px; background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; z-index:10; }
+    #online-panel { display:none; flex-direction:column; align-items:center; gap:10px; background:#13131f; border:1px solid #222; border-radius:10px; padding:14px; width:100%; max-width:320px; margin-bottom:10px; }
+    #online-panel.open { display:flex; }
+    .obtn { width:100%; padding:9px; border-radius:6px; font-family:'Courier New',monospace; font-size:0.78rem; cursor:pointer; letter-spacing:1px; border:none; }
+    #btn-create { background:#0f0020; color:#cc88ff; border:1px solid #cc88ff; }
+    #btn-create:hover { background:#1a0a2a; }
+    #code-display { display:none; text-align:center; padding:8px; background:#0a0a12; border:1px solid #222; border-radius:6px; width:100%; }
+    #room-code { font-size:2rem; letter-spacing:8px; color:#cc88ff; }
+    #join-row { display:flex; gap:8px; width:100%; }
+    #code-input { flex:1; background:#0d0d1a; border:1px solid #333; border-radius:6px; color:#ccc; font-family:'Courier New',monospace; font-size:1rem; padding:7px; text-transform:uppercase; text-align:center; letter-spacing:4px; }
+    #btn-join { padding:7px 14px; background:#100a1f; color:#aa88ff; border:1px solid #aa88ff; border-radius:6px; font-family:'Courier New',monospace; cursor:pointer; font-size:0.78rem; }
+    #online-msg { font-size:0.7rem; color:#555; text-align:center; }
+    #board-wrap { position:relative; margin-bottom:8px; }
+    canvas { display:block; cursor:pointer; }
+    #promo-modal { display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#1a0a2a; border:1px solid #cc88ff; border-radius:10px; padding:16px 20px; z-index:20; text-align:center; white-space:nowrap; }
+    #promo-modal.open { display:block; }
+    .promo-title { font-size:0.7rem; color:#888; margin-bottom:10px; }
+    .promo-btns { display:flex; gap:10px; justify-content:center; }
+    .promo-btn { padding:8px 16px; border-radius:6px; border:1px solid #cc88ff; background:#0f0020; color:#cc88ff; font-family:'Courier New',monospace; cursor:pointer; font-size:0.85rem; }
+    .promo-btn:hover { background:#1a0a2a; }
+    #btn-resign { display:none; margin-bottom:8px; padding:7px 22px; border-radius:6px; border:1px solid #884422; background:#1a0a00; color:#cc6644; font-family:'Courier New',monospace; font-size:0.78rem; cursor:pointer; letter-spacing:2px; }
+    #btn-resign:hover { border-color:#ff6644; color:#ff6644; }
+    #help-toggle { position:fixed; top:14px; right:14px; background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; z-index:10; }
+    #help-panel { display:none; position:fixed; top:44px; right:14px; background:#13131f; border:1px solid #333; border-radius:8px; padding:14px 16px; z-index:10; min-width:220px; font-size:0.72rem; max-height:80vh; overflow-y:auto; }
+    #help-panel.open { display:block; }
+    .hp-t { font-size:0.6rem; letter-spacing:3px; color:#555; margin-bottom:8px; }
+    .hp-n { color:#444; line-height:2; }
+    #rating-section { margin-top:16px; width:100%; max-width:480px; border-top:1px solid #222; padding-top:14px; }
+    #rtoggle { cursor:pointer; font-size:0.8rem; color:#555; letter-spacing:2px; text-align:center; padding:6px; }
+    #rtoggle:hover { color:#cc88ff; }
+    #rform { display:none; margin-top:12px; }
+    #rform.open { display:block; }
+    #star-input { display:flex; gap:6px; justify-content:center; margin-bottom:10px; }
+    .star { font-size:1.8rem; cursor:pointer; color:#333; }
+    .star.active { color:#ffd700; }
+    #cmt { width:100%; background:#0d0d1a; border:1px solid #333; border-radius:6px; color:#ccc; font-family:'Courier New',monospace; font-size:0.78rem; padding:8px; resize:vertical; min-height:60px; margin-bottom:10px; }
+    #rsub { display:block; width:100%; padding:9px; background:linear-gradient(135deg,#cc88ff,#8844cc); border:none; border-radius:6px; color:#fff; font-family:'Courier New',monospace; font-size:0.8rem; letter-spacing:2px; cursor:pointer; font-weight:bold; }
+    #rlist { margin-top:14px; }
+    .ri { border-top:1px solid #1a1a2a; padding:8px 0; font-size:0.75rem; }
+    .rs { color:#ffd700; } .rd { color:#444; margin-left:8px; font-size:0.65rem; } .rc { color:#777; margin-top:4px; }
+    .avg-d { text-align:center; font-size:0.8rem; color:#666; margin-bottom:6px; }
+    .avg-d span { color:#ffd700; }
+    .back { display:block; margin-top:14px; font-size:0.75rem; color:#444; text-decoration:none; letter-spacing:2px; text-align:center; }
+    .back:hover { color:#888; }
+  </style>
+</head>
+<body>
+<button id="lang-btn">EN</button>
+<h1>将棋 / SHOGI</h1>
+<div id="info-row">
+  <div>
+    <div style="font-size:0.6rem;color:#555;margin-bottom:2px">後手（上）持ち駒</div>
+    <div class="hand-box" id="hand-gote"></div>
+  </div>
+</div>
+<div id="status">vs CPU モード</div>
+<div id="mode-buttons">
+  <button class="mbtn active" id="btn-cpu">vs CPU</button>
+  <button class="mbtn" id="btn-online">🌐 オンライン 2P</button>
+</div>
+<div id="diff-row">
+  <button class="dbtn active" id="diff-weak" data-d="weak">弱い</button>
+  <button class="dbtn" id="diff-normal" data-d="normal">普通</button>
+  <button class="dbtn" id="diff-strong" data-d="strong">強い</button>
+</div>
+<div id="online-panel">
+  <button class="obtn" id="btn-create">ルームを作成（あなたが先手）</button>
+  <div id="code-display">
+    <div style="font-size:0.65rem;color:#555;margin-bottom:4px">ルームコード</div>
+    <div id="room-code">------</div>
+    <div style="font-size:0.65rem;color:#444;margin-top:4px">相手にこのコードを伝えてください</div>
+  </div>
+  <div id="join-row">
+    <input id="code-input" type="text" placeholder="コードを入力" maxlength="6">
+    <button id="btn-join">参加</button>
+  </div>
+  <div id="online-msg"></div>
+</div>
+<div id="board-wrap">
+  <canvas id="c"></canvas>
+  <div id="promo-modal">
+    <div class="promo-title">成りますか？</div>
+    <div class="promo-btns">
+      <button class="promo-btn" id="promo-yes">成る</button>
+      <button class="promo-btn" id="promo-no">成らない</button>
+    </div>
+  </div>
+</div>
+<div>
+  <div style="font-size:0.6rem;color:#555;margin-bottom:2px">先手（下）持ち駒</div>
+  <div class="hand-box" id="hand-sente"></div>
+</div>
+<button id="btn-resign" style="margin-top:8px">投了</button>
+<button id="help-toggle">? ルール</button>
+<div id="help-panel">
+  <div class="hp-t">SHOGI PIECES</div>
+  <div class="hp-n">
+    王/玉 OU — 8方向１マス（王将）<br>
+    飛 HI — 縦横（飛車）<br>
+    角 KA — 斜め（角行）<br>
+    金 KI — 前後左右+斜め前<br>
+    銀 GI — 前3方向+斜め後ろ<br>
+    桂 KE — 前方2マス+左右１マス<br>
+    香 KY — 前方のみ複数マス<br>
+    歩 FU — 前方１マス<br>
+    ― 成り駒は金と同じ動き<br>
+    ― 馬（角成）= 角+１歩<br>
+    ― 糭（飛成）= 飛+斜め１歩<br><br>
+    ● 相手の陣地（3段目）で成れる<br>
+    ● 取った駒を自分の駒として使える（打ち）<br>
+    ● 王を詰めた方が勝ち
+  </div>
+</div>
+<div id="rating-section">
+  <div class="avg-d" id="avg-d"></div>
+  <div id="rtoggle">★ このゲームを評価する</div>
+  <div id="rform">
+    <div id="star-input">
+      <span class="star" data-v="1">★</span><span class="star" data-v="2">★</span>
+      <span class="star" data-v="3">★</span><span class="star" data-v="4">★</span>
+      <span class="star" data-v="5">★</span>
+    </div>
+    <textarea id="cmt" placeholder="コメント（任意）..."></textarea>
+    <button id="rsub">送信</button>
+  </div>
+  <div id="rlist"></div>
+</div>
+<a href="index.html" class="back">← ARCADE</a>
+
+<script>
+const LANG={ja:{yourTurn:'▲ あなたの番（先手）',cpuThink:'CPU 思考中...',win:'あなたの勝ち！🎉',cpuWin:'CPU の勝ち（詰み）',opWin:'相手の勝ち（詰み）',resign:'投了',resignMsg:'投了しますか？',weak:'弱い',normal:'普通',strong:'強い'},en:{yourTurn:'▲ Your turn (Sente)',cpuThink:'CPU thinking...',win:'You win! 🎉',cpuWin:'CPU wins (checkmate)',opWin:'Opponent wins (checkmate)',resign:'Resign',resignMsg:'Resign?',weak:'Weak',normal:'Normal',strong:'Strong'}};
+let lang='ja';
+function T(k){return LANG[lang][k]||LANG.ja[k]||k;}
+document.getElementById('lang-btn').addEventListener('click',()=>{lang=lang==='ja'?'en':'ja';document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';document.getElementById('btn-resign').textContent=T('resign');document.querySelectorAll('.dbtn').forEach(b=>b.textContent=T(b.dataset.d));});
+let difficulty='weak';
+document.querySelectorAll('.dbtn').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.d;document.querySelectorAll('.dbtn').forEach(x=>x.classList.toggle('active',x===b));if(!gameOver)startGame();}));
+const SUPABASE_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
+const SUPABASE_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+const GAME='shogi';
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+let CELL,SZ;
+const KANJI={FU:'歩',KY:'香',KE:'桂',GI:'銀',KI:'金',KA:'角',HI:'飛',OU:'王',TO:'と',NY:'杏',NK:'圭',NG:'全',UM:'馬',RY:'糭'};
+const UNPROMOTED={TO:'FU',NY:'KY',NK:'KE',NG:'GI',UM:'KA',RY:'HI'};
+const PROMOTABLE=new Set(['FU','KY','KE','GI','KA','HI']);
+const PROMOTE_MAP={FU:'TO',KY:'NY',KE:'NK',GI:'NG',KA:'UM',HI:'RY'};
+const PIECE_VAL={FU:1,KY:3,KE:3,GI:5,KI:6,KA:8,HI:10,OU:0,TO:7,NY:6,NK:6,NG:6,UM:10,RY:12};
+
+function initBoard(){
+  const b=Array.from({length:9},()=>Array(9).fill(null));
+  const back=['KY','KE','GI','KI','OU','KI','GI','KE','KY'];
+  for(let c=0;c<9;c++) b[0][c]={t:back[c],cl:2};
+  b[1][1]={t:'HI',cl:2};b[1][7]={t:'KA',cl:2};
+  for(let c=0;c<9;c++) b[2][c]={t:'FU',cl:2};
+  for(let c=0;c<9;c++) b[8][c]={t:back[8-c],cl:1};
+  b[7][7]={t:'HI',cl:1};b[7][1]={t:'KA',cl:1};
+  for(let c=0;c<9;c++) b[6][c]={t:'FU',cl:1};
+  return b;
+}
+function cloneBoard(b){return b.map(r=>r.map(p=>p?{...p}:null));}
+function cloneHands(h){return{1:[...h[1]],2:[...h[2]]};}
+function fwd(cl){return cl===1?-1:1;}
+
+function getMoves(b,r,c,hands,checkKing=true){
+  const p=b[r][c];if(!p) return [];
+  const cl=p.cl,f=fwd(cl),moves=[];
+  const add=(nr,nc,promo=false)=>{
+    if(nr<0||nr>=9||nc<0||nc>=9) return;
+    if(b[nr][nc]?.cl===cl) return;
+    if(checkKing){
+      const nb=cloneBoard(b);
+      nb[nr][nc]=promo?{t:PROMOTE_MAP[p.t]||p.t,cl}:{...p};
+      nb[r][c]=null;
+      if(inCheck(nb,cl)) return;
+    }
+    moves.push({r:nr,c:nc,promo});
+  };
+  const ray=(dr,dc)=>{
+    let nr=r+dr,nc=c+dc;
+    while(nr>=0&&nr<9&&nc>=0&&nc<9){
+      if(b[nr][nc]?.cl===cl) break;
+      if(checkKing){
+        const nb=cloneBoard(b);
+        nb[nr][nc]={...p};nb[r][c]=null;
+        if(!inCheck(nb,cl)) moves.push({r:nr,c:nc,promo:false});
+      } else moves.push({r:nr,c:nc,promo:false});
+      if(b[nr][nc]) break;
+      nr+=dr;nc+=dc;
+    }
+  };
+  switch(p.t){
+    case 'FU':add(r+f,c);break;
+    case 'KY':ray(f,0);break;
+    case 'KE':add(r+f*2,c-1);add(r+f*2,c+1);break;
+    case 'GI':[[f,-1],[f,0],[f,1],[-f,-1],[-f,1]].forEach(([dr,dc])=>add(r+dr,c+dc));break;
+    case 'KI':case 'TO':case 'NY':case 'NK':case 'NG':
+      [[f,0],[f,-1],[f,1],[0,-1],[0,1],[-f,0]].forEach(([dr,dc])=>add(r+dr,c+dc));break;
+    case 'KA':[[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>ray(dr,dc));break;
+    case 'HI':[[0,1],[0,-1],[1,0],[-1,0]].forEach(([dr,dc])=>ray(dr,dc));break;
+    case 'OU':[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([dr,dc])=>add(r+dr,c+dc));break;
+    case 'UM':[[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>ray(dr,dc));[[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>add(r+dr,c+dc));break;
+    case 'RY':[[0,1],[0,-1],[1,0],[-1,0]].forEach(([dr,dc])=>ray(dr,dc));[[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>add(r+dr,c+dc));break;
+  }
+  return moves;
+}
+
+function canPromote(t,fromR,toR,cl){if(!PROMOTABLE.has(t)) return false;const zone=cl===1?[0,1,2]:[6,7,8];return zone.includes(fromR)||zone.includes(toR);}
+function mustPromo(t,toR,cl){if(t==='FU'||t==='KY') return cl===1?toR===0:toR===8;if(t==='KE') return cl===1?toR<=1:toR>=7;return false;}
+
+function getDrops(b,hands,cl,checkKing=true){
+  const drops=[];
+  const myHand=[...new Set(hands[cl])];
+  for(const t of myHand){
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+      if(b[r][c]) continue;
+      if(t==='FU'&&[...Array(9)].some((_,rr)=>b[rr][c]?.t==='FU'&&b[rr][c]?.cl===cl)) continue;
+      if(t==='FU'||t==='KY'){if(cl===1&&r===0) continue;if(cl===2&&r===8) continue;}
+      if(t==='KE'){if(cl===1&&r<=1) continue;if(cl===2&&r>=7) continue;}
+      if(checkKing){const nb=cloneBoard(b);nb[r][c]={t,cl};if(inCheck(nb,cl)) continue;}
+      drops.push({r,c,drop:t});
+    }
+  }
+  return drops;
+}
+
+function findKing(b,cl){for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(b[r][c]?.cl===cl&&b[r][c]?.t==='OU') return [r,c];return [0,0];}
+
+function isAttackedBy(b,r,c,attacker){
+  for(let ar=0;ar<9;ar++) for(let ac=0;ac<9;ac++){
+    if(b[ar][ac]?.cl!==attacker) continue;
+    const mvs=getMoves(b,ar,ac,{1:[],2:[]},false);
+    if(mvs.some(m=>m.r===r&&m.c===c)) return true;
+  }
+  return false;
+}
+function inCheck(b,cl){const [kr,kc]=findKing(b,cl);return isAttackedBy(b,kr,kc,3-cl);}
+
+function getAllMoves(b,hands,cl){
+  const all=[];
+  for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+    if(b[r][c]?.cl!==cl) continue;
+    const mvs=getMoves(b,r,c,hands);
+    mvs.forEach(m=>all.push({type:'move',fr:r,fc:c,...m}));
+  }
+  getDrops(b,hands,cl).forEach(d=>all.push({type:'drop',...d}));
+  return all;
+}
+
+function applyMove(b,hands,move){
+  const nb=cloneBoard(b),nh=cloneHands(hands);
+  if(move.type==='drop'){nb[move.r][move.c]={t:move.drop,cl:move.cl};const idx=nh[move.cl].indexOf(move.drop);nh[move.cl].splice(idx,1);return{nb,nh};}
+  const p=nb[move.fr][move.fc];
+  const cap=nb[move.r][move.c];
+  if(cap){const base=UNPROMOTED[cap.t]||cap.t;nh[p.cl].push(base);}
+  nb[move.r][move.c]=move.promo?{t:PROMOTE_MAP[p.t],cl:p.cl}:{...p};
+  nb[move.fr][move.fc]=null;
+  return{nb,nh};
+}
+
+function evalPosition(b,hands){
+  let score=0;
+  for(let r=0;r<9;r++) for(let c=0;c<9;c++){const p=b[r][c];if(!p) continue;const v=PIECE_VAL[p.t];score+=p.cl===1?v:-v;}
+  hands[1].forEach(t=>{score+=PIECE_VAL[t]*0.8;});
+  hands[2].forEach(t=>{score-=PIECE_VAL[t]*0.8;});
+  return score;
+}
+
+function cpuPickMove(b,hands,cl){
+  const moves=getAllMoves(b,hands,cl);
+  if(!moves.length) return null;
+  if(difficulty==='weak') return moves[Math.floor(Math.random()*moves.length)];
+  const opp=3-cl;
+  let best=null,bestScore=cl===1?-Infinity:Infinity;
+  for(const m of moves){const{nb,nh}=applyMove(b,hands,{...m,cl});if(getAllMoves(nb,nh,opp).length===0&&inCheck(nb,opp)) return m;}
+  const sampleSize=difficulty==='strong'?20:12;
+  for(const m of moves){
+    const{nb,nh}=applyMove(b,hands,{...m,cl});
+    const oppMoves=getAllMoves(nb,nh,opp);
+    let oppBest=cl===1?Infinity:-Infinity;
+    if(oppMoves.length===0){oppBest=cl===1?100000:-100000;}
+    else{
+      const sample=oppMoves.slice(0,Math.min(sampleSize,oppMoves.length));
+      for(const om of sample){
+        const{nb:nb2,nh:nh2}=applyMove(nb,nh,{...om,cl:opp});
+        if(difficulty==='strong'){
+          const myMoves2=getAllMoves(nb2,nh2,cl);
+          if(myMoves2.length>0){
+            let myBest=cl===1?-Infinity:Infinity;
+            for(const mm of myMoves2.slice(0,8)){const{nb:nb3,nh:nh3}=applyMove(nb2,nh2,{...mm,cl});const s3=evalPosition(nb3,nh3);if(cl===1&&s3>myBest)myBest=s3;if(cl===2&&s3<myBest)myBest=s3;}
+            if(cl===1&&myBest<oppBest)oppBest=myBest;if(cl===2&&myBest>oppBest)oppBest=myBest;
+            continue;
+          }
+        }
+        const s=evalPosition(nb2,nh2);
+        if(cl===1&&s<oppBest)oppBest=s;if(cl===2&&s>oppBest)oppBest=s;
+      }
+    }
+    const noise=Math.random()*0.1;
+    const score=(cl===1?-oppBest:oppBest)+evalPosition(nb,nh)*0.1+noise;
+    if(cl===1&&score>bestScore){bestScore=score;best=m;}
+    if(cl===2&&score<bestScore){bestScore=score;best=m;}
+  }
+  return best||moves[Math.floor(Math.random()*moves.length)];
+}
+
+function resize(){CELL=Math.floor(Math.min(window.innerWidth-20,486)/9);SZ=CELL*9;canvas.width=SZ;canvas.height=SZ;document.getElementById('board-wrap').style.width=SZ+'px';}
+
+let board,hands,turn,gameOver,selected,selectedDrop,legalMoves,lastMoveInfo;
+let mode='cpu',myColor=1,cpuColor=2,cpuBusy=false;
+let roomId=null,myRole=null,pollTid=null,lastMoveCount=-1;
+let promoResolve=null;
+
+function draw(){
+  ctx.fillStyle='#3a2810';ctx.fillRect(0,0,SZ,SZ);
+  ctx.strokeStyle='#5a3c18';ctx.lineWidth=1;
+  for(let i=0;i<=9;i++){ctx.beginPath();ctx.moveTo(i*CELL,0);ctx.lineTo(i*CELL,SZ);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*CELL);ctx.lineTo(SZ,i*CELL);ctx.stroke();}
+  if(lastMoveInfo){ctx.fillStyle='rgba(255,220,100,0.2)';if(lastMoveInfo.type==='move') ctx.fillRect(lastMoveInfo.fc*CELL,lastMoveInfo.fr*CELL,CELL,CELL);ctx.fillRect(lastMoveInfo.c*CELL,lastMoveInfo.r*CELL,CELL,CELL);}
+  if(selected){ctx.fillStyle='rgba(204,136,255,0.35)';ctx.fillRect(selected.c*CELL,selected.r*CELL,CELL,CELL);}
+  if(legalMoves){legalMoves.forEach(m=>{ctx.fillStyle=board[m.r][m.c]?'rgba(255,80,80,0.35)':'rgba(204,136,255,0.25)';ctx.fillRect(m.c*CELL,m.r*CELL,CELL,CELL);ctx.beginPath();ctx.arc(m.c*CELL+CELL/2,m.r*CELL+CELL/2,CELL*0.15,0,Math.PI*2);ctx.fillStyle='rgba(204,136,255,0.6)';ctx.fill();});}
+  const fs=Math.max(10,CELL*0.48);
+  for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+    const p=board[r][c];if(!p) continue;
+    const x=c*CELL+CELL/2,y=r*CELL+CELL/2;
+    ctx.save();
+    if(p.cl===2){ctx.translate(x,y);ctx.rotate(Math.PI);ctx.translate(-x,-y);}
+    const pw=CELL*0.82,ph=CELL*0.88,px=x-pw/2,py=y-ph*0.42;
+    ctx.beginPath();ctx.moveTo(x,py);ctx.lineTo(px+pw,py+ph*0.2);ctx.lineTo(px+pw,py+ph);ctx.lineTo(px,py+ph);ctx.lineTo(px,py+ph*0.2);ctx.closePath();
+    const isProm=!!UNPROMOTED[p.t];
+    ctx.fillStyle=p.cl===1?(isProm?'#2a0a0a':'#f5e8d0'):(isProm?'#2a0a0a':'#e8d8c0');
+    ctx.shadowColor=p.cl===1?'rgba(255,200,100,0.5)':'rgba(150,100,255,0.5)';ctx.shadowBlur=4;
+    ctx.fill();ctx.strokeStyle=p.cl===1?'#8a6030':'#6a5028';ctx.lineWidth=1;ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    if(p.cl===2){ctx.translate(x,y);ctx.rotate(Math.PI);ctx.translate(-x,-y);}
+    ctx.font=`bold ${fs}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=isProm?'#ff4444':'#2a1000';ctx.fillText(KANJI[p.t]||p.t,x,y);
+    ctx.restore();
+  }
+  ctx.font=`${CELL*0.2}px Courier New`;ctx.fillStyle='#6a4828';ctx.textAlign='center';ctx.textBaseline='middle';
+  for(let c=0;c<9;c++) ctx.fillText(9-c,c*CELL+CELL/2,CELL*0.12);
+  for(let r=0;r<9;r++) ctx.fillText(r+1,SZ-CELL*0.12,r*CELL+CELL/2);
+  updateHandUI();
+}
+
+function updateHandUI(){
+  const renderHand=(id,cl)=>{
+    const el=document.getElementById(id);
+    const count={};
+    hands[cl].forEach(t=>{count[t]=(count[t]||0)+1;});
+    el.innerHTML=Object.entries(count).map(([t,n])=>{
+      const sel=selectedDrop?.cl===cl&&selectedDrop?.t===t;
+      return `<span class="hand-piece${sel?' selected':''}" data-t="${t}" data-cl="${cl}">${KANJI[t]}${n>1?`×${n}`:''}</span>`;
+    }).join('')||'<span style="color:#333;font-size:0.65rem">なし</span>';
+    el.classList.toggle('active',turn===cl&&!gameOver&&!cpuBusy&&(mode==='online'?cl===myColor:cl===1));
+    el.querySelectorAll('.hand-piece').forEach(el2=>{
+      el2.addEventListener('click',e=>{
+        e.stopPropagation();
+        const t=el2.dataset.t,pcl=+el2.dataset.cl;
+        if(gameOver||cpuBusy) return;
+        if(mode==='cpu'&&turn!==myColor) return;
+        if(mode==='online'&&turn!==myColor) return;
+        if(turn!==pcl) return;
+        if(selectedDrop?.t===t&&selectedDrop?.cl===pcl){selectedDrop=null;selected=null;legalMoves=null;}
+        else{selectedDrop={t,cl:pcl};selected=null;legalMoves=getDrops(board,hands,pcl).filter(d=>d.drop===t);}
+        draw();
+      });
+    });
+  };
+  renderHand('hand-gote',2);
+  renderHand('hand-sente',1);
+}
+
+function setStatus(msg){document.getElementById('status').textContent=msg;}
+function updateResignBtn(){const can=!gameOver&&!cpuBusy&&(mode==='cpu'?turn===myColor:turn===myColor);document.getElementById('btn-resign').style.display=can?'inline-block':'none';}
+
+function startGame(){
+  board=initBoard();hands={1:[],2:[]};turn=1;gameOver=false;
+  selected=null;selectedDrop=null;legalMoves=null;lastMoveInfo=null;
+  cpuBusy=false;myColor=1;cpuColor=2;
+  setStatus(T('yourTurn'));
+  draw();updateResignBtn();
+}
+
+async function handleBoardClick(r,c){
+  if(gameOver||cpuBusy) return;
+  if(mode==='cpu'&&turn!==myColor) return;
+  if(mode==='online'&&turn!==myColor) return;
+  if(selectedDrop){
+    const drop=legalMoves?.find(d=>d.r===r&&d.c===c);
+    if(drop){await executeAction({type:'drop',r,c,drop:selectedDrop.t,cl:turn});}
+    else if(board[r][c]?.cl===turn){selectedDrop=null;selected={r,c};legalMoves=getMoves(board,r,c,hands);}
+    else{selectedDrop=null;selected=null;legalMoves=null;}
+    draw();return;
+  }
+  if(selected){
+    const mv=legalMoves?.find(m=>m.r===r&&m.c===c);
+    if(mv){
+      const p=board[selected.r][selected.c];
+      let doPromo=mv.promo;
+      if(!doPromo&&PROMOTABLE.has(p.t)&&canPromote(p.t,selected.r,r,turn)&&!mustPromo(p.t,r,turn)) doPromo=await askPromo();
+      else if(mustPromo(p.t,r,turn)) doPromo=true;
+      await executeAction({type:'move',fr:selected.r,fc:selected.c,r,c,promo:doPromo,cl:turn});
+    } else if(board[r][c]?.cl===turn){selected={r,c};legalMoves=getMoves(board,r,c,hands);draw();}
+    else{selected=null;legalMoves=null;draw();}
+  } else {
+    if(board[r][c]?.cl===turn){selected={r,c};legalMoves=getMoves(board,r,c,hands);draw();}
+  }
+}
+
+function askPromo(){return new Promise(res=>{promoResolve=res;document.getElementById('promo-modal').classList.add('open');});}
+document.getElementById('promo-yes').addEventListener('click',()=>{document.getElementById('promo-modal').classList.remove('open');if(promoResolve){promoResolve(true);promoResolve=null;}});
+document.getElementById('promo-no').addEventListener('click',()=>{document.getElementById('promo-modal').classList.remove('open');if(promoResolve){promoResolve(false);promoResolve=null;}});
+
+async function executeAction(action){
+  const{nb,nh}=applyMove(board,hands,action);
+  board=nb;hands=nh;
+  lastMoveInfo=action;selected=null;selectedDrop=null;legalMoves=null;
+  turn=3-turn;
+  if(mode==='online'){const mc=lastMoveCount+1;pushOnlineMove(action,board,hands,mc);}
+  checkEndGame();
+}
+
+function checkEndGame(){
+  const moves=getAllMoves(board,hands,turn);
+  draw();updateResignBtn();
+  if(moves.length===0){
+    gameOver=true;
+    const winner=3-turn;
+    if(mode==='cpu') setStatus(winner===myColor?T('win'):T('cpuWin'));
+    else setStatus(winner===myColor?T('win'):T('opWin'));
+    updateResignBtn();
+    if(pollTid){clearInterval(pollTid);pollTid=null;}
+    if(mode==='online') pushGameOver(winner);
+    return;
+  }
+  setStatus(turn===1?'▲ 先手の番':'▽ 後手の番');
+  if(mode==='cpu'&&turn===cpuColor){cpuBusy=true;setStatus(T('cpuThink'));updateResignBtn();setTimeout(doCpu,500);}
+}
+
+function doCpu(){
+  if(gameOver){cpuBusy=false;return;}
+  const m=cpuPickMove(board,hands,cpuColor);cpuBusy=false;
+  if(!m){checkEndGame();return;}
+  const{nb,nh}=applyMove(board,hands,{...m,cl:cpuColor});
+  board=nb;hands=nh;
+  lastMoveInfo={...m,cl:cpuColor};
+  turn=myColor;
+  checkEndGame();
+}
+
+function doResign(){
+  if(gameOver) return;
+  if(!confirm(T('resignMsg'))) return;
+  gameOver=true;
+  const winner=myColor===1?'後手':'先手';
+  setStatus(`投了 — ${winner}の勝ち！`);
+  draw();updateResignBtn();
+  if(mode==='online') pushGameOver(3-myColor);
+  if(pollTid){clearInterval(pollTid);pollTid=null;}
+}
+
+canvas.addEventListener('click',e=>{const rect=canvas.getBoundingClientRect(),sc=SZ/rect.width;const c=Math.floor((e.clientX-rect.left)*sc/CELL);const r=Math.floor((e.clientY-rect.top)*sc/CELL);if(r>=0&&r<9&&c>=0&&c<9) handleBoardClick(r,c);});
+canvas.addEventListener('touchend',e=>{e.preventDefault();const rect=canvas.getBoundingClientRect(),sc=SZ/rect.width;const t=e.changedTouches[0];const c=Math.floor((t.clientX-rect.left)*sc/CELL);const r=Math.floor((t.clientY-rect.top)*sc/CELL);if(r>=0&&r<9&&c>=0&&c<9) handleBoardClick(r,c);},{passive:false});
+
+document.getElementById('btn-resign').addEventListener('click',doResign);
+document.getElementById('btn-cpu').addEventListener('click',()=>{mode='cpu';document.getElementById('btn-cpu').classList.add('active');document.getElementById('btn-online').classList.remove('active');document.getElementById('online-panel').classList.remove('open');document.getElementById('diff-row').style.display='flex';if(pollTid){clearInterval(pollTid);pollTid=null;}startGame();});
+document.getElementById('btn-online').addEventListener('click',()=>{mode='online';gameOver=true;document.getElementById('diff-row').style.display='none';document.getElementById('btn-online').classList.add('active');document.getElementById('btn-cpu').classList.remove('active');document.getElementById('online-panel').classList.add('open');setStatus('ルームを作成するか参加してください');board=initBoard();hands={1:[],2:[]};draw();updateResignBtn();});
+document.getElementById('btn-create').addEventListener('click',async()=>{const code=genCode(),tok=genTok();roomId=code;myRole='host';myColor=1;lastMoveCount=0;const state={board:JSON.stringify(initBoard()),hands:{1:[],2:[]},turn:1,moves:0,winner:0,lastMove:null};try{await sb('/rest/v1/rooms',{method:'POST',body:JSON.stringify({id:code,game:GAME,state,player1_token:tok,status:'waiting'})});document.getElementById('room-code').textContent=code;document.getElementById('code-display').style.display='block';document.getElementById('online-msg').textContent='相手の接続を待っています...';board=initBoard();hands={1:[],2:[]};turn=1;gameOver=true;draw();updateResignBtn();pollTid=setInterval(pollRoom,2000);}catch(e){document.getElementById('online-msg').textContent='作成失敗: '+e.message;}});
+document.getElementById('btn-join').addEventListener('click',async()=>{const code=document.getElementById('code-input').value.trim().toUpperCase();if(code.length!==6){alert('6文字のコードを入力してください');return;}const tok=genTok();try{const rows=await sb(`/rest/v1/rooms?id=eq.${code}&game=eq.${GAME}`);if(!rows||!rows.length){alert('ルームが見つかりません');return;}const room=rows[0];if(room.status!=='waiting'){alert('このルームは既に開始済みです');return;}await sb(`/rest/v1/rooms?id=eq.${code}`,{method:'PATCH',body:JSON.stringify({player2_token:tok,status:'playing'})});roomId=code;myRole='guest';myColor=2;lastMoveCount=0;const st=room.state;board=JSON.parse(st.board);hands=st.hands||{1:[],2:[]};turn=st.turn;gameOver=false;document.getElementById('online-msg').textContent='接続しました！あなたは後手';setStatus('▲ 先手（相手）の番');draw();updateResignBtn();pollTid=setInterval(pollRoom,2000);}catch(e){document.getElementById('online-msg').textContent='参加失敗: '+e.message;}});
+
+async function pollRoom(){
+  if(!roomId) return;
+  try{
+    const rows=await sb(`/rest/v1/rooms?id=eq.${roomId}`);
+    if(!rows||!rows.length) return;
+    const room=rows[0],st=room.state;
+    if(myRole==='host'&&room.status==='playing'&&gameOver){gameOver=false;board=initBoard();hands={1:[],2:[]};turn=1;lastMoveInfo=null;document.getElementById('online-msg').textContent='相手が接続しました！あなたは先手';setStatus('▲ あなたの番（先手）');draw();updateResignBtn();return;}
+    const rm=st.moves||0;
+    if(rm>lastMoveCount){
+      lastMoveCount=rm;board=JSON.parse(st.board);hands=st.hands||{1:[],2:[]};turn=st.turn;
+      lastMoveInfo=st.lastMove||null;gameOver=st.winner>0;
+      if(st.winner>0){const won=st.winner===myColor;setStatus(`ゲーム終了 — ${won?'あなたの勝ち！🎉':'相手の勝ち'}`);clearInterval(pollTid);pollTid=null;}
+      else{setStatus(turn===myColor?(myColor===1?'▲ あなたの番':'▽ あなたの番'):(myColor===1?'▽ 相手の番':'▲ 相手の番'));}
+      draw();updateResignBtn();
+    }
+  }catch(e){console.error('poll',e);}
+}
+
+async function pushOnlineMove(action,nb,nh,mc){
+  const moves=getAllMoves(nb,nh,3-turn);
+  const winner=moves.length===0?(3-turn):0;
+  const st={board:JSON.stringify(nb),hands:nh,turn,moves:mc,winner,lastMove:action};
+  try{await sb(`/rest/v1/rooms?id=eq.${roomId}`,{method:'PATCH',body:JSON.stringify({state:st,updated_at:new Date().toISOString()})});lastMoveCount=mc;}catch(e){console.error(e);}
+}
+async function pushGameOver(winner){
+  const st={board:JSON.stringify(board),hands,turn,moves:lastMoveCount+1,winner,lastMove:lastMoveInfo};
+  try{await sb(`/rest/v1/rooms?id=eq.${roomId}`,{method:'PATCH',body:JSON.stringify({state:st,updated_at:new Date().toISOString()})});}catch(e){}
+}
+
+function genCode(){const ch='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:6},()=>ch[Math.floor(Math.random()*ch.length)]).join('');}
+function genTok(){return Math.random().toString(36).slice(2)+Date.now().toString(36);}
+async function sb(path,opts={}){
+  const r=await fetch(SUPABASE_URL+path,{headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':'return=representation',...opts.headers},...opts});
+  if(!r.ok&&r.status!==201) throw new Error(await r.text());
+  const t=await r.text();return t?JSON.parse(t):null;
+}
+async function loadRatings(){try{const rows=await sb(`/rest/v1/ratings?game=eq.${GAME}&order=created_at.desc&limit=20`);renderR(rows||[]);avgBadge(rows||[]);}catch(e){renderR([]);}}
+async function subRating(stars,cmt){await sb('/rest/v1/ratings',{method:'POST',body:JSON.stringify({game:GAME,stars,comment:cmt||null})});loadRatings();}
+function renderR(list){const el=document.getElementById('rlist');if(!list.length){el.innerHTML='<div style="color:#333;text-align:center;font-size:0.72rem;padding:8px">まだ評価がありません</div>';return;}el.innerHTML=list.map(r=>`<div class="ri"><span class="rs">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</span><span class="rd">${new Date(r.created_at).toLocaleDateString('ja-JP')}</span>${r.comment?`<p class="rc">${r.comment.replace(/</g,'&lt;')}</p>`:''}</div>`).join('');}
+function avgBadge(list){const el=document.getElementById('avg-d');if(!list.length){el.textContent='';return;}const avg=(list.reduce((s,r)=>s+r.stars,0)/list.length).toFixed(1);el.innerHTML=`<span>${'★'.repeat(Math.round(avg))}</span> ${avg} (${list.length}件)`;}
+let sel=0;
+document.getElementById('rtoggle').addEventListener('click',()=>document.getElementById('rform').classList.toggle('open'));
+document.querySelectorAll('.star').forEach(s=>s.addEventListener('click',()=>{sel=+s.dataset.v;document.querySelectorAll('.star').forEach((st,i)=>st.classList.toggle('active',i<sel));}));
+document.getElementById('rsub').addEventListener('click',async()=>{if(!sel){alert('星を選んでください');return;}await subRating(sel,document.getElementById('cmt').value.trim());sel=0;document.querySelectorAll('.star').forEach(s=>s.classList.remove('active'));document.getElementById('cmt').value='';document.getElementById('rform').classList.remove('open');});
+document.getElementById('help-toggle').addEventListener('click',()=>document.getElementById('help-panel').classList.toggle('open'));
+
+resize();
+window.addEventListener('resize',()=>{resize();draw();});
+startGame();
+loadRatings();
+const hash=location.hash.slice(1);
+if(hash.length===6){document.getElementById('code-input').value=hash;document.getElementById('btn-online').click();}
+</script>
+</body>
+</html>
