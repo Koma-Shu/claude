@@ -100,19 +100,19 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { keys[e.key] = false; });
 
-const light = { x: W/2, y: MID/2, r: 13, vx: 0, vy: 0, trail: [] };
-const dark  = { x: W/2, y: MID + MID/2, r: 13, vx: 0, vy: 0, trail: [] };
+const light = { x: W/2, y: MID - 70, r: 13, vx: 0, vy: 0, trail: [] };
+const dark  = { x: W/2, y: MID + 70, r: 13, vx: 0, vy: 0, trail: [] };
 
-const TETHER_MAX = 210;
-const TETHER_WARN = 160;
+const TETHER_MAX = 260;
+const TETHER_WARN = 200;
 const SPEED = 2.8;
 const FRICTION = 0.82;
 
 function startGame() {
   state = 'playing';
   score = 0; hp = 100;
-  light.x = W/2; light.y = MID/2; light.vx=0; light.vy=0; light.trail=[];
-  dark.x  = W/2; dark.y  = MID+MID/2; dark.vx=0; dark.vy=0; dark.trail=[];
+  light.x = W/2; light.y = MID - 70; light.vx=0; light.vy=0; light.trail=[];
+  dark.x  = W/2; dark.y  = MID + 70; dark.vx=0; dark.vy=0; dark.trail=[];
   nutrients = []; predators = []; particles = [];
   frameCount = 0;
   document.getElementById('overlay').style.display = 'none';
@@ -167,7 +167,7 @@ function update() {
   updateOrganism(dark, 'ArrowUp','ArrowDown','ArrowLeft','ArrowRight', MID, H);
   const dist = Math.hypot(light.x - dark.x, light.y - dark.y);
   if (dist > TETHER_MAX) {
-    const dmg = (dist - TETHER_MAX) * 0.15;
+    const dmg = (dist - TETHER_MAX) * 0.06;
     hp = Math.max(0, hp - dmg);
     emit(light.x, light.y, '#ff4444', 2);
     emit(dark.x, dark.y, '#ff4444', 2);
