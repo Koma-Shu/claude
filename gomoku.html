@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>GOMOKU</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#0d0d1a; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:16px 10px; font-family:'Courier New',monospace; color:#eee; user-select:none; }
+    h1 { font-size:1.8rem; letter-spacing:4px; color:#ff6644; margin-bottom:6px; text-shadow:0 0 20px rgba(255,102,68,0.4); }
+    #score-bar { display:flex; gap:16px; align-items:center; margin-bottom:4px; }
+    .pscore { display:flex; align-items:center; gap:6px; padding:5px 10px; border-radius:20px; border:1px solid #222; }
+    .dot { width:14px; height:14px; border-radius:50%; display:inline-block; }
+    .dot-b { background:#111; border:2px solid #ff6644; }
+    .dot-w { background:#fffff0; border:2px solid #aaaaee; }
+    .snum { font-size:1.1rem; font-weight:bold; }
+    .snum-b { color:#ff6644; } .snum-w { color:#aaaaee; }
+    #status { font-size:0.78rem; color:#666; margin-bottom:6px; height:1.2em; text-align:center; letter-spacing:1px; min-width:200px; }
+    #mode-buttons { display:flex; gap:10px; margin-bottom:8px; }
+    .mbtn { padding:7px 18px; border-radius:6px; border:1px solid #333; background:#13131f; color:#666; font-family:'Courier New',monospace; font-size:0.78rem; cursor:pointer; letter-spacing:1px; transition:all .15s; }
+    .mbtn:hover { border-color:#555; color:#aaa; }
+    .mbtn.active { border-color:#ff6644; color:#ff6644; background:#1f0a00; }
+    #diff-row { display:flex; gap:6px; margin-bottom:8px; }
+    .dbtn { padding:5px 14px; border-radius:6px; border:1px solid #333; background:#13131f; color:#555; font-family:'Courier New',monospace; font-size:0.72rem; cursor:pointer; transition:all .15s; }
+    .dbtn:hover { border-color:#555; color:#aaa; }
+    .dbtn.active { border-color:#ff6644; color:#ff6644; background:#1f0a00; }
+    #lang-btn { position:fixed; top:14px; left:14px; background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; z-index:10; }
+    #online-panel { display:none; flex-direction:column; align-items:center; gap:10px; background:#13131f; border:1px solid #222; border-radius:10px; padding:14px; width:100%; max-width:320px; margin-bottom:10px; }
+    #online-panel.open { display:flex; }
+    .obtn { width:100%; padding:9px; border-radius:6px; font-family:'Courier New',monospace; font-size:0.78rem; cursor:pointer; letter-spacing:1px; border:none; }
+    #btn-create { background:#1f0a00; color:#ff6644; border:1px solid #ff6644; }
+    #btn-create:hover { background:#2a1000; }
+    #code-display { display:none; text-align:center; padding:8px; background:#0a0a12; border:1px solid #222; border-radius:6px; width:100%; }
+    #room-code { font-size:2rem; letter-spacing:8px; color:#ff6644; }
+    #join-row { display:flex; gap:8px; width:100%; }
+    #code-input { flex:1; background:#0d0d1a; border:1px solid #333; border-radius:6px; color:#ccc; font-family:'Courier New',monospace; font-size:1rem; padding:7px; text-transform:uppercase; text-align:center; letter-spacing:4px; }
+    #btn-join { padding:7px 14px; background:#100a1f; color:#aa88ff; border:1px solid #aa88ff; border-radius:6px; font-family:'Courier New',monospace; cursor:pointer; font-size:0.78rem; }
+    #online-msg { font-size:0.7rem; color:#555; text-align:center; }
+    canvas { display:block; cursor:pointer; margin-bottom:8px; border:1px solid #2a1a0a; }
+    #btn-resign { display:none; margin-bottom:8px; padding:7px 22px; border-radius:6px; border:1px solid #884422; background:#1a0a00; color:#cc6644; font-family:'Courier New',monospace; font-size:0.78rem; cursor:pointer; letter-spacing:2px; transition:all .15s; }
+    #btn-resign:hover { border-color:#ff6644; color:#ff6644; }
+    #help-toggle { position:fixed; top:14px; right:14px; background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; z-index:10; }
+    #help-panel { display:none; position:fixed; top:44px; right:14px; background:#13131f; border:1px solid #333; border-radius:8px; padding:14px 16px; z-index:10; min-width:200px; font-size:0.72rem; }
+    #help-panel.open { display:block; }
+    .hp-t { font-size:0.6rem; letter-spacing:3px; color:#555; margin-bottom:8px; }
+    .hp-n { color:#444; line-height:1.9; }
+    #rating-section { margin-top:16px; width:100%; max-width:480px; border-top:1px solid #222; padding-top:14px; }
+    #rtoggle { cursor:pointer; font-size:0.8rem; color:#555; letter-spacing:2px; text-align:center; padding:6px; }
+    #rtoggle:hover { color:#ff6644; }
+    #rform { display:none; margin-top:12px; }
+    #rform.open { display:block; }
+    #star-input { display:flex; gap:6px; justify-content:center; margin-bottom:10px; }
+    .star { font-size:1.8rem; cursor:pointer; color:#333; }
+    .star.active { color:#ffd700; }
+    #cmt { width:100%; background:#0d0d1a; border:1px solid #333; border-radius:6px; color:#ccc; font-family:'Courier New',monospace; font-size:0.78rem; padding:8px; resize:vertical; min-height:60px; margin-bottom:10px; }
+    #rsub { display:block; width:100%; padding:9px; background:linear-gradient(135deg,#ff6644,#cc3300); border:none; border-radius:6px; color:#fff; font-family:'Courier New',monospace; font-size:0.8rem; letter-spacing:2px; cursor:pointer; font-weight:bold; }
+    #rlist { margin-top:14px; }
+    .ri { border-top:1px solid #1a1a2a; padding:8px 0; font-size:0.75rem; }
+    .rs { color:#ffd700; } .rd { color:#444; margin-left:8px; font-size:0.65rem; } .rc { color:#777; margin-top:4px; }
+    .avg-d { text-align:center; font-size:0.8rem; color:#666; margin-bottom:6px; }
+    .avg-d span { color:#ffd700; }
+    .back { display:block; margin-top:14px; font-size:0.75rem; color:#444; text-decoration:none; letter-spacing:2px; text-align:center; }
+    .back:hover { color:#888; }
+  </style>
+</head>
+<body>
+<button id="lang-btn">EN</button>
+<h1>GOMOKU</h1>
+<div id="score-bar">
+  <div class="pscore"><span class="dot dot-b"></span><span class="snum snum-b" id="sb">0</span><span style="font-size:0.65rem;color:#444">黒</span></div>
+  <div class="pscore"><span class="dot dot-w"></span><span class="snum snum-w" id="sw">0</span><span style="font-size:0.65rem;color:#444">白</span></div>
+  <div style="font-size:0.7rem;color:#444" id="move-count"></div>
+</div>
+<div id="status">vs CPU モード</div>
+<div id="mode-buttons">
+  <button class="mbtn active" id="btn-cpu">vs CPU</button>
+  <button class="mbtn" id="btn-online">🌐 オンライン 2P</button>
+</div>
+<div id="diff-row">
+  <button class="dbtn active" id="diff-weak" data-d="weak">弱い</button>
+  <button class="dbtn" id="diff-normal" data-d="normal">普通</button>
+  <button class="dbtn" id="diff-strong" data-d="strong">強い</button>
+</div>
+<div id="online-panel">
+  <button class="obtn" id="btn-create">ルームを作成（あなたが黒）</button>
+  <div id="code-display">
+    <div style="font-size:0.65rem;color:#555;margin-bottom:4px">ルームコード</div>
+    <div id="room-code">------</div>
+    <div style="font-size:0.65rem;color:#444;margin-top:4px">相手にこのコードを伝えてください</div>
+  </div>
+  <div id="join-row">
+    <input id="code-input" type="text" placeholder="コードを入力" maxlength="6">
+    <button id="btn-join">参加</button>
+  </div>
+  <div id="online-msg"></div>
+</div>
+<canvas id="c"></canvas>
+<button id="btn-resign">投了</button>
+<button id="help-toggle">? ルール</button>
+<div id="help-panel">
+  <div class="hp-t">GOMOKU RULES</div>
+  <div class="hp-n">
+    ⚫ 黒から先に打ちます<br>
+    ● 縦・横・斜めに5つ並んだ方が勝ち<br>
+    ● どの空きマスにも置けます<br>
+    ● 盤面が埋まったら引き分け<br>
+    ● 禁じ手なし（フリー五目）
+  </div>
+</div>
+<div id="rating-section">
+  <div class="avg-d" id="avg-d"></div>
+  <div id="rtoggle">★ このゲームを評価する</div>
+  <div id="rform">
+    <div id="star-input">
+      <span class="star" data-v="1">★</span><span class="star" data-v="2">★</span>
+      <span class="star" data-v="3">★</span><span class="star" data-v="4">★</span>
+      <span class="star" data-v="5">★</span>
+    </div>
+    <textarea id="cmt" placeholder="コメント（任意）..."></textarea>
+    <button id="rsub">送信</button>
+  </div>
+  <div id="rlist"></div>
+</div>
+<a href="index.html" class="back">← ARCADE</a>
+
+<script>
+const LANG={ja:{yourTurn:'⚫ あなたの番（黒）',cpuThink:'CPU 思考中...',win:'あなたの勝ち！🎉',cpuWin:'CPU の勝ち',opWin:'相手の勝ち',draw:'引き分け（盤面が埋まりました）',resign:'投了',resignMsg:'投了しますか？',weak:'弱い',normal:'普通',strong:'強い'},en:{yourTurn:'⚫ Your turn (Black)',cpuThink:'CPU thinking...',win:'You win! 🎉',cpuWin:'CPU wins',opWin:'Opponent wins',draw:'Draw (board full)',resign:'Resign',resignMsg:'Resign?',weak:'Weak',normal:'Normal',strong:'Strong'}};
+let lang='ja';
+function T(k){return LANG[lang][k]||LANG.ja[k]||k;}
+document.getElementById('lang-btn').addEventListener('click',()=>{lang=lang==='ja'?'en':'ja';document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';document.getElementById('btn-resign').textContent=T('resign');document.querySelectorAll('.dbtn').forEach(b=>b.textContent=T(b.dataset.d));});
+let difficulty='weak';
+document.querySelectorAll('.dbtn').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.d;document.querySelectorAll('.dbtn').forEach(x=>x.classList.toggle('active',x===b));if(!gameOver)startGame();}));
+const SUPABASE_URL = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+const GAME = 'gomoku';
+const GS = 15;
+const DIRS4 = [[0,1],[1,0],[1,1],[1,-1]];
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let CELL, SZ;
+
+let board, turn, gameOver, lastMove, moveCount, winLine;
+let mode = 'cpu';
+let myColor = 1, cpuColor = 2, cpuBusy = false;
+let roomId = null, myRole = null, pollTid = null, lastMoves = -1;
+
+function initBoard() { return Array.from({length:GS},()=>Array(GS).fill(0)); }
+
+function checkWin(b, r, c) {
+  const p = b[r][c]; if (!p) return null;
+  for (const [dr,dc] of DIRS4) {
+    let line = [{r,c}];
+    for (const d of [-1,1]) {
+      let nr=r+dr*d, nc=c+dc*d;
+      while (nr>=0&&nr<GS&&nc>=0&&nc<GS&&b[nr][nc]===p) { line.push({r:nr,c:nc}); nr+=dr*d; nc+=dc*d; }
+    }
+    if (line.length>=5) return line;
+  }
+  return null;
+}
+
+function isBoardFull(b) { return b.every(row=>row.every(c=>c!==0)); }
+
+function scoreSeq(count, open) {
+  if (count>=5) return 1000000;
+  if (count===4 && open===2) return 100000;
+  if (count===4 && open===1) return 10000;
+  if (count===3 && open===2) return 5000;
+  if (count===3 && open===1) return 500;
+  if (count===2 && open===2) return 100;
+  if (count===2 && open===1) return 10;
+  return count;
+}
+
+function evalCell(b, r, c, p) {
+  let score = 0;
+  for (const [dr,dc] of DIRS4) {
+    let cnt=1, open=0;
+    for (const d of [-1,1]) {
+      let nr=r+dr*d, nc=c+dc*d;
+      while (nr>=0&&nr<GS&&nc>=0&&nc<GS&&b[nr][nc]===p) { cnt++; nr+=dr*d; nc+=dc*d; }
+      if (nr>=0&&nr<GS&&nc>=0&&nc<GS&&b[nr][nc]===0) open++;
+    }
+    score += scoreSeq(cnt, open);
+  }
+  return score;
+}
+
+function cpuPick(b, p) {
+  const opp = 3-p;
+  if(difficulty==='weak'){
+    const cands=[];
+    for(let r=0;r<GS;r++) for(let c=0;c<GS;c++) if(!b[r][c]) cands.push({r,c});
+    if(!cands.length) return null;
+    return cands[Math.floor(Math.random()*cands.length)];
+  }
+  const candidates = new Set();
+  let hasStones = false;
+  for (let r=0;r<GS;r++) for (let c=0;c<GS;c++) {
+    if (b[r][c]!==0) {
+      hasStones=true;
+      for (let dr=-2;dr<=2;dr++) for (let dc=-2;dc<=2;dc++) {
+        const nr=r+dr,nc=c+dc;
+        if (nr>=0&&nr<GS&&nc>=0&&nc<GS&&b[nr][nc]===0) candidates.add(nr*GS+nc);
+      }
+    }
+  }
+  if (!hasStones) return {r:7,c:7};
+
+  // Immediate win check
+  for (const key of candidates) {
+    const r=Math.floor(key/GS),c=key%GS;
+    if (b[r][c]!==0) continue;
+    b[r][c]=p; const w=checkWin(b,r,c); b[r][c]=0;
+    if (w) return {r,c};
+  }
+  // Block opponent win
+  for (const key of candidates) {
+    const r=Math.floor(key/GS),c=key%GS;
+    if (b[r][c]!==0) continue;
+    b[r][c]=opp; const w=checkWin(b,r,c); b[r][c]=0;
+    if (w) return {r,c};
+  }
+  // Score-based
+  let best=null, bestScore=-Infinity;
+  for (const key of candidates) {
+    const r=Math.floor(key/GS),c=key%GS;
+    if (b[r][c]!==0) continue;
+    b[r][c]=p; const atk=evalCell(b,r,c,p); b[r][c]=0;
+    b[r][c]=opp; const def=evalCell(b,r,c,opp); b[r][c]=0;
+    const center=(7-Math.abs(r-7))+(7-Math.abs(c-7));
+    const depthBonus=difficulty==='strong'?atk*0.5:0;
+  const score=atk*1.3+def+center*0.5+depthBonus+Math.random()*0.5;
+    if (score>bestScore) { bestScore=score; best={r,c}; }
+  }
+  return best||{r:7,c:7};
+}
+
+function resize() {
+  CELL=Math.floor(Math.min(window.innerWidth-20,510)/GS);
+  SZ=CELL*GS; canvas.width=SZ; canvas.height=SZ;
+}
+
+function draw() {
+  ctx.fillStyle='#2a1a08'; ctx.fillRect(0,0,SZ,SZ);
+  ctx.strokeStyle='#4a3018'; ctx.lineWidth=1;
+  for (let i=0;i<GS;i++) {
+    const x=CELL/2+i*CELL, y=CELL/2+i*CELL;
+    ctx.beginPath(); ctx.moveTo(x,CELL/2); ctx.lineTo(x,SZ-CELL/2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(CELL/2,y); ctx.lineTo(SZ-CELL/2,y); ctx.stroke();
+  }
+  [[3,3],[3,7],[3,11],[7,3],[7,7],[7,11],[11,3],[11,7],[11,11]].forEach(([r,c])=>{
+    ctx.beginPath(); ctx.arc(CELL/2+c*CELL,CELL/2+r*CELL,3.5,0,Math.PI*2);
+    ctx.fillStyle='#6a4828'; ctx.fill();
+  });
+  if (lastMove) {
+    ctx.fillStyle='rgba(255,220,100,0.2)';
+    ctx.fillRect(lastMove.c*CELL,lastMove.r*CELL,CELL,CELL);
+  }
+  if (winLine&&winLine.length>=2) {
+    ctx.save(); ctx.strokeStyle='rgba(255,80,40,0.9)'; ctx.lineWidth=4;
+    const s=winLine[0],e=winLine[winLine.length-1];
+    ctx.beginPath(); ctx.moveTo(CELL/2+s.c*CELL,CELL/2+s.r*CELL); ctx.lineTo(CELL/2+e.c*CELL,CELL/2+e.r*CELL); ctx.stroke(); ctx.restore();
+  }
+  for (let r=0;r<GS;r++) for (let c=0;c<GS;c++) {
+    if (!board[r][c]) continue;
+    const x=CELL/2+c*CELL, y=CELL/2+r*CELL, rad=CELL*0.43, isB=board[r][c]===1;
+    const grad=ctx.createRadialGradient(x-rad*0.3,y-rad*0.3,rad*0.05,x,y,rad);
+    if (isB) { grad.addColorStop(0,'#555'); grad.addColorStop(1,'#111'); }
+    else { grad.addColorStop(0,'#fff'); grad.addColorStop(1,'#ccc'); }
+    ctx.save(); ctx.shadowColor=isB?'#ff6644':'#aaaaee'; ctx.shadowBlur=6;
+    ctx.beginPath(); ctx.arc(x,y,rad,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill();
+    ctx.strokeStyle=isB?'#ff6644':'#8888cc'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+  }
+  let bk=0,wh=0;
+  for (let r=0;r<GS;r++) for (let c=0;c<GS;c++) { if(board[r][c]===1)bk++; else if(board[r][c]===2)wh++; }
+  document.getElementById('sb').textContent=bk;
+  document.getElementById('sw').textContent=wh;
+  document.getElementById('move-count').textContent=moveCount>0?`${moveCount}手目`:'';
+}
+
+function setStatus(msg) { document.getElementById('status').textContent=msg; }
+function updateResignBtn() {
+  const canResign=!gameOver&&!cpuBusy&&(mode==='cpu'?turn===myColor:turn===myColor);
+  document.getElementById('btn-resign').style.display=canResign?'inline-block':'none';
+}
+
+function startGame() {
+  board=initBoard(); turn=1; gameOver=false; lastMove=null; moveCount=0; winLine=null;
+  cpuBusy=false; myColor=1; cpuColor=2;
+  setStatus('⚫ あなたの番（黒）');
+  draw(); updateResignBtn();
+}
+
+function doPlace(r, c) {
+  if (gameOver||cpuBusy) return;
+  if (mode==='cpu'&&turn!==myColor) return;
+  if (mode==='online'&&turn!==myColor) return;
+  if (board[r][c]!==0) return;
+  board[r][c]=turn; lastMove={r,c}; moveCount++;
+  draw();
+  const wl=checkWin(board,r,c);
+  if (wl) { winLine=wl; draw(); endGame(turn); return; }
+  if (isBoardFull(board)) { endGame(0); return; }
+  if (mode==='online') { const mc=lastMoves+1; pushMove(r,c,turn,board.map(row=>[...row]),mc); }
+  turn=3-turn;
+  if (mode==='cpu'&&turn===cpuColor) {
+    cpuBusy=true; setStatus('CPU 思考中...'); draw(); updateResignBtn();
+    setTimeout(doCpu,400);
+  } else {
+    setStatus(turn===1?'⚫ 黒の番':'⚪ 白の番');
+    draw(); updateResignBtn();
+  }
+}
+
+function doCpu() {
+  if (gameOver) { cpuBusy=false; return; }
+  const m=cpuPick(board,cpuColor); cpuBusy=false;
+  if (!m) { endGame(0); return; }
+  board[m.r][m.c]=cpuColor; lastMove=m; moveCount++;
+  draw();
+  const wl=checkWin(board,m.r,m.c);
+  if (wl) { winLine=wl; draw(); endGame(cpuColor); return; }
+  if (isBoardFull(board)) { endGame(0); return; }
+  turn=myColor; setStatus('⚫ あなたの番（黒）');
+  draw(); updateResignBtn();
+}
+
+function endGame(winner) {
+  gameOver=true;
+  let msg;
+  if (winner===0) msg='引き分け（盤面が埋まりました）';
+  else if (mode==='cpu') msg=winner===myColor?'あなたの勝ち！🎉':'CPU の勝ち';
+  else msg=winner===myColor?'あなたの勝ち！🎉':'相手の勝ち';
+  setStatus(`ゲーム終了 — ${msg}`);
+  draw(); updateResignBtn();
+  if (pollTid) { clearInterval(pollTid); pollTid=null; }
+}
+
+function doResign() {
+  if (gameOver) return;
+  if (!confirm('投了しますか？')) return;
+  gameOver=true;
+  const winner=myColor===1?'白':'黒';
+  setStatus(`投了 — ${winner}の勝ち！`);
+  draw(); updateResignBtn();
+  if (mode==='online') {
+    const wc=myColor===1?2:1;
+    const st={board:board.map(r=>[...r]),turn,moves:lastMoves+1,winner:wc,lastMove};
+    sb(`/rest/v1/rooms?id=eq.${roomId}`,{method:'PATCH',body:JSON.stringify({state:st,updated_at:new Date().toISOString()})}).catch(()=>{});
+  }
+  if (pollTid) { clearInterval(pollTid); pollTid=null; }
+}
+
+canvas.addEventListener('click',e=>{
+  const rect=canvas.getBoundingClientRect(),sc=SZ/rect.width;
+  const px=(e.clientX-rect.left)*sc,py=(e.clientY-rect.top)*sc;
+  const c=Math.round((px-CELL/2)/CELL),r=Math.round((py-CELL/2)/CELL);
+  if (r>=0&&r<GS&&c>=0&&c<GS) doPlace(r,c);
+});
+canvas.addEventListener('touchend',e=>{
+  e.preventDefault();
+  const rect=canvas.getBoundingClientRect(),sc=SZ/rect.width;
+  const t=e.changedTouches[0];
+  const px=(t.clientX-rect.left)*sc,py=(t.clientY-rect.top)*sc;
+  const c=Math.round((px-CELL/2)/CELL),r=Math.round((py-CELL/2)/CELL);
+  if (r>=0&&r<GS&&c>=0&&c<GS) doPlace(r,c);
+},{passive:false});
+
+document.getElementById('btn-resign').addEventListener('click',doResign);
+document.getElementById('btn-cpu').addEventListener('click',()=>{
+  mode='cpu';
+  document.getElementById('btn-cpu').classList.add('active');
+  document.getElementById('btn-online').classList.remove('active');
+  document.getElementById('online-panel').classList.remove('open');
+  document.getElementById('diff-row').style.display='flex';
+  if (pollTid) { clearInterval(pollTid); pollTid=null; }
+  startGame();
+});
+document.getElementById('btn-online').addEventListener('click',()=>{
+  mode='online'; gameOver=true;
+  document.getElementById('btn-online').classList.add('active');
+  document.getElementById('btn-cpu').classList.remove('active');
+  document.getElementById('online-panel').classList.add('open');
+  document.getElementById('diff-row').style.display='none';
+  setStatus('ルームを作成するか参加してください');
+  board=initBoard(); moveCount=0; winLine=null; draw(); updateResignBtn();
+});
+document.getElementById('btn-create').addEventListener('click',async()=>{
+  const code=genCode(),tok=genTok();
+  roomId=code; myRole='host'; myColor=1; lastMoves=0;
+  const state={board:initBoard(),turn:1,moves:0,winner:0,lastMove:null};
+  try {
+    await sb('/rest/v1/rooms',{method:'POST',body:JSON.stringify({id:code,game:GAME,state,player1_token:tok,status:'waiting'})});
+    document.getElementById('room-code').textContent=code;
+    document.getElementById('code-display').style.display='block';
+    document.getElementById('online-msg').textContent='相手の接続を待っています...';
+    board=initBoard(); turn=1; gameOver=true; moveCount=0; winLine=null;
+    draw(); updateResignBtn(); pollTid=setInterval(pollRoom,2000);
+  } catch(e) { document.getElementById('online-msg').textContent='作成失敗: '+e.message; }
+});
+document.getElementById('btn-join').addEventListener('click',async()=>{
+  const code=document.getElementById('code-input').value.trim().toUpperCase();
+  if (code.length!==6) { alert('6文字のコードを入力してください'); return; }
+  const tok=genTok();
+  try {
+    const rows=await sb(`/rest/v1/rooms?id=eq.${code}&game=eq.${GAME}`);
+    if (!rows||!rows.length) { alert('ルームが見つかりません'); return; }
+    const room=rows[0];
+    if (room.status!=='waiting') { alert('このルームは既に開始済みです'); return; }
+    await sb(`/rest/v1/rooms?id=eq.${code}`,{method:'PATCH',body:JSON.stringify({player2_token:tok,status:'playing'})});
+    roomId=code; myRole='guest'; myColor=2; lastMoves=0;
+    const st=room.state;
+    board=st.board; turn=st.turn; gameOver=false; lastMove=st.lastMove||null; moveCount=st.moves||0; winLine=null;
+    document.getElementById('online-msg').textContent='接続しました！あなたは白（後手）';
+    setStatus(turn===myColor?'⚪ あなたの番':'⚫ 相手の番');
+    draw(); updateResignBtn(); pollTid=setInterval(pollRoom,2000);
+  } catch(e) { document.getElementById('online-msg').textContent='参加失敗: '+e.message; }
+});
+
+async function pollRoom() {
+  if (!roomId) return;
+  try {
+    const rows=await sb(`/rest/v1/rooms?id=eq.${roomId}`);
+    if (!rows||!rows.length) return;
+    const room=rows[0],st=room.state;
+    if (myRole==='host'&&room.status==='playing'&&gameOver) {
+      gameOver=false; board=initBoard(); turn=1; lastMove=null; moveCount=0; winLine=null;
+      document.getElementById('online-msg').textContent='相手が接続しました！あなたは黒（先手）';
+      setStatus('⚫ あなたの番（黒）'); draw(); updateResignBtn(); return;
+    }
+    const rm=st.moves||0;
+    if (rm>lastMoves) {
+      lastMoves=rm; board=st.board; turn=st.turn; lastMove=st.lastMove||null; moveCount=rm; winLine=null;
+      gameOver=st.winner>0;
+      if (st.winner>0) {
+        if (lastMove) winLine=checkWin(board,lastMove.r,lastMove.c);
+        const won=st.winner===myColor;
+        setStatus(`ゲーム終了 — ${st.winner===3?'引き分け':won?'あなたの勝ち！🎉':'相手の勝ち'}`);
+        clearInterval(pollTid); pollTid=null;
+      } else {
+        setStatus(turn===myColor?(myColor===1?'⚫ あなたの番':'⚪ あなたの番'):(myColor===1?'⚪ 相手の番':'⚫ 相手の番'));
+      }
+      draw(); updateResignBtn();
+    }
+  } catch(e) { console.error('poll',e); }
+}
+
+async function pushMove(r,c,p,nb,mc) {
+  const wl=checkWin(nb,r,c);
+  const winner=wl?p:(isBoardFull(nb)?3:0);
+  const st={board:nb,turn:winner?p:3-p,moves:mc,lastMove:{r,c},winner};
+  try { await sb(`/rest/v1/rooms?id=eq.${roomId}`,{method:'PATCH',body:JSON.stringify({state:st,updated_at:new Date().toISOString()})}); lastMoves=mc; } catch(e){console.error(e);}
+}
+
+function genCode(){const ch='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:6},()=>ch[Math.floor(Math.random()*ch.length)]).join('');}
+function genTok(){return Math.random().toString(36).slice(2)+Date.now().toString(36);}
+async function sb(path,opts={}) {
+  const r=await fetch(SUPABASE_URL+path,{headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':'return=representation',...opts.headers},...opts});
+  if (!r.ok&&r.status!==201) throw new Error(await r.text());
+  const t=await r.text(); return t?JSON.parse(t):null;
+}
+async function loadRatings(){
+  try{const rows=await sb(`/rest/v1/ratings?game=eq.${GAME}&order=created_at.desc&limit=20`);renderR(rows||[]);avgBadge(rows||[]);}catch(e){renderR([]);}
+}
+async function subRating(stars,cmt){
+  await sb('/rest/v1/ratings',{method:'POST',body:JSON.stringify({game:GAME,stars,comment:cmt||null})});loadRatings();
+}
+function renderR(list){
+  const el=document.getElementById('rlist');
+  if(!list.length){el.innerHTML='<div style="color:#333;text-align:center;font-size:0.72rem;padding:8px">まだ評価がありません</div>';return;}
+  el.innerHTML=list.map(r=>`<div class="ri"><span class="rs">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</span><span class="rd">${new Date(r.created_at).toLocaleDateString('ja-JP')}</span>${r.comment?`<p class="rc">${r.comment.replace(/</g,'&lt;')}</p>`:''}</div>`).join('');
+}
+function avgBadge(list){
+  const el=document.getElementById('avg-d');
+  if(!list.length){el.textContent='';return;}
+  const avg=(list.reduce((s,r)=>s+r.stars,0)/list.length).toFixed(1);
+  el.innerHTML=`<span>${'★'.repeat(Math.round(avg))}</span> ${avg} (${list.length}件)`;
+}
+let sel=0;
+document.getElementById('rtoggle').addEventListener('click',()=>document.getElementById('rform').classList.toggle('open'));
+document.querySelectorAll('.star').forEach(s=>s.addEventListener('click',()=>{sel=+s.dataset.v;document.querySelectorAll('.star').forEach((st,i)=>st.classList.toggle('active',i<sel));}));
+document.getElementById('rsub').addEventListener('click',async()=>{if(!sel){alert('星を選んでください');return;}await subRating(sel,document.getElementById('cmt').value.trim());sel=0;document.querySelectorAll('.star').forEach(s=>s.classList.remove('active'));document.getElementById('cmt').value='';document.getElementById('rform').classList.remove('open');});
+document.getElementById('help-toggle').addEventListener('click',()=>document.getElementById('help-panel').classList.toggle('open'));
+
+resize();
+window.addEventListener('resize',()=>{resize();draw();});
+startGame();
+loadRatings();
+const hash=location.hash.slice(1);
+if(hash.length===6){document.getElementById('code-input').value=hash;document.getElementById('btn-online').click();}
+</script>
+</body>
+</html>

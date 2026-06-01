@@ -8,18 +8,29 @@
     * { margin:0; padding:0; box-sizing:border-box; }
     body { background:#0d0d1a; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:16px 10px; font-family:'Courier New',monospace; color:#eee; user-select:none; }
     h1 { font-size:1.8rem; letter-spacing:4px; color:#44ff99; margin-bottom:6px; text-shadow:0 0 20px rgba(68,255,153,0.4); }
-    #score-bar { display:flex; gap:16px; align-items:center; margin-bottom:6px; }
-    .pscore { display:flex; align-items:center; gap:8px; padding:5px 12px; border-radius:20px; border:1px solid #222; }
+    #score-bar { display:flex; gap:16px; align-items:center; margin-bottom:4px; }
+    .pscore { display:flex; align-items:center; gap:6px; padding:5px 10px; border-radius:20px; border:1px solid #222; }
     .dot { width:14px; height:14px; border-radius:50%; display:inline-block; }
     .dot-b { background:#111; border:2px solid #00d4aa; }
     .dot-w { background:#fffff0; border:2px solid #ffc000; }
     .snum { font-size:1.1rem; font-weight:bold; }
     .snum-b { color:#00d4aa; } .snum-w { color:#ffc000; }
-    #status { font-size:0.78rem; color:#666; margin-bottom:8px; height:1.2em; text-align:center; letter-spacing:1px; min-width:200px; text-align:center; }
-    #mode-buttons { display:flex; gap:10px; margin-bottom:10px; }
+    .timer-disp { font-size:0.75rem; font-variant-numeric:tabular-nums; padding:2px 6px; border-radius:4px; background:#0a0a12; border:1px solid #222; min-width:40px; text-align:center; }
+    .timer-disp.warn { color:#ff6644; border-color:#ff6644; }
+    .timer-disp.active { border-color:#44ff99; }
+    #status { font-size:0.78rem; color:#666; margin-bottom:6px; height:1.2em; text-align:center; letter-spacing:1px; min-width:200px; }
+    #mode-buttons { display:flex; gap:10px; margin-bottom:8px; }
     .mbtn { padding:7px 18px; border-radius:6px; border:1px solid #333; background:#13131f; color:#666; font-family:'Courier New',monospace; font-size:0.78rem; cursor:pointer; letter-spacing:1px; transition:all .15s; }
     .mbtn:hover { border-color:#555; color:#aaa; }
     .mbtn.active { border-color:#44ff99; color:#44ff99; background:#0a1f10; }
+    #diff-row { display:flex; gap:6px; margin-bottom:8px; }
+    .dbtn { padding:5px 14px; border-radius:6px; border:1px solid #333; background:#13131f; color:#555; font-family:'Courier New',monospace; font-size:0.72rem; cursor:pointer; transition:all .15s; }
+    .dbtn:hover { border-color:#555; color:#aaa; }
+    .dbtn.active { border-color:#44ff99; color:#44ff99; background:#0a1f10; }
+    #lang-btn { position:fixed; top:14px; left:14px; background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; z-index:10; }
+    #time-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap; justify-content:center; }
+    #time-sel { background:#13131f; border:1px solid #333; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.75rem; padding:5px 8px; cursor:pointer; }
+    #time-sel:focus { outline:none; border-color:#44ff99; }
     #online-panel { display:none; flex-direction:column; align-items:center; gap:10px; background:#13131f; border:1px solid #222; border-radius:10px; padding:14px; width:100%; max-width:320px; margin-bottom:10px; }
     #online-panel.open { display:flex; }
     .obtn { width:100%; padding:9px; border-radius:6px; font-family:'Courier New',monospace; font-size:0.78rem; cursor:pointer; letter-spacing:1px; border:none; }
@@ -32,6 +43,8 @@
     #btn-join { padding:7px 14px; background:#100a1f; color:#aa88ff; border:1px solid #aa88ff; border-radius:6px; font-family:'Courier New',monospace; cursor:pointer; font-size:0.78rem; }
     #online-msg { font-size:0.7rem; color:#555; text-align:center; }
     canvas { display:block; cursor:pointer; margin-bottom:8px; border:1px solid #1a3a20; }
+    #btn-resign { display:none; margin-bottom:8px; padding:7px 22px; border-radius:6px; border:1px solid #884422; background:#1a0a00; color:#cc6644; font-family:'Courier New',monospace; font-size:0.78rem; cursor:pointer; letter-spacing:2px; transition:all .15s; }
+    #btn-resign:hover { border-color:#ff6644; color:#ff6644; background:#2a1000; }
     #help-toggle { position:fixed; top:14px; right:14px; background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; z-index:10; }
     #help-panel { display:none; position:fixed; top:44px; right:14px; background:#13131f; border:1px solid #333; border-radius:8px; padding:14px 16px; z-index:10; min-width:200px; font-size:0.72rem; }
     #help-panel.open { display:block; }
@@ -57,15 +70,42 @@
   </style>
 </head>
 <body>
+<button id="lang-btn">EN</button>
 <h1>REVERSI</h1>
 <div id="score-bar">
-  <div class="pscore"><span class="dot dot-b"></span><span class="snum snum-b" id="sb">2</span><span style="font-size:0.65rem;color:#444">黒</span></div>
-  <div class="pscore"><span class="dot dot-w"></span><span class="snum snum-w" id="sw">2</span><span style="font-size:0.65rem;color:#444">白</span></div>
+  <div class="pscore">
+    <span class="dot dot-b"></span>
+    <span class="snum snum-b" id="sb">2</span>
+    <span style="font-size:0.65rem;color:#444">黒</span>
+    <span class="timer-disp" id="timer-b" style="display:none">--</span>
+  </div>
+  <div class="pscore">
+    <span class="dot dot-w"></span>
+    <span class="snum snum-w" id="sw">2</span>
+    <span style="font-size:0.65rem;color:#444">白</span>
+    <span class="timer-disp" id="timer-w" style="display:none">--</span>
+  </div>
 </div>
 <div id="status">vs CPU モード</div>
 <div id="mode-buttons">
   <button class="mbtn active" id="btn-cpu">vs CPU</button>
   <button class="mbtn" id="btn-online">🌐 オンライン 2P</button>
+</div>
+<div id="diff-row">
+  <button class="dbtn active" id="diff-weak" data-d="weak">弱い</button>
+  <button class="dbtn" id="diff-normal" data-d="normal">普通</button>
+  <button class="dbtn" id="diff-strong" data-d="strong">強い</button>
+</div>
+<div id="time-row">
+  <select id="time-sel">
+    <option value="none">⏱ 時間無制限</option>
+    <option value="move-15">1手 15秒</option>
+    <option value="move-30">1手 30秒</option>
+    <option value="move-60">1手 60秒</option>
+    <option value="total-180">持ち時間 3分</option>
+    <option value="total-300">持ち時間 5分</option>
+    <option value="total-600">持ち時間 10分</option>
+  </select>
 </div>
 <div id="online-panel">
   <button class="obtn" id="btn-create">ルームを作成（あなたが黒）</button>
@@ -81,6 +121,7 @@
   <div id="online-msg"></div>
 </div>
 <canvas id="c"></canvas>
+<button id="btn-resign">投了</button>
 <button id="help-toggle">? ルール</button>
 <div id="help-panel">
   <div class="hp-t">REVERSI RULES</div>
@@ -110,6 +151,47 @@
 <a href="index.html" class="back">← ARCADE</a>
 
 <script>
+// i18n
+const LANG = {
+  ja:{yourTurn:'あなたの番（黒）',cpuThink:'CPU 思考中...',blackTurn:'⬛ 黒の番',whiteTurn:'⬜ 白の番',
+      pass:'{p}はパス → {q}が続けます',end:'ゲーム終了',win:'あなたの勝ち！🎉',cpuWin:'CPU の勝ち',
+      opWin:'相手の勝ち',draw:'引き分け',resign:'投了',resignMsg:'投了しますか？',
+      createRoom:'ルームを作成（あなたが黒）',waiting:'相手の接続を待っています...',
+      connected:'相手が接続しました！あなたは黒（先手）',
+      joined:'接続しました！あなたは白（後手）',yourTurnB:'⬛ あなたの番',yourTurnW:'⬜ あなたの番',
+      oppTurnB:'⬛ 相手の番',oppTurnW:'⬜ 相手の番',timeout:'時間切れ',timeoutMsg:'の時間切れ — {w}の勝ち！',
+      weak:'弱い',normal:'普通',strong:'強い',createLabel:'ルームを作成するか参加してください',
+      joinFail:'参加失敗: ',createFail:'作成失敗: '},
+  en:{yourTurn:'Your turn (Black)',cpuThink:'CPU thinking...',blackTurn:'⬛ Black\'s turn',whiteTurn:'⬜ White\'s turn',
+      pass:'{p} passes → {q} continues',end:'Game over',win:'You win! 🎉',cpuWin:'CPU wins',
+      opWin:'Opponent wins',draw:'Draw',resign:'Resign',resignMsg:'Resign the game?',
+      createRoom:'Create room (you play Black)',waiting:'Waiting for opponent...',
+      connected:'Opponent joined! You play Black',
+      joined:'Connected! You play White',yourTurnB:'⬛ Your turn',yourTurnW:'⬜ Your turn',
+      oppTurnB:'⬛ Opponent\'s turn',oppTurnW:'⬜ Opponent\'s turn',timeout:'Time out',
+      timeoutMsg:'{p} timeout — {w} wins!',
+      weak:'Weak',normal:'Normal',strong:'Strong',createLabel:'Create or join a room',
+      joinFail:'Join failed: ',createFail:'Create failed: '}
+};
+let lang='ja';
+function T(k,vars={}){let s=LANG[lang][k]||LANG.ja[k]||k;Object.entries(vars).forEach(([v,val])=>s=s.replace('{'+v+'}',val));return s;}
+function applyLang(){
+  document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
+  document.getElementById('btn-cpu').textContent='vs CPU';
+  document.getElementById('btn-online').textContent='🌐 '+(lang==='ja'?'オンライン 2P':'Online 2P');
+  document.getElementById('btn-create').textContent=T('createRoom');
+  document.getElementById('btn-resign').textContent=T('resign');
+  document.querySelectorAll('.dbtn').forEach(b=>b.textContent=T(b.dataset.d));
+}
+document.getElementById('lang-btn').addEventListener('click',()=>{lang=lang==='ja'?'en':'ja';applyLang();});
+
+let difficulty='weak'; // 'weak'|'normal'|'strong'
+document.querySelectorAll('.dbtn').forEach(b=>b.addEventListener('click',()=>{
+  difficulty=b.dataset.d;
+  document.querySelectorAll('.dbtn').forEach(x=>x.classList.toggle('active',x===b));
+  if(!gameOver) startCpu();
+}));
+
 const SUPABASE_URL = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
 const GAME = 'reversi';
@@ -122,9 +204,95 @@ const ctx = canvas.getContext('2d');
 let CELL, SZ;
 
 let board, turn, gameOver, lastMove, validMoves;
-let mode = 'cpu'; // 'cpu' | 'online'
+let mode = 'cpu';
 let myColor = 1, cpuColor = 2, cpuBusy = false;
 let roomId = null, myRole = null, pollTid = null, lastMoves = -1;
+
+// --- Time control ---
+let timeMode = 'none'; // 'none'|'move'|'total'
+let moveSecs = 30;
+let totalTimes = [0, 0, 0]; // index 1=black, 2=white (seconds remaining)
+let timerTid = null;
+let timerLeft = 0;
+
+function parseTimeSel() {
+  const v = document.getElementById('time-sel').value;
+  if (v === 'none') { timeMode = 'none'; return; }
+  const [type, n] = v.split('-');
+  if (type === 'move') { timeMode = 'move'; moveSecs = parseInt(n); }
+  else { timeMode = 'total'; totalTimes = [0, parseInt(n), parseInt(n)]; }
+}
+
+function fmtSecs(s) {
+  if (s < 0) s = 0;
+  const m = Math.floor(s / 60), sec = s % 60;
+  return m > 0 ? `${m}:${String(sec).padStart(2,'0')}` : `${sec}s`;
+}
+
+function updateTimerDisplay() {
+  const tb = document.getElementById('timer-b');
+  const tw = document.getElementById('timer-w');
+  if (timeMode === 'none') {
+    tb.style.display = tw.style.display = 'none';
+    return;
+  }
+  tb.style.display = tw.style.display = 'inline-block';
+  if (timeMode === 'move') {
+    const isB = turn === 1 && !gameOver;
+    const isW = turn === 2 && !gameOver;
+    tb.textContent = isB ? fmtSecs(timerLeft) : '-';
+    tw.textContent = isW ? fmtSecs(timerLeft) : '-';
+    tb.className = 'timer-disp' + (isB ? (timerLeft<=5?' warn':' active') : '');
+    tw.className = 'timer-disp' + (isW ? (timerLeft<=5?' warn':' active') : '');
+  } else {
+    tb.textContent = fmtSecs(totalTimes[1]);
+    tw.textContent = fmtSecs(totalTimes[2]);
+    tb.className = 'timer-disp' + (turn===1&&!gameOver ? (totalTimes[1]<=10?' warn':' active') : '');
+    tw.className = 'timer-disp' + (turn===2&&!gameOver ? (totalTimes[2]<=10?' warn':' active') : '');
+  }
+}
+
+function startMoveTimer() {
+  stopTimer();
+  if (timeMode === 'none' || gameOver) return;
+  if (mode === 'cpu' && turn === cpuColor) return; // don't time CPU
+  if (timeMode === 'move') {
+    timerLeft = moveSecs;
+    updateTimerDisplay();
+    timerTid = setInterval(() => {
+      timerLeft--;
+      updateTimerDisplay();
+      if (timerLeft <= 0) { stopTimer(); timeoutLose(turn); }
+    }, 1000);
+  } else {
+    timerTid = setInterval(() => {
+      totalTimes[turn]--;
+      updateTimerDisplay();
+      if (totalTimes[turn] <= 0) { stopTimer(); timeoutLose(turn); }
+    }, 1000);
+  }
+}
+
+function stopTimer() {
+  if (timerTid) { clearInterval(timerTid); timerTid = null; }
+}
+
+function timeoutLose(loser) {
+  gameOver = true;
+  stopTimer();
+  const winner = loser === 1 ? '白' : '黒';
+  setStatus(`時間切れ — ${loser===1?'黒':'白'}の負け（${winner}の勝ち！）`);
+  draw();
+  updateResignBtn();
+}
+
+function initTimers() {
+  parseTimeSel();
+  if (timeMode === 'total') totalTimes = [0, totalTimes[1], totalTimes[2]]; // re-parse sets them
+  parseTimeSel(); // parse again to set correctly
+  stopTimer();
+  updateTimerDisplay();
+}
 
 // --- Board logic ---
 function initBoard() {
@@ -161,10 +329,40 @@ function getScore(b) {
 function cpuPick(b, p) {
   const mv = validFor(b, p);
   if (!mv.length) return null;
+  if (difficulty==='weak') return mv[Math.floor(Math.random()*mv.length)];
+  if (difficulty==='strong') return cpuPickStrong(b, p);
   let best = mv[0], bs = -Infinity;
   for (const m of mv) {
     const sc = W8[m.r][m.c] + getFlips(b,m.r,m.c,p).length * 0.5;
     if (sc > bs) { bs=sc; best=m; }
+  }
+  return best;
+}
+function scoreReversi(b, p) {
+  const {bk,wh}=getScore(b); return p===1?bk-wh:wh-bk;
+}
+function minimaxR(b, depth, p, a, be) {
+  const mv=validFor(b,p);
+  if(depth===0||(!mv.length&&!validFor(b,3-p).length)) return scoreReversi(b,cpuColor);
+  if(!mv.length) return minimaxR(b,depth-1,3-p,a,be);
+  let best=p===cpuColor?-Infinity:Infinity;
+  for(const m of mv){
+    const nb=applyMove(b,m.r,m.c,p);
+    const sc=minimaxR(nb,depth-1,3-p,a,be);
+    if(p===cpuColor){best=Math.max(best,sc);a=Math.max(a,sc);}
+    else{best=Math.min(best,sc);be=Math.min(be,sc);}
+    if(be<=a) break;
+  }
+  return best;
+}
+function cpuPickStrong(b, p) {
+  const mv=validFor(b,p);
+  if(!mv.length) return null;
+  let best=mv[0],bs=-Infinity;
+  for(const m of mv){
+    const nb=applyMove(b,m.r,m.c,p);
+    const sc=minimaxR(nb,4,3-p,-Infinity,Infinity);
+    if(sc>bs){bs=sc;best=m;}
   }
   return best;
 }
@@ -191,7 +389,7 @@ function draw() {
     ctx.fillRect(lastMove.c*CELL, lastMove.r*CELL, CELL, CELL);
   }
   const canAct = !gameOver && !cpuBusy && (mode==='cpu' ? turn===myColor : turn===myColor);
-  if (canAct) {
+  if (canAct && validMoves) {
     validMoves.forEach(({r,c}) => {
       ctx.fillStyle = turn===1 ? 'rgba(0,212,170,0.18)' : 'rgba(255,192,0,0.18)';
       ctx.fillRect(c*CELL+1, r*CELL+1, CELL-2, CELL-2);
@@ -220,13 +418,22 @@ function updScore() {
 }
 function setStatus(msg) { document.getElementById('status').textContent = msg; }
 
+function updateResignBtn() {
+  const btn = document.getElementById('btn-resign');
+  const canResign = !gameOver && !cpuBusy &&
+    (mode === 'cpu' ? turn === myColor : turn === myColor);
+  btn.style.display = canResign ? 'inline-block' : 'none';
+}
+
 // --- Game flow ---
 function startCpu() {
   board=initBoard(); turn=1; gameOver=false; lastMove=null; cpuBusy=false;
   myColor=1; cpuColor=2;
   validMoves=validFor(board,turn);
-  setStatus('⬛ あなたの番（黒）');
-  updScore(); draw();
+  setStatus(T('yourTurn'));
+  initTimers();
+  startMoveTimer();
+  updScore(); draw(); updateResignBtn();
 }
 
 function doPlace(r, c) {
@@ -234,6 +441,7 @@ function doPlace(r, c) {
   if (mode==='cpu' && turn!==myColor) return;
   if (mode==='online' && turn!==myColor) return;
   if (!getFlips(board,r,c,turn).length) return;
+  stopTimer();
   board = applyMove(board,r,c,turn);
   lastMove = {r,c};
   updScore();
@@ -252,19 +460,19 @@ function afterMove() {
     if (!sv.length) { endGame(); return; }
     setStatus((next===1?'黒':'白')+'はパス → '+(turn===1?'黒':'白')+'が続けます');
     validMoves = sv;
-    draw(); return;
+    draw(); updateResignBtn(); startMoveTimer(); return;
   }
   turn = next;
   validMoves = nv;
   if (checkGameOver()) return;
   if (mode==='cpu' && turn===cpuColor) {
     cpuBusy = true;
-    setStatus('CPU 思考中...');
-    draw();
+    setStatus(T('cpuThink'));
+    draw(); updateResignBtn();
     setTimeout(doCpu, 650);
   } else {
     setStatus(turn===1 ? '⬛ 黒の番' : '⬜ 白の番');
-    draw();
+    draw(); updateResignBtn(); startMoveTimer();
   }
 }
 
@@ -272,7 +480,7 @@ function doCpu() {
   if (gameOver) { cpuBusy=false; return; }
   const m = cpuPick(board, cpuColor);
   cpuBusy = false;
-  if (!m) { turn=myColor; validMoves=validFor(board,myColor); setStatus('⬛ あなたの番'); draw(); return; }
+  if (!m) { turn=myColor; validMoves=validFor(board,myColor); setStatus('⬛ あなたの番'); draw(); updateResignBtn(); startMoveTimer(); return; }
   board = applyMove(board,m.r,m.c,cpuColor);
   lastMove = m;
   updScore(); afterMove();
@@ -285,13 +493,32 @@ function checkGameOver() {
 }
 
 function endGame() {
-  gameOver=true;
+  gameOver=true; stopTimer();
   const {bk,wh}=getScore(board);
   let msg;
   if (mode==='cpu') msg = bk>wh?'あなたの勝ち！🎉':wh>bk?'CPU の勝ち':'引き分け';
-  else if (mode==='online') msg = bk>wh?(myColor===1?'あなたの勝ち！🎉':'相手の勝ち'):wh>bk?(myColor===2?'あなたの勝ち！🎉':'相手の勝ち'):'引き分け';
+  else msg = bk>wh?(myColor===1?'あなたの勝ち！🎉':'相手の勝ち'):wh>bk?(myColor===2?'あなたの勝ち！🎉':'相手の勝ち'):'引き分け';
   setStatus(`ゲーム終了 — ${msg}  (黒:${bk} 白:${wh})`);
-  draw();
+  draw(); updateResignBtn();
+  if (pollTid) { clearInterval(pollTid); pollTid=null; }
+}
+
+function doResign() {
+  if (gameOver) return;
+  if (!confirm('投了しますか？')) return;
+  stopTimer();
+  gameOver = true;
+  const loser = myColor;
+  const winner = loser === 1 ? '白' : '黒';
+  setStatus(`投了 — ${winner}の勝ち！`);
+  draw(); updateResignBtn();
+  if (mode === 'online') {
+    const mc = lastMoves + 1;
+    const winner_code = loser === 1 ? 2 : 1;
+    const {bk,wh} = getScore(board);
+    const st = {board, turn, moves: mc, lastMove, winner: winner_code};
+    sb(`/rest/v1/rooms?id=eq.${roomId}`, {method:'PATCH', body:JSON.stringify({state:st, updated_at:new Date().toISOString()})}).catch(()=>{});
+  }
   if (pollTid) { clearInterval(pollTid); pollTid=null; }
 }
 
@@ -311,12 +538,16 @@ canvas.addEventListener('touchend', e => {
   if (r>=0&&r<BS&&c>=0&&c<BS) doPlace(r,c);
 },{passive:false});
 
+document.getElementById('btn-resign').addEventListener('click', doResign);
+
 // Mode buttons
 document.getElementById('btn-cpu').addEventListener('click',()=>{
   mode='cpu';
   document.getElementById('btn-cpu').classList.add('active');
   document.getElementById('btn-online').classList.remove('active');
   document.getElementById('online-panel').classList.remove('open');
+  document.getElementById('time-row').style.display = 'flex';
+  document.getElementById('diff-row').style.display = 'flex';
   if (pollTid) { clearInterval(pollTid); pollTid=null; }
   startCpu();
 });
@@ -325,8 +556,11 @@ document.getElementById('btn-online').addEventListener('click',()=>{
   document.getElementById('btn-online').classList.add('active');
   document.getElementById('btn-cpu').classList.remove('active');
   document.getElementById('online-panel').classList.add('open');
-  setStatus('ルームを作成するか参加してください');
-  board=initBoard(); updScore(); draw();
+  document.getElementById('time-row').style.display = 'none';
+  document.getElementById('diff-row').style.display = 'none';
+  stopTimer(); updateTimerDisplay();
+  setStatus(T('createLabel'));
+  board=initBoard(); updScore(); draw(); updateResignBtn();
 });
 
 // Online: Create room
@@ -340,7 +574,7 @@ document.getElementById('btn-create').addEventListener('click', async () => {
     document.getElementById('code-display').style.display='block';
     document.getElementById('online-msg').textContent='相手の接続を待っています...';
     board=initBoard(); turn=1; gameOver=true; validMoves=[];
-    updScore(); draw();
+    updScore(); draw(); updateResignBtn();
     pollTid = setInterval(pollRoom, 2000);
   } catch(e) { document.getElementById('online-msg').textContent='作成失敗: '+e.message; }
 });
@@ -362,7 +596,7 @@ document.getElementById('btn-join').addEventListener('click', async () => {
     validMoves=validFor(board,turn);
     document.getElementById('online-msg').textContent='接続しました！あなたは白（後手）';
     setStatus(turn===myColor?'⬜ あなたの番':'⬛ 相手の番');
-    updScore(); draw();
+    updScore(); draw(); updateResignBtn();
     pollTid = setInterval(pollRoom, 2000);
   } catch(e) { document.getElementById('online-msg').textContent='参加失敗: '+e.message; }
 });
@@ -378,7 +612,7 @@ async function pollRoom() {
       validMoves=validFor(board,1);
       document.getElementById('online-msg').textContent='相手が接続しました！あなたは黒（先手）';
       setStatus('⬛ あなたの番（黒）');
-      updScore(); draw(); return;
+      updScore(); draw(); updateResignBtn(); return;
     }
     const rm=st.moves||0;
     if (rm > lastMoves) {
@@ -392,7 +626,7 @@ async function pollRoom() {
       } else {
         setStatus(turn===myColor?(myColor===1?'⬛ あなたの番':'⬜ あなたの番'):(myColor===1?'⬜ 相手の番':'⬛ 相手の番'));
       }
-      updScore(); draw();
+      updScore(); draw(); updateResignBtn();
     }
   } catch(e) { console.error('poll', e); }
 }
