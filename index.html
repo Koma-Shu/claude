@@ -73,6 +73,7 @@
     .play-btn:hover { opacity: 0.85; }
     .btn-snake { background: linear-gradient(135deg, #00d4aa, #0088cc); color: #000; font-weight: bold; }
     .btn-symbiont { background: linear-gradient(135deg, #ffe066, #aa88ff); color: #000; font-weight: bold; }
+    .btn-reversi { background: linear-gradient(135deg, #44ff99, #00cc66); color: #000; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -153,6 +154,35 @@
     </div>
   </div>
 
+
+  <!-- Reversi -->
+  <div class="card">
+    <canvas class="preview" id="revPreview" width="320" height="200"></canvas>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-title" style="color:#44ff99">REVERSI</div>
+        <div class="avg-badge" id="avg-reversi"></div>
+      </div>
+      <p class="card-desc">クラシックなリバーシ（オセロ）。相手の石を挟んでひっくり返せ。CPU 対戦＆オンライン 2P に対応。</p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> スマホ&nbsp; 両対応</div>
+      <div class="controls">
+        <div class="controls-title">操作</div>
+        <div class="controls-grid">
+          <span style="color:#888;font-size:0.72rem">クリック / タップ</span>
+          <span class="ctrl-desc">石を置く</span>
+          <span style="color:#888;font-size:0.72rem">🌐 オンライン</span>
+          <span class="ctrl-desc">ルームコードで対戦</span>
+        </div>
+      </div>
+      <div class="card-tags">
+        <span class="tag">1-2 PLAYER</span>
+        <span class="tag">STRATEGY</span>
+        <span class="tag">ONLINE</span>
+      </div>
+      <a href="reversi.html" class="play-btn btn-reversi">▶ PLAY</a>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -185,6 +215,7 @@ async function loadGlobalAvg(game, elId) {
 
 loadGlobalAvg('snake', 'avg-snake');
 loadGlobalAvg('symbiont', 'avg-symbiont');
+loadGlobalAvg('reversi', 'avg-reversi');
 
 // --- Snake preview ---
 (function() {
@@ -241,6 +272,32 @@ loadGlobalAvg('symbiont', 'avg-symbiont');
   const grad=ctx.createLinearGradient(10,0,W-20,0); grad.addColorStop(0,'#00e5a0'); grad.addColorStop(1,'#00aaff');
   ctx.fillStyle='#555'; ctx.fillRect(10,H-20,W-20,8); ctx.fillStyle=grad; ctx.fillRect(10,H-20,(W-20)*0.72,8);
   ctx.fillStyle='#aaa'; ctx.font='10px Courier New'; ctx.textAlign='left'; ctx.fillText('HP  SCORE: 230', 12, H-10);
+})();
+
+// --- Reversi preview ---
+(function() {
+  const c=document.getElementById('revPreview');
+  const ctx=c.getContext('2d');
+  const W=c.width,H=c.height,CELL=Math.floor(Math.min(W,H)/8);
+  const OX=Math.floor((W-CELL*8)/2), OY=Math.floor((H-CELL*8)/2);
+  ctx.fillStyle='#0a1f0a'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#1a4020'; ctx.lineWidth=1;
+  for(let i=0;i<=8;i++){
+    ctx.beginPath();ctx.moveTo(OX+i*CELL,OY);ctx.lineTo(OX+i*CELL,OY+8*CELL);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(OX,OY+i*CELL);ctx.lineTo(OX+8*CELL,OY+i*CELL);ctx.stroke();
+  }
+  const board=[[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,2,1,0,0,0],[0,0,1,2,2,2,0,0],[0,0,1,1,1,2,0,0],[0,0,0,1,2,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]];
+  for(let r=0;r<8;r++) for(let cc=0;cc<8;cc++){
+    if(!board[r][cc]) continue;
+    const x=OX+cc*CELL+CELL/2,y=OY+r*CELL+CELL/2,rad=CELL*0.38,isB=board[r][cc]===1;
+    ctx.save();ctx.shadowColor=isB?'#00d4aa':'#ffc000';ctx.shadowBlur=6;
+    ctx.beginPath();ctx.arc(x,y,rad,0,Math.PI*2);
+    ctx.fillStyle=isB?'#111':'#fffff0';ctx.fill();
+    ctx.strokeStyle=isB?'#00d4aa':'#ffc000';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();
+  }
+  ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(0,H-30,W,30);
+  ctx.fillStyle='#44ff99'; ctx.font='11px Courier New'; ctx.textAlign='left';
+  ctx.fillText('⬛ 14  ⬜ 10', 12, H-10);
 })();
 </script>
 </body>

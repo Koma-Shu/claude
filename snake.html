@@ -81,14 +81,22 @@
 
     .back { display: block; margin-top: 14px; margin-bottom: 8px; font-size: 0.75rem; color: #444; text-decoration: none; letter-spacing: 2px; text-align: center; }
     .back:hover { color: #888; }
+    #mode-row { display:flex; gap:8px; justify-content:center; margin-bottom:8px; }
+    .mbtn { padding:5px 16px; border-radius:6px; border:1px solid #333; background:#13131f; color:#555; font-family:'Courier New',monospace; font-size:0.75rem; cursor:pointer; letter-spacing:1px; }
+    .mbtn.active { border-color:#00d4aa; color:#00d4aa; background:#0a1a18; }
   </style>
 </head>
 <body>
   <h1>SNAKE</h1>
+  <div id="mode-row">
+    <button class="mbtn active" id="m1p">1P</button>
+    <button class="mbtn" id="m2p">2P ローカル</button>
+  </div>
   <div id="info">
     スコア: <span id="score">0</span>
     &nbsp;ハイスコア(ローカル): <span id="hi">0</span>
   </div>
+  <div id="p2-info" style="display:none;font-size:0.82rem;color:#ff8c00;margin-bottom:4px;text-align:center">P2: <span id="score2">0</span></div>
   <div id="global-best">🌐 グローバルベスト: <b id="gb-score">---</b> <span id="gb-name"></span></div>
   <canvas id="c"></canvas>
   <div id="message">スペースキー または 画面タップでスタート</div>
@@ -268,22 +276,38 @@ resizeCanvas();
 window.addEventListener('resize', () => { resizeCanvas(); if (!running) draw(); });
 
 let snake, dir, next, food, score, hiScore = 0, running = false, loop;
+let snake2, dir2, next2, score2;
+let gameMode = '1p'; // '1p' | '2p'
 
 function init() {
-  snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+  snake = [{x:5,y:10},{x:4,y:10},{x:3,y:10}];
   dir = {x:1,y:0}; next = {x:1,y:0};
-  score = 0; placeFood();
+  score = 0;
+  if (gameMode === '2p') {
+    snake2 = [{x:14,y:10},{x:15,y:10},{x:16,y:10}];
+    dir2 = {x:-1,y:0}; next2 = {x:-1,y:0};
+    score2 = 0;
+    document.getElementById('p2-info').style.display='block';
+    document.getElementById('score2').textContent = 0;
+  } else {
+    snake2 = null;
+    document.getElementById('p2-info').style.display='none';
+  }
+  placeFood();
   document.getElementById('score').textContent = 0;
 }
 
 function placeFood() {
-  let pos;
-  do { pos = {x:Math.floor(Math.random()*COLS), y:Math.floor(Math.random()*ROWS)}; }
-  while (snake.some(s => s.x===pos.x && s.y===pos.y));
+  let pos, tries=0;
+  do {
+    pos = {x:Math.floor(Math.random()*COLS), y:Math.floor(Math.random()*ROWS)};
+    tries++;
+  } while (tries<200 && (snake.some(s=>s.x===pos.x&&s.y===pos.y) || (snake2&&snake2.some(s=>s.x===pos.x&&s.y===pos.y))));
   food = pos;
 }
 
 function step() {
+  if (gameMode === '2p') { step2p(); return; }
   dir = next;
   const head = {x: snake[0].x+dir.x, y: snake[0].y+dir.y};
   if (head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS||snake.some(s=>s.x===head.x&&s.y===head.y)) {
@@ -299,6 +323,23 @@ function step() {
   draw();
 }
 
+function step2p() {
+  dir = next; dir2 = next2;
+  const h1 = {x:snake[0].x+dir.x, y:snake[0].y+dir.y};
+  const h2 = {x:snake2[0].x+dir2.x, y:snake2[0].y+dir2.y};
+  const dead1 = h1.x<0||h1.x>=COLS||h1.y<0||h1.y>=ROWS||snake.some(s=>s.x===h1.x&&s.y===h1.y)||snake2.some(s=>s.x===h1.x&&s.y===h1.y);
+  const dead2 = h2.x<0||h2.x>=COLS||h2.y<0||h2.y>=ROWS||snake2.some(s=>s.x===h2.x&&s.y===h2.y)||snake.some(s=>s.x===h2.x&&s.y===h2.y);
+  if (dead1||dead2) { gameOver2p(dead1,dead2); return; }
+  snake.unshift(h1); snake2.unshift(h2);
+  let ate1=h1.x===food.x&&h1.y===food.y, ate2=h2.x===food.x&&h2.y===food.y;
+  if (ate1) { score++; document.getElementById('score').textContent=score; }
+  else snake.pop();
+  if (ate2) { score2++; document.getElementById('score2').textContent=score2; }
+  else snake2.pop();
+  if (ate1||ate2) placeFood();
+  draw();
+}
+
 function draw() {
   ctx.fillStyle = '#0f0f1a'; ctx.fillRect(0,0,W,H);
   ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 0.5;
@@ -306,12 +347,22 @@ function draw() {
   for(let j=0;j<=ROWS;j++){ctx.beginPath();ctx.moveTo(0,j*CELL);ctx.lineTo(W,j*CELL);ctx.stroke();}
   ctx.fillStyle='#ff6b6b'; ctx.shadowColor='#ff6b6b'; ctx.shadowBlur=10;
   ctx.fillRect(food.x*CELL+2,food.y*CELL+2,CELL-4,CELL-4); ctx.shadowBlur=0;
+  // P1 snake (teal)
   snake.forEach((seg,i) => {
     const ratio = 1-i/snake.length;
     ctx.fillStyle=`rgba(0,${Math.floor(180+75*ratio)},${Math.floor(100+110*ratio)},1)`;
     ctx.shadowColor=i===0?'#00d4aa':'transparent'; ctx.shadowBlur=i===0?8:0;
     ctx.fillRect(seg.x*CELL+1,seg.y*CELL+1,CELL-2,CELL-2);
   });
+  // P2 snake (orange) in 2P mode
+  if (snake2) {
+    snake2.forEach((seg,i) => {
+      const ratio = 1-i/snake2.length;
+      ctx.fillStyle=`rgba(${Math.floor(200+55*ratio)},${Math.floor(100+40*ratio)},0,1)`;
+      ctx.shadowColor=i===0?'#ff8c00':'transparent'; ctx.shadowBlur=i===0?8:0;
+      ctx.fillRect(seg.x*CELL+1,seg.y*CELL+1,CELL-2,CELL-2);
+    });
+  }
   ctx.shadowBlur=0;
 }
 
@@ -324,6 +375,23 @@ function gameOver() {
   ctx.fillText('スペース または タップでリスタート',W/2,H/2+CELL);
   document.getElementById('message').textContent='';
   if (score > 0) showScoreDialog(score);
+}
+
+function gameOver2p(dead1, dead2) {
+  clearInterval(loop); running=false;
+  ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(0,0,W,H);
+  let msg;
+  if (dead1&&dead2) msg='引き分け！';
+  else if (dead1) msg='P2（オレンジ）の勝ち！';
+  else msg='P1（緑）の勝ち！';
+  ctx.fillStyle=dead1&&dead2?'#aaa':dead2?'#00d4aa':'#ff8c00';
+  ctx.font=`bold ${CELL}px Courier New`; ctx.textAlign='center';
+  ctx.fillText(msg,W/2,H/2-10);
+  ctx.fillStyle='#666'; ctx.font=`${CELL*0.55}px Courier New`;
+  ctx.fillText(`P1:${score}  P2:${score2}`,W/2,H/2+CELL*0.9);
+  ctx.fillStyle='#444'; ctx.font=`${CELL*0.5}px Courier New`;
+  ctx.fillText('スペースでリスタート',W/2,H/2+CELL*1.9);
+  document.getElementById('message').textContent='';
 }
 
 function showScoreDialog(s) {
@@ -346,14 +414,41 @@ function start() {
   if (running) return;
   document.getElementById('score-dialog').classList.remove('open');
   init(); draw(); running=true;
-  document.getElementById('message').textContent='矢印キー または D-padで操作';
+  document.getElementById('message').textContent = gameMode==='2p' ? 'P1:WASD  P2:矢印キー' : '矢印キー または D-padで操作';
   loop = setInterval(step, 130);
 }
 
 document.addEventListener('keydown', e => {
   if (e.code==='Space'){start();return;}
-  const map={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0}};
-  const d=map[e.key]; if(d&&!(d.x===-dir.x&&d.y===-dir.y)){next=d;e.preventDefault();}
+  if (gameMode==='2p') {
+    const wm={w:{x:0,y:-1},s:{x:0,y:1},a:{x:-1,y:0},d:{x:1,y:0}};
+    const wd=wm[e.key]; if(wd&&!(wd.x===-dir.x&&wd.y===-dir.y)){next=wd;e.preventDefault();return;}
+    const am={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0}};
+    const ad=am[e.key]; if(ad&&!(ad.x===-dir2.x&&ad.y===-dir2.y)){next2=ad;e.preventDefault();}
+  } else {
+    const map={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0}};
+    const d=map[e.key]; if(d&&!(d.x===-dir.x&&d.y===-dir.y)){next=d;e.preventDefault();}
+  }
+});
+
+// Mode buttons
+document.getElementById('m1p').addEventListener('click',()=>{
+  gameMode='1p'; running=false; clearInterval(loop);
+  document.getElementById('m1p').classList.add('active');
+  document.getElementById('m2p').classList.remove('active');
+  document.getElementById('global-best').style.display='';
+  document.getElementById('bottom-section').style.display='';
+  document.getElementById('dpad').style.display='grid';
+  init(); draw(); document.getElementById('message').textContent='スペースキー または 画面タップでスタート';
+});
+document.getElementById('m2p').addEventListener('click',()=>{
+  gameMode='2p'; running=false; clearInterval(loop);
+  document.getElementById('m2p').classList.add('active');
+  document.getElementById('m1p').classList.remove('active');
+  document.getElementById('global-best').style.display='none';
+  document.getElementById('bottom-section').style.display='none';
+  document.getElementById('dpad').style.display='none';
+  init(); draw(); document.getElementById('message').textContent='スペースキーでスタート（P1:WASD  P2:矢印）';
 });
 canvas.addEventListener('touchend', e=>{e.preventDefault();start();},{passive:false});
 
