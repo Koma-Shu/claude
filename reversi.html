@@ -76,20 +76,20 @@
   <div class="pscore">
     <span class="dot dot-b"></span>
     <span class="snum snum-b" id="sb">2</span>
-    <span style="font-size:0.65rem;color:#444">黒</span>
+    <span style="font-size:0.65rem;color:#444" id="lbl-black">黒</span>
     <span class="timer-disp" id="timer-b" style="display:none">--</span>
   </div>
   <div class="pscore">
     <span class="dot dot-w"></span>
     <span class="snum snum-w" id="sw">2</span>
-    <span style="font-size:0.65rem;color:#444">白</span>
+    <span style="font-size:0.65rem;color:#444" id="lbl-white">白</span>
     <span class="timer-disp" id="timer-w" style="display:none">--</span>
   </div>
 </div>
 <div id="status">vs CPU モード</div>
 <div id="mode-buttons">
   <button class="mbtn active" id="btn-cpu">vs CPU</button>
-  <button class="mbtn" id="btn-online">🌐 オンライン 2P</button>
+  <button class="mbtn" id="btn-online">🌐 <span id="lbl-online">オンライン 2P</span></button>
 </div>
 <div id="diff-row">
   <button class="dbtn active" id="diff-weak" data-d="weak">弱い</button>
@@ -98,21 +98,21 @@
 </div>
 <div id="time-row">
   <select id="time-sel">
-    <option value="none">⏱ 時間無制限</option>
-    <option value="move-15">1手 15秒</option>
-    <option value="move-30">1手 30秒</option>
-    <option value="move-60">1手 60秒</option>
-    <option value="total-180">持ち時間 3分</option>
-    <option value="total-300">持ち時間 5分</option>
-    <option value="total-600">持ち時間 10分</option>
+    <option value="none" data-ja="⏱ 時間無制限" data-en="⏱ Unlimited">⏱ 時間無制限</option>
+    <option value="move-15" data-ja="1手 15秒" data-en="15s/move">1手 15秒</option>
+    <option value="move-30" data-ja="1手 30秒" data-en="30s/move">1手 30秒</option>
+    <option value="move-60" data-ja="1手 60秒" data-en="60s/move">1手 60秒</option>
+    <option value="total-180" data-ja="持ち時間 3分" data-en="3 min total">持ち時間 3分</option>
+    <option value="total-300" data-ja="持ち時間 5分" data-en="5 min total">持ち時間 5分</option>
+    <option value="total-600" data-ja="持ち時間 10分" data-en="10 min total">持ち時間 10分</option>
   </select>
 </div>
 <div id="online-panel">
   <button class="obtn" id="btn-create">ルームを作成（あなたが黒）</button>
   <div id="code-display">
-    <div style="font-size:0.65rem;color:#555;margin-bottom:4px">ルームコード</div>
+    <div style="font-size:0.65rem;color:#555;margin-bottom:4px" id="lbl-roomcode">ルームコード</div>
     <div id="room-code">------</div>
-    <div style="font-size:0.65rem;color:#444;margin-top:4px">相手にこのコードを伝えてください</div>
+    <div style="font-size:0.65rem;color:#444;margin-top:4px" id="lbl-sharecode">相手にこのコードを伝えてください</div>
   </div>
   <div id="join-row">
     <input id="code-input" type="text" placeholder="コードを入力" maxlength="6">
@@ -125,7 +125,7 @@
 <button id="help-toggle">? ルール</button>
 <div id="help-panel">
   <div class="hp-t">REVERSI RULES</div>
-  <div class="hp-n">
+  <div class="hp-n" id="help-content">
     ⬛ 黒から先に打ちます<br>
     ● 相手の石を挟む場所に置ける<br>
     ● 挟まれた石は自分の色に変わる<br>
@@ -136,7 +136,7 @@
 </div>
 <div id="rating-section">
   <div class="avg-d" id="avg-d"></div>
-  <div id="rtoggle">★ このゲームを評価する</div>
+  <div id="rtoggle">★ <span id="lbl-rate">このゲームを評価する</span></div>
   <div id="rform">
     <div id="star-input">
       <span class="star" data-v="1">★</span><span class="star" data-v="2">★</span>
@@ -159,9 +159,21 @@ const LANG = {
       createRoom:'ルームを作成（あなたが黒）',waiting:'相手の接続を待っています...',
       connected:'相手が接続しました！あなたは黒（先手）',
       joined:'接続しました！あなたは白（後手）',yourTurnB:'⬛ あなたの番',yourTurnW:'⬜ あなたの番',
-      oppTurnB:'⬛ 相手の番',oppTurnW:'⬜ 相手の番',timeout:'時間切れ',timeoutMsg:'の時間切れ — {w}の勝ち！',
+      oppTurnB:'⬛ 相手の番',oppTurnW:'⬜ 相手の番',timeout:'時間切れ',
+      timeoutMsg:'{loser}の時間切れ — {winner}の勝ち！',
       weak:'弱い',normal:'普通',strong:'強い',createLabel:'ルームを作成するか参加してください',
-      joinFail:'参加失敗: ',createFail:'作成失敗: '},
+      joinFail:'参加失敗: ',createFail:'作成失敗: ',
+      blackLabel:'黒',whiteLabel:'白',onlineMode:'オンライン 2P',
+      helpBtn:'? ルール',rateGame:'このゲームを評価する',
+      roomCode:'ルームコード',shareCode:'相手にこのコードを伝えてください',
+      codePlaceholder:'コードを入力',joinBtn:'参加',submitBtn:'送信',
+      commentPlaceholder:'コメント（任意）...',noRatings:'まだ評価がありません',
+      enter6:'6文字のコードを入力してください',roomNotFound:'ルームが見つかりません',
+      roomStarted:'このルームは既に開始済みです',
+      gameEnd:'{msg}  (黒:{bk} 白:{wh})',resignWin:'投了 — {w}の勝ち！',
+      timeoutLose:'{loser}の時間切れ — {winner}の勝ち！',
+      helpContent:'⬛ 黒から先に打ちます<br>● 相手の石を挟む場所に置ける<br>● 挟まれた石は自分の色に変わる<br>● 置ける場所がない場合はパス<br>● 両者パスでゲーム終了<br>● 石の多い方が勝ち',
+      blackPasses:'黒はパス → 白が続けます',whitePasses:'白はパス → 黒が続けます'},
   en:{yourTurn:'Your turn (Black)',cpuThink:'CPU thinking...',blackTurn:'⬛ Black\'s turn',whiteTurn:'⬜ White\'s turn',
       pass:'{p} passes → {q} continues',end:'Game over',win:'You win! 🎉',cpuWin:'CPU wins',
       opWin:'Opponent wins',draw:'Draw',resign:'Resign',resignMsg:'Resign the game?',
@@ -169,21 +181,49 @@ const LANG = {
       connected:'Opponent joined! You play Black',
       joined:'Connected! You play White',yourTurnB:'⬛ Your turn',yourTurnW:'⬜ Your turn',
       oppTurnB:'⬛ Opponent\'s turn',oppTurnW:'⬜ Opponent\'s turn',timeout:'Time out',
-      timeoutMsg:'{p} timeout — {w} wins!',
+      timeoutMsg:'{loser} timeout — {winner} wins!',
       weak:'Weak',normal:'Normal',strong:'Strong',createLabel:'Create or join a room',
-      joinFail:'Join failed: ',createFail:'Create failed: '}
+      joinFail:'Join failed: ',createFail:'Create failed: ',
+      blackLabel:'B',whiteLabel:'W',onlineMode:'Online 2P',
+      helpBtn:'? Rules',rateGame:'Rate this game',
+      roomCode:'Room Code',shareCode:'Share this code with opponent',
+      codePlaceholder:'Enter code',joinBtn:'Join',submitBtn:'Submit',
+      commentPlaceholder:'Comment (optional)...',noRatings:'No ratings yet',
+      enter6:'Enter a 6-character code',roomNotFound:'Room not found',
+      roomStarted:'This room has already started',
+      gameEnd:'Game over — {msg}  (B:{bk} W:{wh})',resignWin:'Resigned — {w} wins!',
+      timeoutLose:'{loser} timeout — {winner} wins!',
+      helpContent:'⬛ Black goes first<br>● Place where you can flip opponent\'s pieces<br>● Flipped pieces become your color<br>● No valid moves = pass<br>● Both pass = game over<br>● Most pieces wins',
+      blackPasses:'Black passes → White continues',whitePasses:'White passes → Black continues'}
 };
-let lang='ja';
+let lang = localStorage.getItem('lang') || 'ja';
 function T(k,vars={}){let s=LANG[lang][k]||LANG.ja[k]||k;Object.entries(vars).forEach(([v,val])=>s=s.replace('{'+v+'}',val));return s;}
 function applyLang(){
   document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
+  document.documentElement.lang=lang;
   document.getElementById('btn-cpu').textContent='vs CPU';
-  document.getElementById('btn-online').textContent='🌐 '+(lang==='ja'?'オンライン 2P':'Online 2P');
+  document.getElementById('lbl-online').textContent=T('onlineMode');
   document.getElementById('btn-create').textContent=T('createRoom');
   document.getElementById('btn-resign').textContent=T('resign');
+  document.getElementById('lbl-black').textContent=T('blackLabel');
+  document.getElementById('lbl-white').textContent=T('whiteLabel');
+  document.getElementById('lbl-roomcode').textContent=T('roomCode');
+  document.getElementById('lbl-sharecode').textContent=T('shareCode');
+  document.getElementById('code-input').placeholder=T('codePlaceholder');
+  document.getElementById('btn-join').textContent=T('joinBtn');
+  document.getElementById('help-toggle').textContent=T('helpBtn');
+  document.getElementById('help-content').innerHTML=T('helpContent');
+  document.getElementById('lbl-rate').textContent=T('rateGame');
+  document.getElementById('cmt').placeholder=T('commentPlaceholder');
+  document.getElementById('rsub').textContent=T('submitBtn');
   document.querySelectorAll('.dbtn').forEach(b=>b.textContent=T(b.dataset.d));
+  document.querySelectorAll('#time-sel option').forEach(o=>o.textContent=o.dataset[lang]||o.textContent);
 }
-document.getElementById('lang-btn').addEventListener('click',()=>{lang=lang==='ja'?'en':'ja';applyLang();});
+document.getElementById('lang-btn').addEventListener('click',()=>{
+  lang=lang==='ja'?'en':'ja';
+  localStorage.setItem('lang',lang);
+  applyLang();
+});
 
 let difficulty='weak'; // 'weak'|'normal'|'strong'
 document.querySelectorAll('.dbtn').forEach(b=>b.addEventListener('click',()=>{
@@ -280,8 +320,9 @@ function stopTimer() {
 function timeoutLose(loser) {
   gameOver = true;
   stopTimer();
-  const winner = loser === 1 ? '白' : '黒';
-  setStatus(`時間切れ — ${loser===1?'黒':'白'}の負け（${winner}の勝ち！）`);
+  const winner = loser === 1 ? T('whiteLabel') : T('blackLabel');
+  const loserName = loser === 1 ? T('blackLabel') : T('whiteLabel');
+  setStatus(T('timeoutLose',{loser:loserName,winner}));
   draw();
   updateResignBtn();
 }
@@ -430,7 +471,7 @@ function startCpu() {
   board=initBoard(); turn=1; gameOver=false; lastMove=null; cpuBusy=false;
   myColor=1; cpuColor=2;
   validMoves=validFor(board,turn);
-  setStatus(T('yourTurn'));
+  setStatus('⬛ '+T('yourTurn'));
   initTimers();
   startMoveTimer();
   updScore(); draw(); updateResignBtn();
@@ -458,7 +499,7 @@ function afterMove() {
   if (!nv.length) {
     const sv = validFor(board, turn);
     if (!sv.length) { endGame(); return; }
-    setStatus((next===1?'黒':'白')+'はパス → '+(turn===1?'黒':'白')+'が続けます');
+    setStatus(next===1?T('blackPasses'):T('whitePasses'));
     validMoves = sv;
     draw(); updateResignBtn(); startMoveTimer(); return;
   }
@@ -471,7 +512,7 @@ function afterMove() {
     draw(); updateResignBtn();
     setTimeout(doCpu, 650);
   } else {
-    setStatus(turn===1 ? '⬛ 黒の番' : '⬜ 白の番');
+    setStatus(turn===1 ? T('blackTurn') : T('whiteTurn'));
     draw(); updateResignBtn(); startMoveTimer();
   }
 }
@@ -480,7 +521,7 @@ function doCpu() {
   if (gameOver) { cpuBusy=false; return; }
   const m = cpuPick(board, cpuColor);
   cpuBusy = false;
-  if (!m) { turn=myColor; validMoves=validFor(board,myColor); setStatus('⬛ あなたの番'); draw(); updateResignBtn(); startMoveTimer(); return; }
+  if (!m) { turn=myColor; validMoves=validFor(board,myColor); setStatus(T('yourTurnB')); draw(); updateResignBtn(); startMoveTimer(); return; }
   board = applyMove(board,m.r,m.c,cpuColor);
   lastMove = m;
   updScore(); afterMove();
@@ -496,21 +537,22 @@ function endGame() {
   gameOver=true; stopTimer();
   const {bk,wh}=getScore(board);
   let msg;
-  if (mode==='cpu') msg = bk>wh?'あなたの勝ち！🎉':wh>bk?'CPU の勝ち':'引き分け';
-  else msg = bk>wh?(myColor===1?'あなたの勝ち！🎉':'相手の勝ち'):wh>bk?(myColor===2?'あなたの勝ち！🎉':'相手の勝ち'):'引き分け';
-  setStatus(`ゲーム終了 — ${msg}  (黒:${bk} 白:${wh})`);
+  if (mode==='cpu') msg = bk>wh?T('win'):wh>bk?T('cpuWin'):T('draw');
+  else msg = bk>wh?(myColor===1?T('win'):T('opWin')):wh>bk?(myColor===2?T('win'):T('opWin')):T('draw');
+  if(lang==='ja') setStatus(`ゲーム終了 — ${msg}  (黒:${bk} 白:${wh})`);
+  else setStatus(`Game over — ${msg}  (B:${bk} W:${wh})`);
   draw(); updateResignBtn();
   if (pollTid) { clearInterval(pollTid); pollTid=null; }
 }
 
 function doResign() {
   if (gameOver) return;
-  if (!confirm('投了しますか？')) return;
+  if (!confirm(T('resignMsg'))) return;
   stopTimer();
   gameOver = true;
   const loser = myColor;
-  const winner = loser === 1 ? '白' : '黒';
-  setStatus(`投了 — ${winner}の勝ち！`);
+  const winner = loser === 1 ? T('whiteLabel') : T('blackLabel');
+  setStatus(T('resignWin',{w:winner}));
   draw(); updateResignBtn();
   if (mode === 'online') {
     const mc = lastMoves + 1;
@@ -572,33 +614,33 @@ document.getElementById('btn-create').addEventListener('click', async () => {
     await sb('/rest/v1/rooms',{method:'POST',body:JSON.stringify({id:code,game:GAME,state,player1_token:tok,status:'waiting'})});
     document.getElementById('room-code').textContent=code;
     document.getElementById('code-display').style.display='block';
-    document.getElementById('online-msg').textContent='相手の接続を待っています...';
+    document.getElementById('online-msg').textContent=T('waiting');
     board=initBoard(); turn=1; gameOver=true; validMoves=[];
     updScore(); draw(); updateResignBtn();
     pollTid = setInterval(pollRoom, 2000);
-  } catch(e) { document.getElementById('online-msg').textContent='作成失敗: '+e.message; }
+  } catch(e) { document.getElementById('online-msg').textContent=T('createFail')+e.message; }
 });
 
 // Online: Join room
 document.getElementById('btn-join').addEventListener('click', async () => {
   const code=document.getElementById('code-input').value.trim().toUpperCase();
-  if (code.length!==6) { alert('6文字のコードを入力してください'); return; }
+  if (code.length!==6) { alert(T('enter6')); return; }
   const tok=genTok();
   try {
     const rows=await sb(`/rest/v1/rooms?id=eq.${code}&game=eq.${GAME}`);
-    if (!rows||!rows.length) { alert('ルームが見つかりません'); return; }
+    if (!rows||!rows.length) { alert(T('roomNotFound')); return; }
     const room=rows[0];
-    if (room.status!=='waiting') { alert('このルームは既に開始済みです'); return; }
+    if (room.status!=='waiting') { alert(T('roomStarted')); return; }
     await sb(`/rest/v1/rooms?id=eq.${code}`,{method:'PATCH',body:JSON.stringify({player2_token:tok,status:'playing'})});
     roomId=code; myRole='guest'; myColor=2; lastMoves=0;
     const st=room.state;
     board=st.board; turn=st.turn; gameOver=false; lastMove=st.lastMove||null;
     validMoves=validFor(board,turn);
-    document.getElementById('online-msg').textContent='接続しました！あなたは白（後手）';
-    setStatus(turn===myColor?'⬜ あなたの番':'⬛ 相手の番');
+    document.getElementById('online-msg').textContent=T('joined');
+    setStatus(turn===myColor?T('yourTurnW'):T('oppTurnB'));
     updScore(); draw(); updateResignBtn();
     pollTid = setInterval(pollRoom, 2000);
-  } catch(e) { document.getElementById('online-msg').textContent='参加失敗: '+e.message; }
+  } catch(e) { document.getElementById('online-msg').textContent=T('joinFail')+e.message; }
 });
 
 async function pollRoom() {
@@ -610,8 +652,8 @@ async function pollRoom() {
     if (myRole==='host' && room.status==='playing' && gameOver) {
       gameOver=false; board=initBoard(); turn=1; lastMove=null;
       validMoves=validFor(board,1);
-      document.getElementById('online-msg').textContent='相手が接続しました！あなたは黒（先手）';
-      setStatus('⬛ あなたの番（黒）');
+      document.getElementById('online-msg').textContent=T('connected');
+      setStatus(T('yourTurnB'));
       updScore(); draw(); updateResignBtn(); return;
     }
     const rm=st.moves||0;
@@ -621,10 +663,12 @@ async function pollRoom() {
       if (st.winner>0) {
         const {bk,wh}=getScore(board);
         const won=st.winner===myColor;
-        setStatus(`ゲーム終了 — ${st.winner===3?'引き分け':won?'あなたの勝ち！🎉':'相手の勝ち'}  (黒:${bk} 白:${wh})`);
+        const omsg=st.winner===3?T('draw'):won?T('win'):T('opWin');
+        if(lang==='ja') setStatus(`ゲーム終了 — ${omsg}  (黒:${bk} 白:${wh})`);
+        else setStatus(`Game over — ${omsg}  (B:${bk} W:${wh})`);
         clearInterval(pollTid); pollTid=null;
       } else {
-        setStatus(turn===myColor?(myColor===1?'⬛ あなたの番':'⬜ あなたの番'):(myColor===1?'⬜ 相手の番':'⬛ 相手の番'));
+        setStatus(turn===myColor?(myColor===1?T('yourTurnB'):T('yourTurnW')):(myColor===1?T('oppTurnW'):T('oppTurnB')));
       }
       updScore(); draw(); updateResignBtn();
     }
@@ -659,7 +703,7 @@ async function subRating(stars,cmt){
 }
 function renderR(list){
   const el=document.getElementById('rlist');
-  if(!list.length){el.innerHTML='<div style="color:#333;text-align:center;font-size:0.72rem;padding:8px">まだ評価がありません</div>';return;}
+  if(!list.length){el.innerHTML=`<div style="color:#333;text-align:center;font-size:0.72rem;padding:8px">${T('noRatings')}</div>`;return;}
   el.innerHTML=list.map(r=>`<div class="ri"><span class="rs">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</span><span class="rd">${new Date(r.created_at).toLocaleDateString('ja-JP')}</span>${r.comment?`<p class="rc">${r.comment.replace(/</g,'&lt;')}</p>`:''}</div>`).join('');
 }
 function avgBadge(list){
@@ -671,12 +715,13 @@ function avgBadge(list){
 let sel=0;
 document.getElementById('rtoggle').addEventListener('click',()=>document.getElementById('rform').classList.toggle('open'));
 document.querySelectorAll('.star').forEach(s=>s.addEventListener('click',()=>{sel=+s.dataset.v;document.querySelectorAll('.star').forEach((st,i)=>st.classList.toggle('active',i<sel));}));
-document.getElementById('rsub').addEventListener('click',async()=>{if(!sel){alert('星を選んでください');return;}await subRating(sel,document.getElementById('cmt').value.trim());sel=0;document.querySelectorAll('.star').forEach(s=>s.classList.remove('active'));document.getElementById('cmt').value='';document.getElementById('rform').classList.remove('open');});
+document.getElementById('rsub').addEventListener('click',async()=>{if(!sel){alert(lang==='ja'?'星を選んでください':'Please select a star rating');return;}await subRating(sel,document.getElementById('cmt').value.trim());sel=0;document.querySelectorAll('.star').forEach(s=>s.classList.remove('active'));document.getElementById('cmt').value='';document.getElementById('rform').classList.remove('open');});
 document.getElementById('help-toggle').addEventListener('click',()=>document.getElementById('help-panel').classList.toggle('open'));
 
 // Init
 resize();
 window.addEventListener('resize',()=>{resize();draw();});
+applyLang();
 startCpu();
 loadRatings();
 

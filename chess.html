@@ -71,13 +71,13 @@
 <button id="lang-btn">EN</button>
 <h1>CHESS</h1>
 <div id="info-bar">
-  <div class="cap-box"><span class="cap-label">白</span><span class="cap-pieces" id="cap-w"></span></div>
-  <div class="cap-box"><span class="cap-label">黒</span><span class="cap-pieces" id="cap-b"></span></div>
+  <div class="cap-box"><span class="cap-label" id="lbl-white">白</span><span class="cap-pieces" id="cap-w"></span></div>
+  <div class="cap-box"><span class="cap-label" id="lbl-black">黒</span><span class="cap-pieces" id="cap-b"></span></div>
 </div>
 <div id="status">vs CPU モード</div>
 <div id="mode-buttons">
   <button class="mbtn active" id="btn-cpu">vs CPU</button>
-  <button class="mbtn" id="btn-online">🌐 オンライン 2P</button>
+  <button class="mbtn" id="btn-online">🌐 <span id="lbl-online">オンライン 2P</span></button>
 </div>
 <div id="diff-row">
   <button class="dbtn active" id="diff-weak" data-d="weak">弱い</button>
@@ -87,9 +87,9 @@
 <div id="online-panel">
   <button class="obtn" id="btn-create">ルームを作成（あなたが白）</button>
   <div id="code-display">
-    <div style="font-size:0.65rem;color:#555;margin-bottom:4px">ルームコード</div>
+    <div style="font-size:0.65rem;color:#555;margin-bottom:4px" id="lbl-roomcode">ルームコード</div>
     <div id="room-code">------</div>
-    <div style="font-size:0.65rem;color:#444;margin-top:4px">相手にこのコードを伝えてください</div>
+    <div style="font-size:0.65rem;color:#444;margin-top:4px" id="lbl-sharecode">相手にこのコードを伝えてください</div>
   </div>
   <div id="join-row">
     <input id="code-input" type="text" placeholder="コードを入力" maxlength="6">
@@ -100,7 +100,7 @@
 <div id="canvas-wrap">
   <canvas id="c"></canvas>
   <div id="promo-modal">
-    <div class="promo-title">PROMOTION — 成駒を選択</div>
+    <div class="promo-title" id="promo-title">PROMOTION — 成駒を選択</div>
     <div class="promo-pieces">
       <div class="promo-btn" data-p="Q">♛</div>
       <div class="promo-btn" data-p="R">♜</div>
@@ -113,7 +113,7 @@
 <button id="help-toggle">? ルール</button>
 <div id="help-panel">
   <div class="hp-t">CHESS RULES</div>
-  <div class="hp-n">
+  <div class="hp-n" id="help-content">
     ♙ 白が先手（下側）<br>
     ● 駒をクリックして移動先を選択<br>
     ● キング取られたら負け（チェックメイト）<br>
@@ -123,7 +123,7 @@
 </div>
 <div id="rating-section">
   <div class="avg-d" id="avg-d"></div>
-  <div id="rtoggle">★ このゲームを評価する</div>
+  <div id="rtoggle">★ <span id="lbl-rate">このゲームを評価する</span></div>
   <div id="rform">
     <div id="star-input">
       <span class="star" data-v="1">★</span><span class="star" data-v="2">★</span>
@@ -138,10 +138,63 @@
 <a href="index.html" class="back">← ARCADE</a>
 
 <script>
-const LANG={ja:{yourTurn:'♙ あなたの番（白）',cpuThink:'CPU 思考中...',win:'あなたの勝ち！🎉',cpuWin:'CPU の勝ち',opWin:'相手の勝ち',draw:'引き分け',resign:'投了',resignMsg:'投了しますか？',weak:'弱い',normal:'普通',strong:'強い',checkmate:'チェックメイト',stalemate:'ステールメイト — 引き分け',check:'チェック！⚠'},en:{yourTurn:'♙ Your turn (White)',cpuThink:'CPU thinking...',win:'You win! 🎉',cpuWin:'CPU wins',opWin:'Opponent wins',draw:'Draw',resign:'Resign',resignMsg:'Resign?',weak:'Weak',normal:'Normal',strong:'Strong',checkmate:'Checkmate',stalemate:'Stalemate — Draw',check:'Check! ⚠'}};
-let lang='ja';
-function T(k){return LANG[lang][k]||LANG.ja[k]||k;}
-document.getElementById('lang-btn').addEventListener('click',()=>{lang=lang==='ja'?'en':'ja';document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';document.getElementById('btn-resign').textContent=T('resign');document.querySelectorAll('.dbtn').forEach(b=>b.textContent=T(b.dataset.d));});
+const LANG={
+  ja:{yourTurn:'♙ あなたの番（白）',cpuThink:'CPU 思考中...',win:'あなたの勝ち！🎉',cpuWin:'CPU の勝ち',opWin:'相手の勝ち',draw:'引き分け',resign:'投了',resignMsg:'投了しますか？',weak:'弱い',normal:'普通',strong:'強い',checkmate:'チェックメイト',stalemate:'ステールメイト — 引き分け',check:'チェック！⚠',
+      whiteTurn:'♙ 白の番',blackTurn:'♟ 黒の番',checkWhite:'チェック！⚠ 白の番',checkBlack:'チェック！⚠ 黒の番',
+      yourTurnW:'♙ あなたの番',yourTurnB:'♟ あなたの番',oppTurnW:'♙ 相手の番',oppTurnB:'♟ 相手の番',
+      whiteLabel:'白',blackLabel:'黒',onlineMode:'オンライン 2P',helpBtn:'? ルール',
+      rateGame:'このゲームを評価する',roomCode:'ルームコード',shareCode:'相手にこのコードを伝えてください',
+      codePlaceholder:'コードを入力',joinBtn:'参加',submitBtn:'送信',commentPlaceholder:'コメント（任意）...',
+      noRatings:'まだ評価がありません',enter6:'6文字のコードを入力してください',
+      roomNotFound:'ルームが見つかりません',roomStarted:'このルームは既に開始済みです',
+      createRoom:'ルームを作成（あなたが白）',waiting:'相手の接続を待っています...',
+      connected:'相手が接続しました！あなたは白（先手）',joined:'接続しました！あなたは黒（後手）',
+      createLabel:'ルームを作成するか参加してください',createFail:'作成失敗: ',joinFail:'参加失敗: ',
+      resignWin:'投了 — {w}の勝ち！',gameEnd:'ゲーム終了 — {msg}',
+      checkmateWin:'チェックメイト — {w}の勝ち！',promoTitle:'PROMOTION — 成駒を選択',
+      helpContent:'♙ 白が先手（下側）<br>● 駒をクリックして移動先を選択<br>● キング取られたら負け（チェックメイト）<br>● スペシャル: キャスリング、アンパッサン、ポーン成り<br>● ステールメイトで引き分け'},
+  en:{yourTurn:'♙ Your turn (White)',cpuThink:'CPU thinking...',win:'You win! 🎉',cpuWin:'CPU wins',opWin:'Opponent wins',draw:'Draw',resign:'Resign',resignMsg:'Resign?',weak:'Weak',normal:'Normal',strong:'Strong',checkmate:'Checkmate',stalemate:'Stalemate — Draw',check:'Check! ⚠',
+      whiteTurn:'♙ White\'s turn',blackTurn:'♟ Black\'s turn',checkWhite:'Check! ⚠ White\'s turn',checkBlack:'Check! ⚠ Black\'s turn',
+      yourTurnW:'♙ Your turn',yourTurnB:'♟ Your turn',oppTurnW:'♙ Opponent\'s turn',oppTurnB:'♟ Opponent\'s turn',
+      whiteLabel:'White',blackLabel:'Black',onlineMode:'Online 2P',helpBtn:'? Rules',
+      rateGame:'Rate this game',roomCode:'Room Code',shareCode:'Share this code with opponent',
+      codePlaceholder:'Enter code',joinBtn:'Join',submitBtn:'Submit',commentPlaceholder:'Comment (optional)...',
+      noRatings:'No ratings yet',enter6:'Enter a 6-character code',
+      roomNotFound:'Room not found',roomStarted:'This room has already started',
+      createRoom:'Create room (you play White)',waiting:'Waiting for opponent...',
+      connected:'Opponent joined! You play White',joined:'Connected! You play Black',
+      createLabel:'Create or join a room',createFail:'Create failed: ',joinFail:'Join failed: ',
+      resignWin:'Resigned — {w} wins!',gameEnd:'Game over — {msg}',
+      checkmateWin:'Checkmate — {w} wins!',promoTitle:'PROMOTION — Choose piece',
+      helpContent:'♙ White goes first (bottom)<br>● Click a piece then click destination<br>● Checkmate the king to win<br>● Special: castling, en passant, pawn promotion<br>● Stalemate is a draw'}
+};
+let lang = localStorage.getItem('lang') || 'ja';
+function T(k,vars={}){let s=LANG[lang][k]||LANG.ja[k]||k;Object.entries(vars).forEach(([v,val])=>s=s.replace('{'+v+'}',val));return s;}
+function applyLang(){
+  document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
+  document.documentElement.lang=lang;
+  document.getElementById('lbl-online').textContent=T('onlineMode');
+  document.getElementById('btn-create').textContent=T('createRoom');
+  document.getElementById('btn-resign').textContent=T('resign');
+  document.getElementById('lbl-white').textContent=T('whiteLabel');
+  document.getElementById('lbl-black').textContent=T('blackLabel');
+  document.getElementById('lbl-roomcode').textContent=T('roomCode');
+  document.getElementById('lbl-sharecode').textContent=T('shareCode');
+  document.getElementById('code-input').placeholder=T('codePlaceholder');
+  document.getElementById('btn-join').textContent=T('joinBtn');
+  document.getElementById('help-toggle').textContent=T('helpBtn');
+  document.getElementById('help-content').innerHTML=T('helpContent');
+  document.getElementById('promo-title').textContent=T('promoTitle');
+  document.getElementById('lbl-rate').textContent=T('rateGame');
+  document.getElementById('cmt').placeholder=T('commentPlaceholder');
+  document.getElementById('rsub').textContent=T('submitBtn');
+  document.querySelectorAll('.dbtn').forEach(b=>b.textContent=T(b.dataset.d));
+}
+document.getElementById('lang-btn').addEventListener('click',()=>{
+  lang=lang==='ja'?'en':'ja';
+  localStorage.setItem('lang',lang);
+  applyLang();
+});
 let difficulty='weak';
 document.querySelectorAll('.dbtn').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.d;document.querySelectorAll('.dbtn').forEach(x=>x.classList.toggle('active',x===b));if(!gameOver)startGame();}));
 const SUPABASE_URL = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
@@ -492,7 +545,7 @@ function startGame() {
   board=mkBoard(); turn=1; gameOver=false; selectedCell=null; legalMoves=null; lastMove=null;
   castleRights={1:{k:true,q:true},2:{k:true,q:true}};
   enPassantSq=null; captured=[]; cpuBusy=false; myColor=1; cpuColor=2;
-  setStatus('♙ あなたの番（白）');
+  setStatus(T('yourTurn'));
   draw(); updateResignBtn();
 }
 
@@ -566,22 +619,21 @@ function checkEndGame() {
   if (moves.length===0) {
     gameOver=true;
     if (inCheck(board,cl)) {
-      const winner=cl===1?'黒':'白';
-      if (mode==='cpu') setStatus(`チェックメイト — ${cl===myColor?'CPU の勝ち':'あなたの勝ち！🎉'}`);
-      else setStatus(`チェックメイト — ${cl===myColor?'相手の勝ち':'あなたの勝ち！🎉'}`);
+      const ckWinner = cl===myColor ? (mode==='cpu'?T('cpuWin'):T('opWin')) : T('win');
+      setStatus(T('checkmate')+' — '+ckWinner);
       if (mode==='online') pushGameOver(3-cl);
     } else {
-      setStatus('ステールメイト — 引き分け');
+      setStatus(T('stalemate'));
       if (mode==='online') pushGameOver(3);
     }
     updateResignBtn();
     if (pollTid) { clearInterval(pollTid); pollTid=null; }
     return;
   }
-  if (inCheck(board,cl)) setStatus(cl===1?'チェック！⚠ 白の番':'チェック！⚠ 黒の番');
-  else setStatus(cl===1?'♙ 白の番':'♟ 黒の番');
+  if (inCheck(board,cl)) setStatus(cl===1?T('checkWhite'):T('checkBlack'));
+  else setStatus(cl===1?T('whiteTurn'):T('blackTurn'));
   if (mode==='cpu'&&turn===cpuColor) {
-    cpuBusy=true; setStatus('CPU 思考中...'); updateResignBtn();
+    cpuBusy=true; setStatus(T('cpuThink')); updateResignBtn();
     setTimeout(doCpu,500);
   }
 }
@@ -601,10 +653,10 @@ function doCpu() {
 
 function doResign() {
   if (gameOver) return;
-  if (!confirm('投了しますか？')) return;
+  if (!confirm(T('resignMsg'))) return;
   gameOver=true;
-  const winner=myColor===1?'黒':'白';
-  setStatus(`投了 — ${winner}の勝ち！`);
+  const winner=myColor===1?T('blackLabel'):T('whiteLabel');
+  setStatus(T('resignWin',{w:winner}));
   draw(); updateResignBtn();
   if (mode==='online') pushGameOver(3-myColor);
   if (pollTid) { clearInterval(pollTid); pollTid=null; }
@@ -641,7 +693,7 @@ document.getElementById('btn-online').addEventListener('click',()=>{
   document.getElementById('btn-online').classList.add('active');
   document.getElementById('btn-cpu').classList.remove('active');
   document.getElementById('online-panel').classList.add('open');
-  setStatus('ルームを作成するか参加してください');
+  setStatus(T('createLabel'));
   board=mkBoard(); draw(); updateResignBtn();
 });
 document.getElementById('btn-create').addEventListener('click',async()=>{
@@ -654,30 +706,30 @@ document.getElementById('btn-create').addEventListener('click',async()=>{
     await sb('/rest/v1/rooms',{method:'POST',body:JSON.stringify({id:code,game:GAME,state,player1_token:tok,status:'waiting'})});
     document.getElementById('room-code').textContent=code;
     document.getElementById('code-display').style.display='block';
-    document.getElementById('online-msg').textContent='相手の接続を待っています...';
+    document.getElementById('online-msg').textContent=T('waiting');
     board=mkBoard(); turn=1; gameOver=true;
     draw(); updateResignBtn(); pollTid=setInterval(pollRoom,2000);
-  } catch(e) { document.getElementById('online-msg').textContent='作成失敗: '+e.message; }
+  } catch(e) { document.getElementById('online-msg').textContent=T('createFail')+e.message; }
 });
 document.getElementById('btn-join').addEventListener('click',async()=>{
   const code=document.getElementById('code-input').value.trim().toUpperCase();
-  if (code.length!==6) { alert('6文字のコードを入力してください'); return; }
+  if (code.length!==6) { alert(T('enter6')); return; }
   const tok=genTok();
   try {
     const rows=await sb(`/rest/v1/rooms?id=eq.${code}&game=eq.${GAME}`);
-    if (!rows||!rows.length) { alert('ルームが見つかりません'); return; }
+    if (!rows||!rows.length) { alert(T('roomNotFound')); return; }
     const room=rows[0];
-    if (room.status!=='waiting') { alert('このルームは既に開始済みです'); return; }
+    if (room.status!=='waiting') { alert(T('roomStarted')); return; }
     await sb(`/rest/v1/rooms?id=eq.${code}`,{method:'PATCH',body:JSON.stringify({player2_token:tok,status:'playing'})});
     roomId=code; myRole='guest'; myColor=2; lastMoveCount=0;
     const st=room.state;
     board=deserBoard(st.board); turn=st.turn; gameOver=false;
     castleRights=st.castle||{1:{k:true,q:true},2:{k:true,q:true}};
     enPassantSq=st.ep||null; captured=[];
-    document.getElementById('online-msg').textContent='接続しました！あなたは黒（後手）';
-    setStatus('♟ 相手の番（白）');
+    document.getElementById('online-msg').textContent=T('joined');
+    setStatus(T('oppTurnW'));
     draw(); updateResignBtn(); pollTid=setInterval(pollRoom,2000);
-  } catch(e) { document.getElementById('online-msg').textContent='参加失敗: '+e.message; }
+  } catch(e) { document.getElementById('online-msg').textContent=T('joinFail')+e.message; }
 });
 
 async function pollRoom() {
@@ -690,8 +742,8 @@ async function pollRoom() {
       gameOver=false; board=mkBoard(); turn=1;
       castleRights={1:{k:true,q:true},2:{k:true,q:true}};
       enPassantSq=null; captured=[]; lastMove=null;
-      document.getElementById('online-msg').textContent='相手が接続しました！あなたは白（先手）';
-      setStatus('♙ あなたの番（白）');
+      document.getElementById('online-msg').textContent=T('connected');
+      setStatus(T('yourTurn'));
       draw(); updateResignBtn(); return;
     }
     const rm=st.moves||0;
@@ -701,10 +753,11 @@ async function pollRoom() {
       lastMove=st.lastMove||null; gameOver=st.winner>0;
       if (st.winner>0) {
         const won=st.winner===myColor;
-        setStatus(`ゲーム終了 — ${st.winner===3?'引き分け':won?'あなたの勝ち！🎉':'相手の勝ち'}`);
+        const cmsg=st.winner===3?T('draw'):won?T('win'):T('opWin');
+        setStatus(T('gameEnd',{msg:cmsg}));
         clearInterval(pollTid); pollTid=null;
       } else {
-        setStatus(turn===myColor?(myColor===1?'♙ あなたの番':'♟ あなたの番'):(myColor===1?'♟ 相手の番':'♙ 相手の番'));
+        setStatus(turn===myColor?(myColor===1?T('yourTurnW'):T('yourTurnB')):(myColor===1?T('oppTurnB'):T('oppTurnW')));
       }
       draw(); updateResignBtn();
     }
@@ -742,7 +795,7 @@ async function subRating(stars,cmt){
 }
 function renderR(list){
   const el=document.getElementById('rlist');
-  if(!list.length){el.innerHTML='<div style="color:#333;text-align:center;font-size:0.72rem;padding:8px">まだ評価がありません</div>';return;}
+  if(!list.length){el.innerHTML=`<div style="color:#333;text-align:center;font-size:0.72rem;padding:8px">${T('noRatings')}</div>`;return;}
   el.innerHTML=list.map(r=>`<div class="ri"><span class="rs">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</span><span class="rd">${new Date(r.created_at).toLocaleDateString('ja-JP')}</span>${r.comment?`<p class="rc">${r.comment.replace(/</g,'&lt;')}</p>`:''}</div>`).join('');
 }
 function avgBadge(list){
@@ -754,11 +807,12 @@ function avgBadge(list){
 let sel=0;
 document.getElementById('rtoggle').addEventListener('click',()=>document.getElementById('rform').classList.toggle('open'));
 document.querySelectorAll('.star').forEach(s=>s.addEventListener('click',()=>{sel=+s.dataset.v;document.querySelectorAll('.star').forEach((st,i)=>st.classList.toggle('active',i<sel));}));
-document.getElementById('rsub').addEventListener('click',async()=>{if(!sel){alert('星を選んでください');return;}await subRating(sel,document.getElementById('cmt').value.trim());sel=0;document.querySelectorAll('.star').forEach(s=>s.classList.remove('active'));document.getElementById('cmt').value='';document.getElementById('rform').classList.remove('open');});
+document.getElementById('rsub').addEventListener('click',async()=>{if(!sel){alert(lang==='ja'?'星を選んでください':'Please select a star rating');return;}await subRating(sel,document.getElementById('cmt').value.trim());sel=0;document.querySelectorAll('.star').forEach(s=>s.classList.remove('active'));document.getElementById('cmt').value='';document.getElementById('rform').classList.remove('open');});
 document.getElementById('help-toggle').addEventListener('click',()=>document.getElementById('help-panel').classList.toggle('open'));
 
 resize();
 window.addEventListener('resize',()=>{resize();draw();});
+applyLang();
 startGame();
 loadRatings();
 const hash=location.hash.slice(1);
