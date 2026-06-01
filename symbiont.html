@@ -62,13 +62,58 @@
     .hp-sep { border: none; border-top: 1px solid #222; margin: 8px 0; }
     .hp-note { font-size: 0.65rem; color: #444; line-height: 1.7; }
 
+    /* グローバルベスト・リーダーボード */
+    #global-section {
+      margin-top: 16px; width: 100%; max-width: 580px;
+    }
+    #global-best {
+      text-align: center; font-size: 0.78rem; color: #555;
+      padding: 6px 0; letter-spacing: 1px;
+    }
+    #global-best b { color: #ffe066; }
+    #leaderboard-wrap {
+      background: #0d0d1a; border: 1px solid #1e1e2e;
+      border-radius: 8px; padding: 12px; margin-top: 8px;
+    }
+    #leaderboard-title { font-size: 0.6rem; letter-spacing: 3px; color: #444; margin-bottom: 10px; }
+    .lb-row { display: flex; gap: 10px; align-items: center; padding: 4px 0; font-size: 0.75rem; border-top: 1px solid #1a1a2a; }
+    .lb-rank { width: 22px; text-align: center; font-size: 0.7rem; color: #555; }
+    .lb-name { flex: 1; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lb-score { color: #ffe066; font-size: 0.82rem; }
+    .lb-empty { color: #333; font-size: 0.72rem; text-align: center; padding: 8px 0; }
+
+    /* スコア送信ダイアログ */
+    #score-dialog {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75); z-index: 20;
+      align-items: center; justify-content: center;
+    }
+    #score-dialog.open { display: flex; }
+    #score-dialog-inner {
+      background: #13131f; border: 1px solid #333; border-radius: 12px;
+      padding: 24px; width: 300px; text-align: center;
+    }
+    #score-dialog h3 { font-size: 1rem; letter-spacing: 4px; color: #ffe066; margin-bottom: 6px; }
+    #score-dialog .score-val { font-size: 1.8rem; color: #fff; margin-bottom: 16px; }
+    #player-name {
+      width: 100%; background: #0d0d1a; border: 1px solid #333; border-radius: 6px;
+      color: #ccc; font-family: 'Courier New', monospace; font-size: 0.85rem;
+      padding: 8px 10px; margin-bottom: 12px; text-align: center;
+    }
+    .dialog-btn {
+      display: block; width: 100%; padding: 10px; border-radius: 6px;
+      font-family: 'Courier New', monospace; font-size: 0.82rem; letter-spacing: 2px;
+      cursor: pointer; border: none; margin-bottom: 8px;
+    }
+    #btn-submit-score { background: linear-gradient(135deg,#ffe066,#aa88ff); color:#000; font-weight:bold; }
+    #btn-skip-score { background: #1e1e2e; color: #555; }
+    #btn-submit-score:hover { opacity: 0.85; }
+    #btn-skip-score:hover { color: #888; }
+
     /* 評価・コメント */
     #rating-section {
-      margin-top: 16px;
-      width: 100%;
-      max-width: 580px;
-      border-top: 1px solid #222;
-      padding-top: 14px;
+      margin-top: 16px; width: 100%; max-width: 580px;
+      border-top: 1px solid #222; padding-top: 14px;
     }
     #rating-toggle { cursor: pointer; font-size: 0.8rem; color: #555; letter-spacing: 2px; text-align: center; padding: 6px; }
     #rating-toggle:hover { color: #ffe066; }
@@ -124,6 +169,28 @@
   </div>
 </div>
 
+<!-- グローバルベスト & リーダーボード -->
+<div id="global-section">
+  <div id="global-best">🌐 グローバルベスト: <b id="gb-score">---</b></div>
+  <div id="leaderboard-wrap">
+    <div id="leaderboard-title">LEADERBOARD — TOP 10</div>
+    <div id="leaderboard-body"><div class="lb-empty">読み込み中...</div></div>
+  </div>
+</div>
+
+<!-- スコア送信ダイアログ -->
+<div id="score-dialog">
+  <div id="score-dialog-inner">
+    <h3>GAME OVER</h3>
+    <div class="score-val" id="dialog-score">0</div>
+    <p style="font-size:0.75rem;color:#666;margin-bottom:12px">スコアを登録しますか？</p>
+    <input id="player-name" type="text" placeholder="プレイヤー名（任意）" maxlength="20">
+    <button class="dialog-btn" id="btn-submit-score">登録する</button>
+    <button class="dialog-btn" id="btn-skip-score">スキップ</button>
+  </div>
+</div>
+
+<!-- 評価 -->
 <div id="rating-section">
   <div class="avg-display" id="avg-display"></div>
   <div id="rating-toggle">★ このゲームを評価する</div>
@@ -174,7 +241,15 @@
 </div>
 
 <script>
-const GAME_KEY = 'symbiont';
+// ============================================================
+// Supabase 設定
+// ============================================================
+const SUPABASE_URL  = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
+const SUPABASE_KEY  = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+const SUPABASE_READY = true;
+// ============================================================
+
+const GAME = 'symbiont';
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 let W, H, MID;
@@ -205,8 +280,7 @@ document.addEventListener('keyup', e => { keys[e.key] = false; });
 const light = { x: 0, y: 0, r: 13, vx: 0, vy: 0, trail: [] };
 const dark  = { x: 0, y: 0, r: 13, vx: 0, vy: 0, trail: [] };
 
-// タッチジョイスティック
-const joys = {}; // id -> {startX,startY,curX,curY,zone}
+const joys = {};
 canvas.addEventListener('touchstart', e => {
   e.preventDefault();
   if (state !== 'playing') { startGame(); return; }
@@ -280,15 +354,12 @@ function emit(x,y,color,n=6){
 }
 
 function updateOrganism(org, up, down, left, right, yMin, yMax, touchZone) {
-  // キーボード
   if(keys[up])    org.vy-=SPEED*0.3;
   if(keys[down])  org.vy+=SPEED*0.3;
   if(keys[left])  org.vx-=SPEED*0.3;
   if(keys[right]) org.vx+=SPEED*0.3;
-  // タッチ
   const tv = getTouchVel(touchZone);
   if(tv){ org.vx+=tv.x*SPEED*0.3; org.vy+=tv.y*SPEED*0.3; }
-
   const mag=Math.hypot(org.vx,org.vy);
   if(mag>SPEED){org.vx=org.vx/mag*SPEED;org.vy=org.vy/mag*SPEED;}
   org.vx*=FRICTION; org.vy*=FRICTION;
@@ -324,7 +395,7 @@ function update() {
   });
   particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vx*=0.9;p.vy*=0.9;p.life-=0.04;});
   particles=particles.filter(p=>p.life>0);
-  if(hp<=0){hp=0;state='dead';showGameOver();}
+  if(hp<=0){hp=0;state='dead';onGameOver();}
   updateUI();
 }
 
@@ -333,10 +404,15 @@ function updateUI(){
   document.getElementById('hp').textContent=Math.ceil(hp);
   document.getElementById('healthbar').style.width=hp+'%';
 }
-function showGameOver(){
+
+function onGameOver() {
   const ov=document.getElementById('overlay');
   ov.innerHTML=`<h2 style="color:#ff4444">GAME OVER</h2><p>スコア: <strong>${score}</strong></p><p class="hint">スペースキー または タップでリスタート</p>`;
   ov.style.display='flex';
+  if(score > 0) {
+    document.getElementById('dialog-score').textContent = score;
+    document.getElementById('score-dialog').classList.add('open');
+  }
 }
 
 function drawBg(){
@@ -413,21 +489,104 @@ function loop(){ if(state==='playing') update(); draw(); requestAnimationFrame(l
 // ヘルプ
 document.getElementById('help-toggle').addEventListener('click',()=>document.getElementById('help-panel').classList.toggle('open'));
 
-// ---- 評価・コメント ----
-let selectedStars=0;
-function loadRatings(){return JSON.parse(localStorage.getItem('ratings_'+GAME_KEY)||'[]');}
-function saveRating(stars,comment){const list=loadRatings();list.unshift({stars,comment,date:new Date().toLocaleDateString('ja-JP')});localStorage.setItem('ratings_'+GAME_KEY,JSON.stringify(list));}
-function renderAvg(){
-  const list=loadRatings(); const el=document.getElementById('avg-display');
-  if(!list.length){el.textContent='';return;}
-  const avg=(list.reduce((s,r)=>s+r.stars,0)/list.length).toFixed(1);
-  el.innerHTML=`<span>${'★'.repeat(Math.round(avg))}</span> ${avg} (${list.length}件の評価)`;
+// ============================================================
+// Supabase API
+// ============================================================
+async function sbFetch(path, options={}) {
+  const res = await fetch(SUPABASE_URL + path, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal',
+      ...options.headers
+    },
+    ...options
+  });
+  if (!res.ok && res.status !== 201) throw new Error(await res.text());
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
-function renderRatings(){
-  const list=loadRatings(); const el=document.getElementById('ratings-list');
-  if(!list.length){el.innerHTML='<p class="no-ratings">まだ評価がありません</p>';return;}
-  el.innerHTML=list.map(r=>`<div class="rating-item"><span class="rating-stars">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</span><span class="rating-date">${r.date}</span>${r.comment?`<p class="rating-comment">${r.comment.replace(/</g,'&lt;')}</p>`:''}</div>`).join('');
+
+async function loadLeaderboard() {
+  if (!SUPABASE_READY) { document.getElementById('leaderboard-body').innerHTML='<div class="lb-empty">未設定</div>'; return; }
+  try {
+    const rows = await sbFetch(`/rest/v1/scores?game=eq.${GAME}&order=score.desc&limit=10`, { headers:{'Prefer':'return=representation'} });
+    if (!rows || !rows.length) { document.getElementById('leaderboard-body').innerHTML='<div class="lb-empty">まだ記録がありません</div>'; return; }
+    const medals = ['🥇','🥈','🥉'];
+    document.getElementById('gb-score').textContent = rows[0].score.toLocaleString();
+    document.getElementById('leaderboard-body').innerHTML = rows.map((r,i) =>
+      `<div class="lb-row"><span class="lb-rank">${medals[i]||i+1}</span><span class="lb-name">${escHtml(r.player_name||'Anonymous')}</span><span class="lb-score">${r.score.toLocaleString()}</span></div>`
+    ).join('');
+  } catch(e) { document.getElementById('leaderboard-body').innerHTML='<div class="lb-empty">読み込み失敗</div>'; }
 }
+
+async function submitScore(scoreVal, playerName) {
+  if (!SUPABASE_READY) return;
+  try {
+    await sbFetch('/rest/v1/scores', {
+      method: 'POST',
+      body: JSON.stringify({ game: GAME, score: scoreVal, player_name: playerName || 'Anonymous' })
+    });
+    await loadLeaderboard();
+  } catch(e) { console.error('score submit failed', e); }
+}
+
+async function loadRatings() {
+  if (!SUPABASE_READY) { renderRatings(JSON.parse(localStorage.getItem('ratings_'+GAME)||'[]')); return; }
+  try {
+    const rows = await sbFetch(`/rest/v1/ratings?game=eq.${GAME}&order=created_at.desc&limit=20`, { headers:{'Prefer':'return=representation'} });
+    renderRatings(rows || []);
+    updateAvgBadge(rows || []);
+  } catch(e) { renderRatings([]); }
+}
+
+async function submitRating(stars, comment) {
+  if (!SUPABASE_READY) {
+    const list = JSON.parse(localStorage.getItem('ratings_'+GAME)||'[]');
+    list.unshift({stars, comment, created_at: new Date().toISOString()});
+    localStorage.setItem('ratings_'+GAME, JSON.stringify(list));
+    renderRatings(list); updateAvgBadge(list); return;
+  }
+  try {
+    await sbFetch('/rest/v1/ratings', {
+      method: 'POST',
+      body: JSON.stringify({ game: GAME, stars, comment: comment || null })
+    });
+    await loadRatings();
+  } catch(e) { alert('送信に失敗しました'); }
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtDate(s) { return s ? new Date(s).toLocaleDateString('ja-JP') : ''; }
+
+function renderRatings(list) {
+  const el = document.getElementById('ratings-list');
+  if (!list.length) { el.innerHTML='<p class="no-ratings">まだ評価がありません</p>'; return; }
+  el.innerHTML = list.map(r =>
+    `<div class="rating-item"><span class="rating-stars">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</span><span class="rating-date">${fmtDate(r.created_at||r.date)}</span>${r.comment?`<p class="rating-comment">${escHtml(r.comment)}</p>`:''}</div>`
+  ).join('');
+}
+
+function updateAvgBadge(list) {
+  const el = document.getElementById('avg-display');
+  if (!list.length) { el.textContent=''; return; }
+  const avg = (list.reduce((s,r)=>s+r.stars,0)/list.length).toFixed(1);
+  el.innerHTML = `<span>${'★'.repeat(Math.round(avg))}</span> ${avg} (${list.length}件の評価)`;
+}
+
+// スコアダイアログ
+document.getElementById('btn-submit-score').addEventListener('click', async () => {
+  const name = document.getElementById('player-name').value.trim();
+  document.getElementById('score-dialog').classList.remove('open');
+  await submitScore(score, name);
+});
+document.getElementById('btn-skip-score').addEventListener('click', () => {
+  document.getElementById('score-dialog').classList.remove('open');
+});
+
+// 評価フォーム
+let selectedStars = 0;
 document.getElementById('rating-toggle').addEventListener('click',()=>document.getElementById('rating-form').classList.toggle('open'));
 document.querySelectorAll('.star').forEach(s=>{
   s.addEventListener('click',()=>{
@@ -435,17 +594,20 @@ document.querySelectorAll('.star').forEach(s=>{
     document.querySelectorAll('.star').forEach((st,i)=>st.classList.toggle('active',i<selectedStars));
   });
 });
-document.getElementById('submit-rating').addEventListener('click',()=>{
+document.getElementById('submit-rating').addEventListener('click', async () => {
   if(!selectedStars){alert('星を選んでください');return;}
-  saveRating(selectedStars,document.getElementById('comment-input').value.trim());
+  const comment = document.getElementById('comment-input').value.trim();
+  document.getElementById('submit-rating').disabled=true;
+  await submitRating(selectedStars, comment);
   selectedStars=0;
   document.querySelectorAll('.star').forEach(s=>s.classList.remove('active'));
   document.getElementById('comment-input').value='';
   document.getElementById('rating-form').classList.remove('open');
-  renderAvg(); renderRatings();
+  document.getElementById('submit-rating').disabled=false;
 });
 
-renderAvg(); renderRatings();
+loadLeaderboard();
+loadRatings();
 spawnNutrient(); spawnNutrient();
 loop();
 </script>

@@ -156,15 +156,35 @@
 </div>
 
 <script>
-// 評価の平均をlocalStorageから読み込み
-function showAvg(key, elId) {
-  const list = JSON.parse(localStorage.getItem('ratings_' + key) || '[]');
-  if (!list.length) return;
-  const avg = (list.reduce((s,r) => s + r.stars, 0) / list.length).toFixed(1);
-  document.getElementById(elId).textContent = `★ ${avg} (${list.length})`;
+const SUPABASE_URL = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+
+async function sbGet(path) {
+  try {
+    const res = await fetch(SUPABASE_URL + path, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    const text = await res.text();
+    return text ? JSON.parse(text) : [];
+  } catch(e) { return []; }
 }
-showAvg('snake', 'avg-snake');
-showAvg('symbiont', 'avg-symbiont');
+
+async function loadGlobalAvg(game, elId) {
+  const rows = await sbGet(`/rest/v1/ratings?game=eq.${game}&select=stars`);
+  if (!rows.length) {
+    // fallback to localStorage
+    const list = JSON.parse(localStorage.getItem('ratings_' + game) || '[]');
+    if (!list.length) return;
+    const avg = (list.reduce((s,r) => s + r.stars, 0) / list.length).toFixed(1);
+    document.getElementById(elId).textContent = `★ ${avg} (${list.length})`;
+    return;
+  }
+  const avg = (rows.reduce((s,r) => s + r.stars, 0) / rows.length).toFixed(1);
+  document.getElementById(elId).textContent = `★ ${avg} (${rows.length})`;
+}
+
+loadGlobalAvg('snake', 'avg-snake');
+loadGlobalAvg('symbiont', 'avg-symbiont');
 
 // --- Snake preview ---
 (function() {
