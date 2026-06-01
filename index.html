@@ -40,6 +40,7 @@
     .card-title { font-size: 1.3rem; letter-spacing: 4px; }
     .avg-badge { font-size: 0.75rem; color: #ffd700; }
     .card-desc { font-size: 0.78rem; color: #888; line-height: 1.8; margin-bottom: 14px; }
+
     .device-badge {
       display: inline-flex; align-items: center; gap: 5px;
       font-size: 0.65rem; padding: 4px 10px;
@@ -47,6 +48,7 @@
       color: #666; margin-bottom: 14px;
     }
     .device-badge .icon { font-size: 0.8rem; }
+
     .controls {
       background: #0d0d1a; border: 1px solid #2a2a3a; border-radius: 8px;
       padding: 11px 13px; margin-bottom: 14px;
@@ -58,6 +60,7 @@
       border-radius: 4px; padding: 1px 6px; font-size: 0.68rem; color: #ccc; white-space: nowrap;
     }
     .ctrl-desc { color: #666; align-self: center; }
+
     .card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
     .tag { font-size: 0.65rem; padding: 3px 10px; border-radius: 20px; border: 1px solid #333; color: #666; letter-spacing: 1px; }
     .play-btn {
@@ -71,9 +74,13 @@
   </style>
 </head>
 <body>
+
 <h1>ARCADE</h1>
 <p class="subtitle">SELECT YOUR GAME</p>
+
 <div class="cards">
+
+  <!-- Snake -->
   <div class="card">
     <canvas class="preview" id="snakePreview" width="320" height="200"></canvas>
     <div class="card-body">
@@ -82,7 +89,7 @@
         <div class="avg-badge" id="avg-snake"></div>
       </div>
       <p class="card-desc">クラシックなスネークゲーム。エサを食べるほどヘビが成長する。壁や自分の体に当たるとゲームオーバー。</p>
-      <div class="device-badge"><span class="icon">💻</span> PC  |  <span class="icon">📱</span> スマホ  両対応</div>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> スマホ&nbsp; 両対応</div>
       <div class="controls">
         <div class="controls-title">PC 操作</div>
         <div class="controls-grid">
@@ -106,6 +113,8 @@
       <a href="snake.html" class="play-btn btn-snake">▶ PLAY</a>
     </div>
   </div>
+
+  <!-- Symbiont -->
   <div class="card">
     <canvas class="preview" id="symbPreview" width="320" height="200"></canvas>
     <div class="card-body">
@@ -114,7 +123,7 @@
         <div class="avg-badge" id="avg-symbiont"></div>
       </div>
       <p class="card-desc">光と闇、2つの生命体を同時に操作する唯一無二のゲーム。糸で繋がれた2体を天敵から守りながら栄養を集めろ。</p>
-      <div class="device-badge"><span class="icon">💻</span> PC  |  <span class="icon">📱</span> スマホ  両対応</div>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> スマホ&nbsp; 両対応</div>
       <div class="controls">
         <div class="controls-title">PC 操作</div>
         <div class="controls-grid">
@@ -141,16 +150,39 @@
       <a href="symbiont.html" class="play-btn btn-symbiont">▶ PLAY</a>
     </div>
   </div>
+
 </div>
+
 <script>
-function showAvg(key, elId) {
-  const list = JSON.parse(localStorage.getItem('ratings_' + key) || '[]');
-  if (!list.length) return;
-  const avg = (list.reduce((s,r) => s + r.stars, 0) / list.length).toFixed(1);
-  document.getElementById(elId).textContent = `★ ${avg} (${list.length})`;
+const SUPABASE_URL = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+
+async function sbGet(path) {
+  try {
+    const res = await fetch(SUPABASE_URL + path, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    const text = await res.text();
+    return text ? JSON.parse(text) : [];
+  } catch(e) { return []; }
 }
-showAvg('snake', 'avg-snake');
-showAvg('symbiont', 'avg-symbiont');
+
+async function loadGlobalAvg(game, elId) {
+  const rows = await sbGet(`/rest/v1/ratings?game=eq.${game}&select=stars`);
+  if (!rows.length) {
+    const list = JSON.parse(localStorage.getItem('ratings_' + game) || '[]');
+    if (!list.length) return;
+    const avg = (list.reduce((s,r) => s + r.stars, 0) / list.length).toFixed(1);
+    document.getElementById(elId).textContent = `★ ${avg} (${list.length})`;
+    return;
+  }
+  const avg = (rows.reduce((s,r) => s + r.stars, 0) / rows.length).toFixed(1);
+  document.getElementById(elId).textContent = `★ ${avg} (${rows.length})`;
+}
+
+loadGlobalAvg('snake', 'avg-snake');
+loadGlobalAvg('symbiont', 'avg-symbiont');
+
 (function() {
   const c = document.getElementById('snakePreview');
   const ctx = c.getContext('2d');
@@ -174,6 +206,7 @@ showAvg('symbiont', 'avg-symbiont');
   ctx.fillStyle='#00d4aa'; ctx.font='11px Courier New';
   ctx.fillText('SCORE: 110   HI: 220', 12, H-10);
 })();
+
 (function() {
   const c = document.getElementById('symbPreview');
   const ctx = c.getContext('2d');
