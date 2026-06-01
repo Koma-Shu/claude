@@ -99,7 +99,6 @@ function draw() {
   ctx.fillStyle = '#0f0f1a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // grid (subtle)
   ctx.strokeStyle = 'rgba(255,255,255,0.03)';
   ctx.lineWidth = 0.5;
   for (let i = 0; i <= COLS; i++) {
@@ -109,14 +108,12 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(0, j*CELL); ctx.lineTo(canvas.width, j*CELL); ctx.stroke();
   }
 
-  // food
   ctx.fillStyle = '#ff6b6b';
   ctx.shadowColor = '#ff6b6b';
   ctx.shadowBlur = 10;
   ctx.fillRect(food.x*CELL+2, food.y*CELL+2, CELL-4, CELL-4);
   ctx.shadowBlur = 0;
 
-  // snake
   snake.forEach((seg, i) => {
     const ratio = 1 - i / snake.length;
     ctx.fillStyle = `rgba(0, ${Math.floor(180 + 75*ratio)}, ${Math.floor(100 + 110*ratio)}, 1)`;
@@ -166,7 +163,6 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// initial draw
 init();
 draw();
 </script>
