@@ -35,7 +35,7 @@
       height: 100%;
       width: 100%;
       background: linear-gradient(90deg, #00e5a0, #00aaff);
-      transition: width 0.2s;
+      transition: width 0.1s;
       border-radius: 7px;
     }
     canvas { display: block; border: 1px solid #333; }
@@ -88,6 +88,7 @@ let state = 'idle';
 let score = 0, hp = 100;
 let nutrients = [], predators = [], particles = [];
 let frameCount = 0;
+let invincible = 0;
 
 const keys = {};
 document.addEventListener('keydown', e => {
@@ -107,10 +108,11 @@ const TETHER_MAX = 260;
 const TETHER_WARN = 200;
 const SPEED = 2.8;
 const FRICTION = 0.82;
+const PREDATOR_LIFETIME = 420;
 
 function startGame() {
   state = 'playing';
-  score = 0; hp = 100;
+  score = 0; hp = 100; invincible = 0;
   light.x = W/2; light.y = MID - 70; light.vx=0; light.vy=0; light.trail=[];
   dark.x  = W/2; dark.y  = MID + 70; dark.vx=0; dark.vy=0; dark.trail=[];
   nutrients = []; predators = []; particles = [];
@@ -134,7 +136,7 @@ function spawnPredator() {
   else if (side===1) { x=rand(0,W); y=yMax; }
   else if (side===2) { x=0; y=rand(yMin,yMax); }
   else { x=W; y=rand(yMin,yMax); }
-  predators.push({ x, y, zone, r: 10, spd: 0.9 + Math.random()*0.6 });
+  predators.push({ x, y, zone, r: 10, spd: 0.9 + Math.random()*0.6, age: 0 });
 }
 
 function rand(a, b) { return a + Math.random()*(b-a); }
@@ -163,8 +165,11 @@ function updateOrganism(org, up, down, left, right, yMin, yMax) {
 
 function update() {
   frameCount++;
+  if (invincible > 0) invincible--;
+
   updateOrganism(light, 'w','s','a','d', 0, MID);
   updateOrganism(dark, 'ArrowUp','ArrowDown','ArrowLeft','ArrowRight', MID, H);
+
   const dist = Math.hypot(light.x - dark.x, light.y - dark.y);
   if (dist > TETHER_MAX) {
     const dmg = (dist - TETHER_MAX) * 0.06;
@@ -172,6 +177,7 @@ function update() {
     emit(light.x, light.y, '#ff4444', 2);
     emit(dark.x, dark.y, '#ff4444', 2);
   }
+
   if (frameCount % 90 === 0) spawnNutrient();
   nutrients = nutrients.filter(n => {
     n.age++;
@@ -184,24 +190,25 @@ function update() {
     }
     return true;
   });
-  if (frameCount % 180 === 0 || (frameCount < 60 && frameCount % 40===0)) spawnPredator();
-  predators.forEach(p => {
+
+  if (frameCount % 200 === 0) spawnPredator();
+  predators = predators.filter(p => {
+    p.age++;
     const org = p.zone === 'light' ? light : dark;
     const dx = org.x - p.x, dy = org.y - p.y;
     const d = Math.hypot(dx, dy);
     if (d > 0) { p.x += dx/d*p.spd; p.y += dy/d*p.spd; }
-    if (d < org.r + p.r) {
-      hp = Math.max(0, hp - 1.2);
-      emit(org.x, org.y, '#ff2222', 4);
+    if (invincible === 0 && d < org.r + p.r) {
+      hp = Math.max(0, hp - 8);
+      invincible = 60;
+      emit(org.x, org.y, '#ff2222', 10);
     }
+    return p.age < PREDATOR_LIFETIME;
   });
-  predators = predators.filter(p => {
-    const yMin = p.zone==='light' ? 0 : MID;
-    const yMax = p.zone==='light' ? MID : H;
-    return p.x>-20&&p.x<W+20&&p.y>yMin-20&&p.y<yMax+20;
-  });
+
   particles.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.vx*=0.9; p.vy*=0.9; p.life-=0.04; });
   particles = particles.filter(p => p.life > 0);
+
   if (hp <= 0) { hp=0; state='dead'; showGameOver(); }
   updateUI();
 }
@@ -256,6 +263,7 @@ function drawTrail(org, color) {
 }
 
 function drawOrganism(org, color, glowColor) {
+  if (invincible > 0 && Math.floor(invincible/5)%2===0) return;
   ctx.save(); ctx.shadowColor=glowColor; ctx.shadowBlur=18;
   ctx.beginPath(); ctx.arc(org.x,org.y,org.r,0,Math.PI*2);
   ctx.fillStyle=color; ctx.fill(); ctx.shadowBlur=0;
@@ -273,9 +281,12 @@ function drawNutrient(n) {
 }
 
 function drawPredator(p) {
-  ctx.save(); ctx.shadowColor='#ff4444'; ctx.shadowBlur=10;
+  const fade = p.age > PREDATOR_LIFETIME - 60 ? (PREDATOR_LIFETIME - p.age) / 60 : 1;
+  ctx.save(); ctx.globalAlpha=fade;
+  ctx.shadowColor='#ff4444'; ctx.shadowBlur=10;
   ctx.beginPath();
-  const angle=Math.atan2((p.zone==='light'?light:dark).y-p.y,(p.zone==='light'?light:dark).x-p.x);
+  const org = p.zone==='light' ? light : dark;
+  const angle=Math.atan2(org.y-p.y, org.x-p.x);
   for(let i=0;i<3;i++){
     const a=angle+i*Math.PI*2/3, r=i===0?p.r*1.6:p.r;
     const x=p.x+Math.cos(a)*r, y=p.y+Math.sin(a)*r;
