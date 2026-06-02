@@ -195,6 +195,13 @@ if (!me) {
       sbGet(`/rest/v1/friends?addressee_id=eq.${me.id}&select=id,requester_id,addressee_id,status`)
     ]);
 
+    // テーブルが存在しない場合
+    if (sent === null && received === null) {
+      document.getElementById('friends-list').innerHTML =
+        `<div class="empty" style="color:#ff5566">friendsテーブルが存在しません。<br>Supabase SQL Editorでsupabase_migrate.sqlを実行してください。</div>`;
+      return;
+    }
+
     friends=[]; pendingIn=[]; pendingOut=[];
     const userIds = new Set();
     const seen = new Set();
