@@ -117,7 +117,7 @@ function T(k){ return T_[lang][k] || T_.ja[k] || k; }
 function applyLang(){
   document.getElementById('lang-btn').textContent = lang==='ja'?'EN':'JA';
   document.getElementById('pg-title').textContent = T('pgTitle');
-  document.getElementById('tab-friends').childNodes[0].textContent = T('tabFriends');
+  document.getElementById('tab-friends').textContent = T('tabFriends');
   document.getElementById('tab-req-label').textContent = T('tabRequests');
   document.getElementById('tab-search').textContent = T('tabSearch');
   document.getElementById('search-input').placeholder = T('searchPlaceholder');
