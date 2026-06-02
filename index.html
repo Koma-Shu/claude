@@ -78,11 +78,16 @@
     .btn-chess { background: linear-gradient(135deg, #e8c84a, #aa8800); color: #000; font-weight: bold; }
     .btn-shogi { background: linear-gradient(135deg, #cc88ff, #8844cc); color: #fff; font-weight: bold; }
     #lang-btn { position:fixed; top:14px; left:14px; background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; z-index:10; }
+    #auth-area { position:fixed; top:14px; right:14px; display:flex; gap:8px; z-index:10; }
+    .auth-btn { background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; text-decoration:none; display:inline-block; transition:color 0.15s,border-color 0.15s; }
+    .auth-btn:hover { color:#eee; border-color:#666; }
+    .auth-btn.primary { border-color:#00d4aa; color:#00d4aa; }
   </style>
 </head>
 <body>
 
 <button id="lang-btn">EN</button>
+<div id="auth-area"></div>
 <h1>ARCADE</h1>
 <p class="subtitle" id="subtitle">SELECT YOUR GAME</p>
 
@@ -325,13 +330,25 @@ function applyLang() {
   document.documentElement.lang = lang;
 }
 
+function renderAuth() {
+  const user = JSON.parse(localStorage.getItem('arcade_user') || 'null');
+  const area = document.getElementById('auth-area');
+  if (user) {
+    area.innerHTML = `<a href="chat.html" class="auth-btn">${lang==='ja'?'チャット':'CHAT'}</a><a href="profile.html" class="auth-btn primary">@${user.username}</a>`;
+  } else {
+    area.innerHTML = `<a href="login.html" class="auth-btn">${lang==='ja'?'ログイン':'LOGIN'}</a><a href="register.html" class="auth-btn primary">${lang==='ja'?'登録':'REGISTER'}</a>`;
+  }
+}
+
 document.getElementById('lang-btn').addEventListener('click', () => {
   lang = lang === 'ja' ? 'en' : 'ja';
   localStorage.setItem('lang', lang);
   applyLang();
+  renderAuth();
 });
 
 applyLang();
+renderAuth();
 
 const SUPABASE_URL = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プロフィール | ARCADE</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:#0d0d1a;min-height:100vh;font-family:'Courier New',monospace;color:#eee;display:flex;flex-direction:column;align-items:center;padding:60px 20px;}
+    h1{font-size:1.6rem;letter-spacing:8px;color:#00d4aa;margin-bottom:6px;text-shadow:0 0 16px rgba(0,212,170,0.4);}
+    .uid{font-size:0.7rem;letter-spacing:4px;color:#555;margin-bottom:40px;}
+    .section{width:100%;max-width:600px;background:#13131f;border:1px solid #222;border-radius:12px;padding:24px 28px;margin-bottom:24px;}
+    .sec-title{font-size:0.65rem;letter-spacing:4px;color:#555;margin-bottom:16px;}
+    .info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1a1a2a;font-size:0.8rem;}
+    .info-row:last-child{border-bottom:none;}
+    .info-label{color:#666;}
+    .info-val{color:#ccc;}
+    .rating-table{width:100%;border-collapse:collapse;}
+    .rating-table th{font-size:0.6rem;letter-spacing:2px;color:#555;padding:6px 8px;text-align:left;border-bottom:1px solid #1a1a2a;}
+    .rating-table td{font-size:0.78rem;padding:9px 8px;border-bottom:1px solid #1a1a2a;color:#aaa;}
+    .rating-table td:first-child{color:#eee;letter-spacing:2px;}
+    .rating-table tr:last-child td{border-bottom:none;}
+    .rating-val{color:#ffd700!important;font-weight:bold;}
+    .overall{display:flex;align-items:baseline;gap:16px;padding:8px 0;}
+    .overall-num{font-size:2rem;color:#00d4aa;font-weight:bold;}
+    .overall-label{font-size:0.7rem;color:#555;letter-spacing:3px;}
+    .btn-row{display:flex;gap:12px;flex-wrap:wrap;}
+    .btn{padding:10px 20px;border:1px solid #2a2a3a;border-radius:8px;background:transparent;color:#888;font-family:'Courier New',monospace;font-size:0.72rem;letter-spacing:2px;cursor:pointer;transition:all 0.15s;text-decoration:none;display:inline-block;}
+    .btn:hover{border-color:#555;color:#eee;}
+    .btn-danger{border-color:#ff3333;color:#ff5555;}
+    .btn-danger:hover{background:#ff1111;color:#fff;}
+    .btn-primary{background:linear-gradient(135deg,#00d4aa,#0088cc);border:none;color:#000;font-weight:bold;}
+    .btn-primary:hover{opacity:0.85;}
+    #lang-btn{position:fixed;top:14px;left:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:0.72rem;padding:5px 10px;cursor:pointer;z-index:10;}
+    #back-btn{position:fixed;top:14px;right:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:0.72rem;padding:5px 10px;cursor:pointer;z-index:10;text-decoration:none;}
+    .loading{color:#444;font-size:0.8rem;text-align:center;padding:20px;}
+    .no-login{color:#555;text-align:center;padding:40px;}
+  </style>
+</head>
+<body>
+<button id="lang-btn">EN</button>
+<a href="index.html" id="back-btn">← HOME</a>
+
+<h1 id="pg-title">PROFILE</h1>
+<div class="uid" id="pg-uid"></div>
+
+<div id="content">
+  <div class="no-login" id="no-login" style="display:none">
+    <p id="no-login-msg">ログインしていません</p>
+    <br>
+    <a href="login.html" class="btn btn-primary" id="no-login-btn" style="margin-top:12px">ログイン</a>
+  </div>
+
+  <div id="profile-content" style="display:none">
+    <!-- User info -->
+    <div class="section">
+      <div class="sec-title" id="sec-info">ユーザー情報</div>
+      <div class="info-row"><span class="info-label" id="lbl-fullname">氏名</span><span class="info-val" id="val-fullname"></span></div>
+      <div class="info-row"><span class="info-label" id="lbl-uid">ユーザID</span><span class="info-val" id="val-uid"></span></div>
+      <div class="info-row"><span class="info-label" id="lbl-birth">生年月日</span><span class="info-val" id="val-birth"></span></div>
+      <div class="info-row"><span class="info-label" id="lbl-since">登録日</span><span class="info-val" id="val-since"></span></div>
+    </div>
+
+    <!-- Overall rating -->
+    <div class="section">
+      <div class="sec-title" id="sec-overall">総合レーティング</div>
+      <div class="overall">
+        <div class="overall-num" id="overall-rating">-</div>
+        <div>
+          <div class="overall-label" id="overall-label">OVERALL RATING</div>
+          <div style="font-size:0.7rem;color:#555;margin-top:4px" id="overall-wld"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-game ratings -->
+    <div class="section">
+      <div class="sec-title" id="sec-games">ゲーム別レーティング</div>
+      <table class="rating-table">
+        <thead>
+          <tr>
+            <th id="th-game">ゲーム</th>
+            <th id="th-rating">レーティング</th>
+            <th id="th-wins">勝</th>
+            <th id="th-losses">敗</th>
+            <th id="th-draws">引</th>
+          </tr>
+        </thead>
+        <tbody id="game-ratings-tbody">
+          <tr><td colspan="5" class="loading" id="ratings-loading">読み込み中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Actions -->
+    <div class="section">
+      <div class="sec-title" id="sec-actions">アクション</div>
+      <div class="btn-row">
+        <a href="chat.html" class="btn btn-primary" id="btn-chat">チャット</a>
+        <button class="btn btn-danger" id="logout-btn">ログアウト</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
+const SUPABASE_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+
+const T_={
+  ja:{pgTitle:'PROFILE',secInfo:'ユーザー情報',lFullname:'氏名',lUid:'ユーザID',lBirth:'生年月日',lSince:'登録日',secOverall:'総合レーティング',overallLabel:'OVERALL RATING',secGames:'ゲーム別レーティング',thGame:'ゲーム',thRating:'レーティング',thWins:'勝',thLosses:'敗',thDraws:'引',secActions:'アクション',btnChat:'チャット',logout:'ログアウト',noLogin:'ログインしていません',noLoginBtn:'ログイン',back:'← HOME',loading:'読み込み中…',noData:'まだ記録がありません',wld:'勝{w} 敗{l} 引{d}'},
+  en:{pgTitle:'PROFILE',secInfo:'User Info',lFullname:'Full Name',lUid:'User ID',lBirth:'Date of Birth',lSince:'Registered',secOverall:'Overall Rating',overallLabel:'OVERALL RATING',secGames:'Per-Game Ratings',thGame:'Game',thRating:'Rating',thWins:'W',thLosses:'L',thDraws:'D',secActions:'Actions',btnChat:'CHAT',logout:'LOGOUT',noLogin:'You are not logged in',noLoginBtn:'Login',back:'← HOME',loading:'Loading…',noData:'No records yet',wld:'{w}W {l}L {d}D'}
+};
+let lang=localStorage.getItem('lang')||'ja';
+function T(k,v={}){let s=T_[lang][k]||T_.ja[k]||k;Object.entries(v).forEach(([a,b])=>s=s.replace('{'+a+'}',b));return s;}
+function applyLang(){
+  document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
+  document.getElementById('pg-title').textContent=T('pgTitle');
+  document.getElementById('sec-info').textContent=T('secInfo');
+  document.getElementById('lbl-fullname').textContent=T('lFullname');
+  document.getElementById('lbl-uid').textContent=T('lUid');
+  document.getElementById('lbl-birth').textContent=T('lBirth');
+  document.getElementById('lbl-since').textContent=T('lSince');
+  document.getElementById('sec-overall').textContent=T('secOverall');
+  document.getElementById('overall-label').textContent=T('overallLabel');
+  document.getElementById('sec-games').textContent=T('secGames');
+  document.getElementById('th-game').textContent=T('thGame');
+  document.getElementById('th-rating').textContent=T('thRating');
+  document.getElementById('th-wins').textContent=T('thWins');
+  document.getElementById('th-losses').textContent=T('thLosses');
+  document.getElementById('th-draws').textContent=T('thDraws');
+  document.getElementById('sec-actions').textContent=T('secActions');
+  document.getElementById('btn-chat').textContent=T('btnChat');
+  document.getElementById('logout-btn').textContent=T('logout');
+  document.getElementById('no-login-msg').textContent=T('noLogin');
+  document.getElementById('no-login-btn').textContent=T('noLoginBtn');
+  document.getElementById('back-btn').textContent=T('back');
+  document.documentElement.lang=lang;
+}
+document.getElementById('lang-btn').addEventListener('click',()=>{lang=lang==='ja'?'en':'ja';localStorage.setItem('lang',lang);applyLang();});
+applyLang();
+
+async function sb(path){
+  try{const r=await fetch(SUPABASE_URL+path,{headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}});const t=await r.text();return t?JSON.parse(t):[];}catch{return [];}
+}
+
+const user=JSON.parse(localStorage.getItem('arcade_user')||'null');
+if(!user){
+  document.getElementById('no-login').style.display='';
+}else{
+  document.getElementById('profile-content').style.display='';
+  document.getElementById('pg-uid').textContent='@'+user.username;
+
+  async function loadProfile(){
+    const rows=await sb(`/rest/v1/users?id=eq.${user.id}&select=username,full_name,birth_date,created_at`);
+    if(rows&&rows[0]){
+      const u=rows[0];
+      document.getElementById('val-fullname').textContent=u.full_name||'-';
+      document.getElementById('val-uid').textContent=u.username||'-';
+      document.getElementById('val-birth').textContent=u.birth_date?u.birth_date.replace(/-/g,'/'):'- ';
+      document.getElementById('val-since').textContent=u.created_at?u.created_at.slice(0,10).replace(/-/g,'/'):'- ';
+    }
+    const ratings=await sb(`/rest/v1/user_ratings?user_id=eq.${user.id}&select=game,rating,wins,losses,draws`);
+    const tbody=document.getElementById('game-ratings-tbody');
+    tbody.innerHTML='';
+    if(!ratings||ratings.length===0){
+      tbody.innerHTML=`<tr><td colspan="5" style="color:#444;font-size:0.75rem;padding:16px;text-align:center">${T('noData')}</td></tr>`;
+      document.getElementById('overall-rating').textContent='-';
+      document.getElementById('overall-wld').textContent='';
+      return;
+    }
+    let totalW=0,totalL=0,totalD=0,ratingSum=0;
+    const gameNames={reversi:'REVERSI',gomoku:'GOMOKU',chess:'CHESS',shogi:lang==='ja'?'将棋':'SHOGI'};
+    ratings.forEach(r=>{
+      totalW+=r.wins;totalL+=r.losses;totalD+=r.draws;ratingSum+=r.rating;
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${gameNames[r.game]||r.game.toUpperCase()}</td><td class="rating-val">${r.rating}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.draws}</td>`;
+      tbody.appendChild(tr);
+    });
+    const overall=Math.round(ratingSum/ratings.length);
+    document.getElementById('overall-rating').textContent=overall;
+    document.getElementById('overall-wld').textContent=T('wld',{w:totalW,l:totalL,d:totalD});
+  }
+  loadProfile();
+}
+
+document.getElementById('logout-btn')&&document.getElementById('logout-btn').addEventListener('click',()=>{
+  localStorage.removeItem('arcade_user');
+  location.href='index.html';
+});
+</script>
+</body>
+</html>
