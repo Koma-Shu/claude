@@ -97,6 +97,7 @@
       <div class="sec-title" id="sec-actions">アクション</div>
       <div class="btn-row">
         <a href="chat.html" class="btn btn-primary" id="btn-chat">チャット</a>
+        <a href="friends.html" class="btn" id="btn-friends">フレンド</a>
         <button class="btn btn-danger" id="logout-btn">ログアウト</button>
       </div>
     </div>
@@ -108,8 +109,8 @@ const SUPABASE_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SUPABASE_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
 
 const T_={
-  ja:{pgTitle:'PROFILE',secInfo:'ユーザー情報',lFullname:'氏名',lUid:'ユーザID',lBirth:'生年月日',lSince:'登録日',secOverall:'総合レーティング',overallLabel:'OVERALL RATING',secGames:'ゲーム別レーティング',thGame:'ゲーム',thRating:'レーティング',thWins:'勝',thLosses:'敗',thDraws:'引',secActions:'アクション',btnChat:'チャット',logout:'ログアウト',noLogin:'ログインしていません',noLoginBtn:'ログイン',back:'← HOME',loading:'読み込み中…',noData:'まだ記録がありません',wld:'勝{w} 敗{l} 引{d}'},
-  en:{pgTitle:'PROFILE',secInfo:'User Info',lFullname:'Full Name',lUid:'User ID',lBirth:'Date of Birth',lSince:'Registered',secOverall:'Overall Rating',overallLabel:'OVERALL RATING',secGames:'Per-Game Ratings',thGame:'Game',thRating:'Rating',thWins:'W',thLosses:'L',thDraws:'D',secActions:'Actions',btnChat:'CHAT',logout:'LOGOUT',noLogin:'You are not logged in',noLoginBtn:'Login',back:'← HOME',loading:'Loading…',noData:'No records yet',wld:'{w}W {l}L {d}D'}
+  ja:{pgTitle:'PROFILE',secInfo:'ユーザー情報',lFullname:'氏名',lUid:'ユーザID',lBirth:'生年月日',lSince:'登録日',secOverall:'総合レーティング',overallLabel:'OVERALL RATING',secGames:'ゲーム別レーティング',thGame:'ゲーム',thRating:'レーティング',thWins:'勝',thLosses:'敗',thDraws:'引',secActions:'アクション',btnChat:'チャット',btnFriends:'フレンド',logout:'ログアウト',noLogin:'ログインしていません',noLoginBtn:'ログイン',back:'← HOME',loading:'読み込み中…',noData:'まだ記録がありません',wld:'勝{w} 敗{l} 引{d}'},
+  en:{pgTitle:'PROFILE',secInfo:'User Info',lFullname:'Full Name',lUid:'User ID',lBirth:'Date of Birth',lSince:'Registered',secOverall:'Overall Rating',overallLabel:'OVERALL RATING',secGames:'Per-Game Ratings',thGame:'Game',thRating:'Rating',thWins:'W',thLosses:'L',thDraws:'D',secActions:'Actions',btnChat:'CHAT',btnFriends:'FRIENDS',logout:'LOGOUT',noLogin:'You are not logged in',noLoginBtn:'Login',back:'← HOME',loading:'Loading…',noData:'No records yet',wld:'{w}W {l}L {d}D'}
 };
 let lang=localStorage.getItem('lang')||'ja';
 function T(k,v={}){let s=T_[lang][k]||T_.ja[k]||k;Object.entries(v).forEach(([a,b])=>s=s.replace('{'+a+'}',b));return s;}
@@ -131,6 +132,7 @@ function applyLang(){
   document.getElementById('th-draws').textContent=T('thDraws');
   document.getElementById('sec-actions').textContent=T('secActions');
   document.getElementById('btn-chat').textContent=T('btnChat');
+  document.getElementById('btn-friends').textContent=T('btnFriends');
   document.getElementById('logout-btn').textContent=T('logout');
   document.getElementById('no-login-msg').textContent=T('noLogin');
   document.getElementById('no-login-btn').textContent=T('noLoginBtn');

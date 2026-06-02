@@ -707,12 +707,15 @@ async function loadRatings(){
   try{const rows=await sb(`/rest/v1/ratings?game=eq.${GAME}&order=created_at.desc&limit=20`);renderR(rows||[]);avgBadge(rows||[]);}catch(e){renderR([]);}
 }
 async function subRating(stars,cmt){
-  await sb('/rest/v1/ratings',{method:'POST',body:JSON.stringify({game:GAME,stars,comment:cmt||null})});loadRatings();
+  const me=JSON.parse(localStorage.getItem('arcade_user')||'null');
+  const body={game:GAME,stars,comment:cmt||null};
+  if(me){body.user_id=me.id;body.username=me.username;}
+  await sb('/rest/v1/ratings',{method:'POST',body:JSON.stringify(body)});loadRatings();
 }
 function renderR(list){
   const el=document.getElementById('rlist');
   if(!list.length){el.innerHTML=`<div style="color:#333;text-align:center;font-size:0.72rem;padding:8px">${T('noRatings')}</div>`;return;}
-  el.innerHTML=list.map(r=>`<div class="ri"><span class="rs">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</span><span class="rd">${new Date(r.created_at).toLocaleDateString('ja-JP')}</span>${r.comment?`<p class="rc">${r.comment.replace(/</g,'&lt;')}</p>`:''}</div>`).join('');
+  el.innerHTML=list.map(r=>`<div class="ri"><span class="rs">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</span>${r.username?`<span class="rd" style="color:#00d4aa">@${r.username.replace(/</g,'&lt;')}</span>`:''}<span class="rd">${new Date(r.created_at).toLocaleDateString('ja-JP')}</span>${r.comment?`<p class="rc">${r.comment.replace(/</g,'&lt;')}</p>`:''}</div>`).join('');
 }
 function avgBadge(list){
   const el=document.getElementById('avg-d');

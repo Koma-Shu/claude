@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>フレンド | ARCADE</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:#0d0d1a;min-height:100vh;font-family:'Courier New',monospace;color:#eee;display:flex;flex-direction:column;align-items:center;padding:60px 20px 40px;}
+    h1{font-size:1.4rem;letter-spacing:8px;color:#00d4aa;margin-bottom:32px;text-shadow:0 0 16px rgba(0,212,170,0.4);}
+    #lang-btn{position:fixed;top:14px;left:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:0.72rem;padding:5px 10px;cursor:pointer;z-index:10;}
+    #back-btn{position:fixed;top:14px;right:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:0.72rem;padding:5px 10px;cursor:pointer;z-index:10;text-decoration:none;}
+    .tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid #1a1a2a;width:100%;max-width:560px;}
+    .tab{padding:10px 18px;font-size:0.68rem;letter-spacing:3px;color:#555;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;}
+    .tab.active{color:#00d4aa;border-bottom-color:#00d4aa;}
+    .tab:hover:not(.active){color:#888;}
+    .panel{width:100%;max-width:560px;display:none;}
+    .panel.active{display:block;}
+    .search-row{display:flex;gap:8px;margin-bottom:16px;}
+    .search-row input{flex:1;background:#13131f;border:1px solid #222;border-radius:6px;padding:10px 12px;color:#eee;font-family:'Courier New',monospace;font-size:0.82rem;outline:none;}
+    .search-row input:focus{border-color:#00d4aa;}
+    .search-row button{padding:0 18px;background:linear-gradient(135deg,#00d4aa,#0088cc);border:none;border-radius:6px;color:#000;font-family:'Courier New',monospace;font-size:0.8rem;font-weight:bold;cursor:pointer;letter-spacing:2px;}
+    .search-row button:hover{opacity:0.85;}
+    .user-card{background:#13131f;border:1px solid #1e1e2e;border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+    .user-info{display:flex;flex-direction:column;gap:3px;min-width:0;}
+    .u-name{font-size:0.85rem;color:#eee;letter-spacing:1px;}
+    .u-full{font-size:0.68rem;color:#555;}
+    .btn-sm{padding:6px 14px;border-radius:6px;font-family:'Courier New',monospace;font-size:0.7rem;letter-spacing:2px;cursor:pointer;transition:all 0.15s;border:1px solid #333;background:transparent;color:#888;}
+    .btn-sm:hover{border-color:#555;color:#eee;}
+    .btn-add{background:linear-gradient(135deg,#00d4aa,#0088cc);border:none;color:#000;font-weight:bold;}
+    .btn-add:hover{opacity:0.85;}
+    .btn-accept{background:#00aa44;border:none;color:#fff;font-weight:bold;}
+    .btn-accept:hover{opacity:0.85;}
+    .btn-decline{border-color:#ff3333;color:#ff5555;}
+    .btn-decline:hover{background:#ff1111;color:#fff;border-color:#ff1111;}
+    .btn-remove{border-color:#555;color:#666;}
+    .btn-remove:hover{border-color:#ff5555;color:#ff5555;}
+    .btn-chat{background:linear-gradient(135deg,#5555ff,#0088cc);border:none;color:#fff;font-weight:bold;}
+    .btn-chat:hover{opacity:0.85;}
+    .btn-group{display:flex;gap:6px;flex-shrink:0;}
+    .empty{color:#333;font-size:0.78rem;letter-spacing:2px;text-align:center;padding:32px;}
+    .badge{background:#00d4aa;color:#000;border-radius:10px;font-size:0.6rem;padding:1px 7px;margin-left:6px;font-weight:bold;vertical-align:middle;}
+    .no-login{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:16px;color:#555;padding-top:80px;}
+    .no-login a{padding:10px 24px;background:linear-gradient(135deg,#00d4aa,#0088cc);border-radius:8px;color:#000;font-family:'Courier New',monospace;font-size:0.85rem;font-weight:bold;text-decoration:none;letter-spacing:2px;}
+    .msg-inline{font-size:0.72rem;text-align:center;padding:8px;min-height:22px;}
+    .err{color:#ff5566;}.ok{color:#00d4aa;}
+    .pending-label{font-size:0.62rem;color:#aaa88a;background:#2a2510;border:1px solid #443a10;border-radius:4px;padding:3px 8px;letter-spacing:1px;}
+  </style>
+</head>
+<body>
+<button id="lang-btn">EN</button>
+<a href="index.html" id="back-btn">← HOME</a>
+
+<div id="no-login-screen" style="display:none" class="no-login">
+  <div id="no-login-msg"></div>
+  <a href="login.html?next=friends.html" id="no-login-btn"></a>
+</div>
+
+<div id="app" style="display:none;flex-direction:column;align-items:center;width:100%">
+  <h1 id="pg-title">FRIENDS</h1>
+  <div class="tabs">
+    <div class="tab active" id="tab-friends" data-tab="friends"></div>
+    <div class="tab" id="tab-requests" data-tab="requests"><span id="tab-req-label"></span><span id="req-badge" class="badge" style="display:none">0</span></div>
+    <div class="tab" id="tab-search" data-tab="search"></div>
+  </div>
+
+  <!-- Friends list -->
+  <div class="panel active" id="panel-friends">
+    <div class="msg-inline" id="friends-msg"></div>
+    <div id="friends-list"></div>
+  </div>
+
+  <!-- Requests -->
+  <div class="panel" id="panel-requests">
+    <div class="msg-inline" id="requests-msg"></div>
+    <div id="requests-list"></div>
+  </div>
+
+  <!-- Search -->
+  <div class="panel" id="panel-search">
+    <div class="search-row">
+      <input type="text" id="search-input" maxlength="30">
+      <button id="search-btn" id-key="searchBtn"></button>
+    </div>
+    <div class="msg-inline" id="search-msg"></div>
+    <div id="search-results"></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
+const SUPABASE_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+
+const T_={
+  ja:{pgTitle:'FRIENDS',tabFriends:'フレンド',tabRequests:'申請',tabSearch:'ユーザー検索',searchPlaceholder:'ユーザIDで検索',searchBtn:'検索',noLogin:'ログインが必要です',noLoginBtn:'ログイン',back:'← HOME',emptyFriends:'フレンドがいません',emptyRequests:'フレンド申請はありません',emptySearch:'ユーザーが見つかりません',btnAdd:'申請する',btnAccept:'承認',btnDecline:'拒否',btnRemove:'削除',btnChat:'チャット',pending:'申請中',searching:'検索中…',sendOk:'フレンド申請を送りました',sendErr:'エラーが発生しました',acceptOk:'フレンド申請を承認しました',declineOk:'申請を拒否しました',removeOk:'フレンドを削除しました',searchEmpty:'IDを入力してください'},
+  en:{pgTitle:'FRIENDS',tabFriends:'Friends',tabRequests:'Requests',tabSearch:'Search Users',searchPlaceholder:'Search by user ID',searchBtn:'SEARCH',noLogin:'Login required',noLoginBtn:'LOGIN',back:'← HOME',emptyFriends:'No friends yet',emptyRequests:'No pending requests',emptySearch:'No users found',btnAdd:'ADD',btnAccept:'ACCEPT',btnDecline:'DECLINE',btnRemove:'REMOVE',btnChat:'CHAT',pending:'PENDING',searching:'Searching…',sendOk:'Friend request sent',sendErr:'An error occurred',acceptOk:'Friend request accepted',declineOk:'Request declined',removeOk:'Friend removed',searchEmpty:'Enter a user ID'}
+};
+let lang=localStorage.getItem('lang')||'ja';
+function T(k){return T_[lang][k]||T_.ja[k]||k;}
+function applyLang(){
+  document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
+  document.getElementById('pg-title').textContent=T('pgTitle');
+  document.getElementById('tab-friends').textContent=T('tabFriends');
+  document.getElementById('tab-req-label').textContent=T('tabRequests');
+  document.getElementById('tab-search').textContent=T('tabSearch');
+  document.getElementById('search-input').placeholder=T('searchPlaceholder');
+  document.getElementById('search-btn').textContent=T('searchBtn');
+  document.getElementById('back-btn').textContent=T('back');
+  const nlm=document.getElementById('no-login-msg');if(nlm)nlm.textContent=T('noLogin');
+  const nlb=document.getElementById('no-login-btn');if(nlb)nlb.textContent=T('noLoginBtn');
+  document.documentElement.lang=lang;
+}
+document.getElementById('lang-btn').addEventListener('click',()=>{lang=lang==='ja'?'en':'ja';localStorage.setItem('lang',lang);applyLang();renderAll();});
+applyLang();
+
+async function sb(path,opts={}){
+  try{
+    const r=await fetch(SUPABASE_URL+path,{headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':'return=representation',...(opts.headers||{})},...opts});
+    const t=await r.text();return t?JSON.parse(t):null;
+  }catch{return null;}
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+const me=JSON.parse(localStorage.getItem('arcade_user')||'null');
+if(!me){
+  document.getElementById('no-login-screen').style.display='flex';
+}else{
+  document.getElementById('app').style.display='flex';
+  let friends=[],pendingIn=[],pendingOut=[];
+
+  // Tab switching
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-'+tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  async function loadAll(){
+    const rows=await sb(`/rest/v1/friends?or=(requester_id.eq.${me.id},addressee_id.eq.${me.id})&select=id,requester_id,addressee_id,status`);
+    if(!rows){friends=[];pendingIn=[];pendingOut=[];renderAll();return;}
+    friends=[];pendingIn=[];pendingOut=[];
+    const userIds=new Set();
+    rows.forEach(r=>{
+      if(r.status==='accepted'){
+        const otherId=r.requester_id===me.id?r.addressee_id:r.requester_id;
+        friends.push({...r,otherId});
+        userIds.add(otherId);
+      }else if(r.status==='pending'){
+        if(r.requester_id===me.id){pendingOut.push(r);userIds.add(r.addressee_id);}
+        else{pendingIn.push(r);userIds.add(r.requester_id);}
+      }
+    });
+    // Fetch user info for all relevant IDs
+    if(userIds.size>0){
+      const ids=[...userIds].map(id=>`id.eq.${id}`).join(',');
+      const users=await sb(`/rest/v1/users?or=(${ids})&select=id,username,full_name`)||[];
+      const umap=Object.fromEntries(users.map(u=>[u.id,u]));
+      friends=friends.map(f=>({...f,user:umap[f.otherId]||{username:'?',full_name:''}}));
+      pendingIn=pendingIn.map(f=>({...f,user:umap[f.requester_id]||{username:'?',full_name:''}}));
+      pendingOut=pendingOut.map(f=>({...f,user:umap[f.addressee_id]||{username:'?',full_name:''}}));
+    }
+    const badge=document.getElementById('req-badge');
+    badge.textContent=pendingIn.length;
+    badge.style.display=pendingIn.length>0?'':'none';
+    renderAll();
+  }
+
+  function renderAll(){renderFriends();renderRequests();}
+
+  function renderFriends(){
+    const el=document.getElementById('friends-list');
+    if(friends.length===0){el.innerHTML=`<div class="empty">${T('emptyFriends')}</div>`;return;}
+    el.innerHTML=friends.map(f=>`
+      <div class="user-card">
+        <div class="user-info">
+          <div class="u-name">@${esc(f.user.username)}</div>
+          <div class="u-full">${esc(f.user.full_name)}</div>
+        </div>
+        <div class="btn-group">
+          <button class="btn-sm btn-chat" onclick="goChat('${esc(f.user.username)}')">${T('btnChat')}</button>
+          <button class="btn-sm btn-remove" onclick="removeFriend('${f.id}')">${T('btnRemove')}</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderRequests(){
+    const el=document.getElementById('requests-list');
+    const html=[];
+    pendingIn.forEach(f=>{
+      html.push(`<div class="user-card">
+        <div class="user-info">
+          <div class="u-name">@${esc(f.user.username)}</div>
+          <div class="u-full">${esc(f.user.full_name)}</div>
+        </div>
+        <div class="btn-group">
+          <button class="btn-sm btn-accept" onclick="acceptFriend('${f.id}')">${T('btnAccept')}</button>
+          <button class="btn-sm btn-decline" onclick="declineFriend('${f.id}')">${T('btnDecline')}</button>
+        </div>
+      </div>`);
+    });
+    pendingOut.forEach(f=>{
+      html.push(`<div class="user-card">
+        <div class="user-info">
+          <div class="u-name">@${esc(f.user.username)}</div>
+          <div class="u-full">${esc(f.user.full_name)}</div>
+        </div>
+        <div class="btn-group"><span class="pending-label">${T('pending')}</span></div>
+      </div>`);
+    });
+    if(html.length===0){el.innerHTML=`<div class="empty">${T('emptyRequests')}</div>`;}
+    else{el.innerHTML=html.join('');}
+  }
+
+  function setMsg(id,text,cls){const el=document.getElementById(id);el.textContent=text;el.className='msg-inline '+(cls||'');setTimeout(()=>{if(el.textContent===text){el.textContent='';}},3000);}
+
+  async function acceptFriend(id){
+    await sb(`/rest/v1/friends?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'accepted'})});
+    setMsg('requests-msg',T('acceptOk'),'ok');
+    await loadAll();
+  }
+  async function declineFriend(id){
+    await sb(`/rest/v1/friends?id=eq.${id}`,{method:'DELETE'});
+    setMsg('requests-msg',T('declineOk'),'ok');
+    await loadAll();
+  }
+  async function removeFriend(id){
+    await sb(`/rest/v1/friends?id=eq.${id}`,{method:'DELETE'});
+    setMsg('friends-msg',T('removeOk'),'ok');
+    await loadAll();
+  }
+  function goChat(username){location.href='chat.html?user='+encodeURIComponent(username);}
+
+  // Search
+  document.getElementById('search-btn').addEventListener('click',doSearch);
+  document.getElementById('search-input').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+
+  async function doSearch(){
+    const q=document.getElementById('search-input').value.trim();
+    const msg=document.getElementById('search-msg');
+    const res=document.getElementById('search-results');
+    if(!q){msg.className='msg-inline err';msg.textContent=T('searchEmpty');return;}
+    msg.className='msg-inline';msg.textContent=T('searching');
+    res.innerHTML='';
+    const rows=await sb(`/rest/v1/users?username=ilike.*${encodeURIComponent(q)}*&select=id,username,full_name&limit=20`)||[];
+    const filtered=rows.filter(u=>u.id!==me.id);
+    msg.textContent='';
+    if(filtered.length===0){res.innerHTML=`<div class="empty">${T('emptySearch')}</div>`;return;}
+
+    const friendIds=new Set([...friends.map(f=>f.otherId)]);
+    const pendingOutIds=new Set(pendingOut.map(f=>f.addressee_id));
+    const pendingInIds=new Set(pendingIn.map(f=>f.requester_id));
+
+    res.innerHTML=filtered.map(u=>{
+      let btn='';
+      if(friendIds.has(u.id)){
+        btn=`<button class="btn-sm btn-chat" onclick="goChat('${esc(u.username)}')">${T('btnChat')}</button>`;
+      }else if(pendingOutIds.has(u.id)){
+        btn=`<span class="pending-label">${T('pending')}</span>`;
+      }else if(pendingInIds.has(u.id)){
+        btn=`<button class="btn-sm btn-accept" onclick="acceptFromSearch('${u.id}')">${T('btnAccept')}</button>`;
+      }else{
+        btn=`<button class="btn-sm btn-add" onclick="sendRequest('${u.id}','${esc(u.username)}')">${T('btnAdd')}</button>`;
+      }
+      return `<div class="user-card">
+        <div class="user-info"><div class="u-name">@${esc(u.username)}</div><div class="u-full">${esc(u.full_name)}</div></div>
+        <div class="btn-group">${btn}</div>
+      </div>`;
+    }).join('');
+  }
+
+  async function sendRequest(userId,username){
+    const existing=await sb(`/rest/v1/friends?or=(and(requester_id.eq.${me.id},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${me.id}))&select=id`);
+    if(existing&&existing.length>0){setMsg('search-msg',T('sendErr'),'err');return;}
+    const res=await sb('/rest/v1/friends',{method:'POST',body:JSON.stringify({requester_id:me.id,addressee_id:userId,status:'pending'})});
+    if(res){setMsg('search-msg',T('sendOk'),'ok');await loadAll();doSearch();}
+    else{setMsg('search-msg',T('sendErr'),'err');}
+  }
+
+  async function acceptFromSearch(userId){
+    const row=pendingIn.find(f=>f.requester_id===userId);
+    if(row)await acceptFriend(row.id);
+    await doSearch();
+  }
+
+  window.sendRequest=sendRequest;
+  window.acceptFromSearch=acceptFromSearch;
+  window.goChat=goChat;
+  window.acceptFriend=acceptFriend;
+  window.declineFriend=declineFriend;
+  window.removeFriend=removeFriend;
+
+  loadAll();
+}
+</script>
+</body>
+</html>
