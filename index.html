@@ -82,7 +82,18 @@
     .auth-btn { background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; text-decoration:none; display:inline-block; transition:color 0.15s,border-color 0.15s; }
     .auth-btn:hover { color:#eee; border-color:#666; }
     .auth-btn.primary { border-color:#00d4aa; color:#00d4aa; }
+    /* Search + Sort */
+    #search-sort { display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:center; margin-bottom:32px; width:100%; max-width:760px; }
+    #game-search { flex:1; min-width:180px; max-width:320px; background:#13131f; border:1px solid #2a2a3a; border-radius:8px; padding:9px 14px; color:#eee; font-family:'Courier New',monospace; font-size:0.8rem; outline:none; transition:border-color .2s; }
+    #game-search:focus { border-color:#00d4aa; }
+    #game-search::placeholder { color:#444; }
+    .sort-btns { display:flex; gap:6px; flex-wrap:wrap; }
+    .sort-btn { background:transparent; border:1px solid #2a2a3a; border-radius:6px; color:#555; font-family:'Courier New',monospace; font-size:0.65rem; padding:6px 12px; cursor:pointer; letter-spacing:2px; transition:all .15s; }
+    .sort-btn:hover { border-color:#555; color:#aaa; }
+    .sort-btn.active { border-color:#00d4aa; color:#00d4aa; background:rgba(0,212,170,0.07); }
+    #no-results { color:#333; letter-spacing:3px; font-size:0.75rem; text-align:center; padding:40px; display:none; width:100%; }
   </style>
+  <script src="sound.js"></script>
 </head>
 <body>
 
@@ -91,10 +102,21 @@
 <h1>ARCADE</h1>
 <p class="subtitle" id="subtitle">SELECT YOUR GAME</p>
 
-<div class="cards">
+<div id="search-sort">
+  <input type="text" id="game-search" placeholder="SEARCH…" autocomplete="off">
+  <div class="sort-btns">
+    <button class="sort-btn active" data-sort="popular" id="sb-popular">★ 人気順</button>
+    <button class="sort-btn" data-sort="rating" id="sb-rating">評価順</button>
+    <button class="sort-btn" data-sort="plays" id="sb-plays">プレイ数順</button>
+    <button class="sort-btn" data-sort="name" id="sb-name">名前順</button>
+  </div>
+</div>
+
+<div class="cards" id="cards-container">
+<div id="no-results"></div>
 
   <!-- Snake -->
-  <div class="card">
+  <div class="card" data-game="snake">
     <canvas class="preview" id="snakePreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
@@ -128,7 +150,7 @@
   </div>
 
   <!-- Symbiont -->
-  <div class="card">
+  <div class="card" data-game="symbiont">
     <canvas class="preview" id="symbPreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
@@ -166,7 +188,7 @@
 
 
   <!-- Reversi -->
-  <div class="card">
+  <div class="card" data-game="reversi">
     <canvas class="preview" id="revPreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
@@ -185,7 +207,7 @@
   </div>
 
   <!-- Gomoku -->
-  <div class="card">
+  <div class="card" data-game="gomoku">
     <canvas class="preview" id="gomokuPreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
@@ -204,7 +226,7 @@
   </div>
 
   <!-- Chess -->
-  <div class="card">
+  <div class="card" data-game="chess">
     <canvas class="preview" id="chessPreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
@@ -223,7 +245,7 @@
   </div>
 
   <!-- Shogi -->
-  <div class="card">
+  <div class="card" data-game="shogi">
     <canvas class="preview" id="shogiPreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
@@ -345,6 +367,8 @@ document.getElementById('lang-btn').addEventListener('click', () => {
   localStorage.setItem('lang', lang);
   applyLang();
   renderAuth();
+  updateSortLabels();
+  sortAndFilter();
 });
 
 applyLang();
@@ -353,35 +377,150 @@ renderAuth();
 const SUPABASE_URL = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
 
-async function sbGet(path) {
+// ── Search & Sort ───────────────────────────────────────────────
+const GAME_NAMES = {
+  snake:    {ja:'スネーク',     en:'SNAKE'},
+  symbiont: {ja:'シンビオント', en:'SYMBIONT'},
+  reversi:  {ja:'リバーシ',     en:'REVERSI'},
+  gomoku:   {ja:'五目並べ',     en:'GOMOKU'},
+  chess:    {ja:'チェス',       en:'CHESS'},
+  shogi:    {ja:'将棋',         en:'SHOGI'},
+};
+
+const gameStats = {}; // game → {avg, count, plays}
+let currentSort = 'popular';
+let searchQuery = '';
+
+function popScore(g) {
+  const d = gameStats[g] || {};
+  const r = d.avg || 0, n = d.count || 0, p = d.plays || 0;
+  return r * Math.log(1 + n) + 0.08 * Math.log(1 + p);
+}
+
+function sortAndFilter() {
+  const q = searchQuery.toLowerCase();
+  const container = document.getElementById('cards-container');
+  const cards = [...container.querySelectorAll('.card[data-game]')];
+  let any = false;
+  cards.forEach(c => {
+    const g = c.dataset.game;
+    const name = (GAME_NAMES[g]?.[lang] || g).toLowerCase();
+    const desc = (c.querySelector('.card-desc')?.textContent || '').toLowerCase();
+    const vis = !q || name.includes(q) || desc.includes(q) || g.includes(q);
+    c.style.display = vis ? '' : 'none';
+    if (vis) any = true;
+  });
+  document.getElementById('no-results').style.display = any ? 'none' : '';
+
+  const visible = cards.filter(c => c.style.display !== 'none');
+  visible.sort((a, b) => {
+    const ga = a.dataset.game, gb = b.dataset.game;
+    if (currentSort === 'popular') return popScore(gb) - popScore(ga);
+    if (currentSort === 'rating')  return (gameStats[gb]?.avg || 0) - (gameStats[ga]?.avg || 0);
+    if (currentSort === 'plays')   return (gameStats[gb]?.plays || 0) - (gameStats[ga]?.plays || 0);
+    return ga.localeCompare(gb);
+  });
+  visible.forEach(c => container.appendChild(c));
+}
+
+function updateSortLabels() {
+  const lbls = {
+    ja: { popular:'★ 人気順', rating:'評価順', plays:'プレイ数順', name:'名前順' },
+    en: { popular:'★ Popular', rating:'Rating', plays:'Most Played', name:'A–Z' }
+  };
+  document.querySelectorAll('.sort-btn').forEach(btn => {
+    const k = btn.dataset.sort;
+    if (lbls[lang]?.[k]) btn.textContent = lbls[lang][k];
+  });
+  const noRes = document.getElementById('no-results');
+  if (noRes) noRes.textContent = lang === 'ja' ? '該当するゲームがありません' : 'No games found';
+  const inp = document.getElementById('game-search');
+  if (inp) inp.placeholder = lang === 'ja' ? '検索…' : 'SEARCH…';
+}
+
+// Sort button clicks
+document.querySelectorAll('.sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentSort = btn.dataset.sort;
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    SND.sfx.click();
+    sortAndFilter();
+  });
+});
+
+// Search input
+document.getElementById('game-search').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  sortAndFilter();
+});
+
+// Play count tracking (localStorage)
+document.querySelectorAll('.play-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const game = btn.closest('.card[data-game]')?.dataset.game;
+    if (!game) return;
+    const n = parseInt(localStorage.getItem('plays_' + game) || '0') + 1;
+    localStorage.setItem('plays_' + game, n);
+  });
+});
+
+// Load ratings from Supabase (single bulk query)
+async function loadAllStats() {
+  const GAMES = ['snake','symbiont','reversi','gomoku','chess','shogi'];
+  GAMES.forEach(g => {
+    gameStats[g] = { avg: 0, count: 0, plays: parseInt(localStorage.getItem('plays_' + g) || '0') };
+  });
+
   try {
-    const res = await fetch(SUPABASE_URL + path, {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/ratings?select=game,stars', {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
     });
-    const text = await res.text();
-    return text ? JSON.parse(text) : [];
-  } catch(e) { return []; }
+    const rows = res.ok ? (JSON.parse(await res.text()) || []) : [];
+    const totals = {};
+    rows.forEach(r => {
+      if (!totals[r.game]) totals[r.game] = { sum: 0, n: 0 };
+      totals[r.game].sum += r.stars;
+      totals[r.game].n++;
+    });
+    GAMES.forEach(g => {
+      const t = totals[g];
+      if (t && t.n > 0) {
+        gameStats[g].avg = t.sum / t.n;
+        gameStats[g].count = t.n;
+        const el = document.getElementById('avg-' + g);
+        if (el) el.textContent = `★ ${gameStats[g].avg.toFixed(1)} (${t.n})`;
+      } else {
+        // Fallback: localStorage ratings
+        const ls = JSON.parse(localStorage.getItem('ratings_' + g) || '[]');
+        if (ls.length) {
+          gameStats[g].avg = ls.reduce((s, r) => s + r.stars, 0) / ls.length;
+          gameStats[g].count = ls.length;
+          const el = document.getElementById('avg-' + g);
+          if (el) el.textContent = `★ ${gameStats[g].avg.toFixed(1)} (${ls.length})`;
+        }
+      }
+    });
+  } catch(e) {}
+  sortAndFilter();
 }
 
-async function loadGlobalAvg(game, elId) {
-  const rows = await sbGet(`/rest/v1/ratings?game=eq.${game}&select=stars`);
-  if (!rows.length) {
-    const list = JSON.parse(localStorage.getItem('ratings_' + game) || '[]');
-    if (!list.length) return;
-    const avg = (list.reduce((s,r) => s + r.stars, 0) / list.length).toFixed(1);
-    document.getElementById(elId).textContent = `★ ${avg} (${list.length})`;
-    return;
-  }
-  const avg = (rows.reduce((s,r) => s + r.stars, 0) / rows.length).toFixed(1);
-  document.getElementById(elId).textContent = `★ ${avg} (${rows.length})`;
-}
+updateSortLabels();
+loadAllStats();
 
-loadGlobalAvg('snake', 'avg-snake');
-loadGlobalAvg('symbiont', 'avg-symbiont');
-loadGlobalAvg('reversi', 'avg-reversi');
-loadGlobalAvg('gomoku', 'avg-gomoku');
-loadGlobalAvg('chess', 'avg-chess');
-loadGlobalAvg('shogi', 'avg-shogi');
+// ── BGM: start on first user interaction ──────────────────────
+document.addEventListener('click', function startAudio() {
+  SND.startBGM('title');
+  SND.createBtn();
+  document.removeEventListener('click', startAudio);
+}, { once: true });
+
+// Also initialize on first keydown (for keyboard users)
+document.addEventListener('keydown', function startAudioKey() {
+  SND.startBGM('title');
+  SND.createBtn();
+  document.removeEventListener('keydown', startAudioKey);
+}, { once: true });
 
 // --- Snake preview ---
 (function() {

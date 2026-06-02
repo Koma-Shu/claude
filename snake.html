@@ -85,6 +85,7 @@
     .mbtn { padding:5px 16px; border-radius:6px; border:1px solid #333; background:#13131f; color:#555; font-family:'Courier New',monospace; font-size:0.75rem; cursor:pointer; letter-spacing:1px; }
     .mbtn.active { border-color:#00d4aa; color:#00d4aa; background:#0a1a18; }
   </style>
+<script src="sound.js"></script>
 </head>
 <body>
   <h1>SNAKE</h1>
@@ -490,6 +491,22 @@ document.getElementById('submit-rating').addEventListener('click', async ()=>{
 loadLeaderboard();
 loadRatings();
 init(); draw();
+</script>
+<script>
+(function(){
+  var _started=false;
+  function _startAudio(){
+    if(_started)return;_started=true;
+    SND.startBGM("game");
+    SND.createBtn();
+    document.querySelectorAll("canvas").forEach(function(c){
+      c.addEventListener("mousedown",function(){SND.sfx.move();});
+      c.addEventListener("touchstart",function(){SND.sfx.move();},{passive:true});
+    });
+  }
+  document.addEventListener("click",_startAudio,{once:true});
+  document.addEventListener("keydown",_startAudio,{once:true});
+})();
 </script>
 </body>
 </html>

@@ -69,6 +69,7 @@
     .back { display:block; margin-top:14px; font-size:0.75rem; color:#444; text-decoration:none; letter-spacing:2px; text-align:center; }
     .back:hover { color:#888; }
   </style>
+<script src="sound.js"></script>
 </head>
 <body>
 <button id="lang-btn">EN</button>
@@ -664,6 +665,12 @@ document.getElementById('promo-no').addEventListener('click',()=>{
 
 async function executeAction(action){
   const {nb,nh}=applyMove(board,hands,action);
+  if(window.SND){
+    if(action.drop)SND.sfx.place();
+    else if(action.promote)SND.sfx.promote();
+    else if(nb[action.to.r]&&nb[action.to.r][action.to.c]!==board[action.to.r]?.[action.to.c])SND.sfx.capture();
+    else SND.sfx.move();
+  }
   board=nb; hands=nh;
   lastMoveInfo=action; selected=null; selectedDrop=null; legalMoves=null;
   turn=3-turn;
@@ -680,6 +687,7 @@ function checkEndGame(){
   if(moves.length===0){
     gameOver=true;
     const winner=3-turn;
+    if(window.SND){if(winner===myColor)SND.sfx.win();else SND.sfx.lose();}
     if(mode==='cpu') setStatus(winner===myColor?T('win'):T('cpuWin'));
     else setStatus(winner===myColor?T('win'):T('opWin'));
     updateResignBtn();
@@ -859,6 +867,22 @@ startGame();
 loadRatings();
 const hash=location.hash.slice(1);
 if(hash.length===6){document.getElementById('code-input').value=hash;document.getElementById('btn-online').click();}
+</script>
+<script>
+(function(){
+  var _started=false;
+  function _startAudio(){
+    if(_started)return;_started=true;
+    SND.startBGM("game");
+    SND.createBtn();
+    document.querySelectorAll("canvas").forEach(function(c){
+      c.addEventListener("mousedown",function(){SND.sfx.move();});
+      c.addEventListener("touchstart",function(){SND.sfx.move();},{passive:true});
+    });
+  }
+  document.addEventListener("click",_startAudio,{once:true});
+  document.addEventListener("keydown",_startAudio,{once:true});
+})();
 </script>
 </body>
 </html>

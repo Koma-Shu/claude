@@ -62,6 +62,7 @@
     .back { display:block; margin-top:14px; font-size:0.75rem; color:#444; text-decoration:none; letter-spacing:2px; text-align:center; }
     .back:hover { color:#888; }
   </style>
+<script src="sound.js"></script>
 </head>
 <body>
 <button id="lang-btn">EN</button>
@@ -347,8 +348,9 @@ function doPlace(r, c) {
   if (gameOver||cpuBusy) return;
   if (mode==='cpu'&&turn!==myColor) return;
   if (mode==='online'&&turn!==myColor) return;
-  if (board[r][c]!==0) return;
+  if (board[r][c]!==0) { if(window.SND)SND.sfx.invalid(); return; }
   board[r][c]=turn; lastMove={r,c}; moveCount++;
+  if(window.SND) SND.sfx.place();
   draw();
   const wl=checkWin(board,r,c);
   if (wl) { winLine=wl; draw(); endGame(turn); return; }
@@ -380,9 +382,14 @@ function doCpu() {
 function endGame(winner) {
   gameOver=true;
   let msg;
-  if (winner===0) msg=T('draw');
-  else if (mode==='cpu') msg=winner===myColor?T('win'):T('cpuWin');
-  else msg=winner===myColor?T('win'):T('opWin');
+  if (winner===0) { msg=T('draw'); if(window.SND) SND.sfx.lose(); }
+  else if (mode==='cpu') {
+    if(winner===myColor){msg=T('win');if(window.SND)SND.sfx.win();}
+    else{msg=T('cpuWin');if(window.SND)SND.sfx.lose();}
+  } else {
+    if(winner===myColor){msg=T('win');if(window.SND)SND.sfx.win();}
+    else{msg=T('opWin');if(window.SND)SND.sfx.lose();}
+  }
   setStatus(T('gameEnd',{msg}));
   draw(); updateResignBtn();
   if (pollTid) { clearInterval(pollTid); pollTid=null; }
@@ -542,6 +549,22 @@ startGame();
 loadRatings();
 const hash=location.hash.slice(1);
 if(hash.length===6){document.getElementById('code-input').value=hash;document.getElementById('btn-online').click();}
+</script>
+<script>
+(function(){
+  var _started=false;
+  function _startAudio(){
+    if(_started)return;_started=true;
+    SND.startBGM("game");
+    SND.createBtn();
+    document.querySelectorAll("canvas").forEach(function(c){
+      c.addEventListener("mousedown",function(){SND.sfx.move();});
+      c.addEventListener("touchstart",function(){SND.sfx.move();},{passive:true});
+    });
+  }
+  document.addEventListener("click",_startAudio,{once:true});
+  document.addEventListener("keydown",_startAudio,{once:true});
+})();
 </script>
 </body>
 </html>

@@ -147,6 +147,7 @@
     .back { display: block; margin-top: 14px; margin-bottom: 8px; font-size: 0.75rem; color: #444; text-decoration: none; letter-spacing: 2px; text-align: center; }
     .back:hover { color: #888; }
   </style>
+<script src="sound.js"></script>
 </head>
 <body>
 
@@ -610,6 +611,22 @@ loadLeaderboard();
 loadRatings();
 spawnNutrient(); spawnNutrient();
 loop();
+</script>
+<script>
+(function(){
+  var _started=false;
+  function _startAudio(){
+    if(_started)return;_started=true;
+    SND.startBGM("game");
+    SND.createBtn();
+    document.querySelectorAll("canvas").forEach(function(c){
+      c.addEventListener("mousedown",function(){SND.sfx.move();});
+      c.addEventListener("touchstart",function(){SND.sfx.move();},{passive:true});
+    });
+  }
+  document.addEventListener("click",_startAudio,{once:true});
+  document.addEventListener("keydown",_startAudio,{once:true});
+})();
 </script>
 </body>
 </html>

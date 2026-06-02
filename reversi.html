@@ -68,6 +68,7 @@
     .back { display:block; margin-top:14px; font-size:0.75rem; color:#444; text-decoration:none; letter-spacing:2px; text-align:center; }
     .back:hover { color:#888; }
   </style>
+<script src="sound.js"></script>
 </head>
 <body>
 <button id="lang-btn">EN</button>
@@ -481,10 +482,12 @@ function doPlace(r, c) {
   if (gameOver || cpuBusy) return;
   if (mode==='cpu' && turn!==myColor) return;
   if (mode==='online' && turn!==myColor) return;
-  if (!getFlips(board,r,c,turn).length) return;
+  if (!getFlips(board,r,c,turn).length) { if(window.SND)SND.sfx.invalid(); return; }
   stopTimer();
+  const flips=getFlips(board,r,c,turn);
   board = applyMove(board,r,c,turn);
   lastMove = {r,c};
+  if(window.SND){if(flips.length>2)SND.sfx.capture();else SND.sfx.flip();}
   updScore();
   if (mode==='online') {
     const mc = lastMoves + 1;
@@ -539,6 +542,11 @@ function endGame() {
   let msg;
   if (mode==='cpu') msg = bk>wh?T('win'):wh>bk?T('cpuWin'):T('draw');
   else msg = bk>wh?(myColor===1?T('win'):T('opWin')):wh>bk?(myColor===2?T('win'):T('opWin')):T('draw');
+  if(window.SND){
+    const iWin=(mode==='cpu'&&bk>wh)||(mode!=='cpu'&&((myColor===1&&bk>wh)||(myColor===2&&wh>bk)));
+    const isDraw=bk===wh;
+    if(isDraw)SND.sfx.lose();else if(iWin)SND.sfx.win();else SND.sfx.lose();
+  }
   if(lang==='ja') setStatus(`ゲーム終了 — ${msg}  (黒:${bk} 白:${wh})`);
   else setStatus(`Game over — ${msg}  (B:${bk} W:${wh})`);
   draw(); updateResignBtn();
@@ -731,6 +739,22 @@ if(hash.length===6){
   document.getElementById('code-input').value=hash;
   document.getElementById('btn-online').click();
 }
+</script>
+<script>
+(function(){
+  var _started=false;
+  function _startAudio(){
+    if(_started)return;_started=true;
+    SND.startBGM("game");
+    SND.createBtn();
+    document.querySelectorAll("canvas").forEach(function(c){
+      c.addEventListener("mousedown",function(){SND.sfx.move();});
+      c.addEventListener("touchstart",function(){SND.sfx.move();},{passive:true});
+    });
+  }
+  document.addEventListener("click",_startAudio,{once:true});
+  document.addEventListener("keydown",_startAudio,{once:true});
+})();
 </script>
 </body>
 </html>

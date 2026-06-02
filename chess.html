@@ -66,6 +66,7 @@
     .back { display:block; margin-top:14px; font-size:0.75rem; color:#444; text-decoration:none; letter-spacing:2px; text-align:center; }
     .back:hover { color:#888; }
   </style>
+<script src="sound.js"></script>
 </head>
 <body>
 <button id="lang-btn">EN</button>
@@ -584,6 +585,11 @@ async function executeMove(fr,fc,tr,tc,special) {
   const {nb,cap,newEp,ncr}=applyMove(board,fr,fc,tr,tc,special,promoType,castleRights,enPassantSq);
   board=nb; castleRights=ncr; enPassantSq=newEp;
   captured.push(...cap);
+  if(window.SND){
+    if(promoType&&promoType!=='default')SND.sfx.promote();
+    else if(cap&&cap.length>0)SND.sfx.capture();
+    else SND.sfx.place();
+  }
   lastMove={fr,fc,tr,tc}; selectedCell=null; legalMoves=null;
   turn=3-turn;
   if (mode==='online') {
@@ -621,16 +627,18 @@ function checkEndGame() {
     if (inCheck(board,cl)) {
       const ckWinner = cl===myColor ? (mode==='cpu'?T('cpuWin'):T('opWin')) : T('win');
       setStatus(T('checkmate')+' — '+ckWinner);
+      if(window.SND){if(cl===myColor)SND.sfx.lose();else SND.sfx.win();}
       if (mode==='online') pushGameOver(3-cl);
     } else {
       setStatus(T('stalemate'));
+      if(window.SND) SND.sfx.lose();
       if (mode==='online') pushGameOver(3);
     }
     updateResignBtn();
     if (pollTid) { clearInterval(pollTid); pollTid=null; }
     return;
   }
-  if (inCheck(board,cl)) setStatus(cl===1?T('checkWhite'):T('checkBlack'));
+  if (inCheck(board,cl)) { setStatus(cl===1?T('checkWhite'):T('checkBlack')); if(window.SND)SND.sfx.check(); }
   else setStatus(cl===1?T('whiteTurn'):T('blackTurn'));
   if (mode==='cpu'&&turn===cpuColor) {
     cpuBusy=true; setStatus(T('cpuThink')); updateResignBtn();
@@ -817,6 +825,22 @@ startGame();
 loadRatings();
 const hash=location.hash.slice(1);
 if(hash.length===6){document.getElementById('code-input').value=hash;document.getElementById('btn-online').click();}
+</script>
+<script>
+(function(){
+  var _started=false;
+  function _startAudio(){
+    if(_started)return;_started=true;
+    SND.startBGM("game");
+    SND.createBtn();
+    document.querySelectorAll("canvas").forEach(function(c){
+      c.addEventListener("mousedown",function(){SND.sfx.move();});
+      c.addEventListener("touchstart",function(){SND.sfx.move();},{passive:true});
+    });
+  }
+  document.addEventListener("click",_startAudio,{once:true});
+  document.addEventListener("keydown",_startAudio,{once:true});
+})();
 </script>
 </body>
 </html>
