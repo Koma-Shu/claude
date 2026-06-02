@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>アカウント登録 | ARCADE</title>
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     body{background:#0d0d1a;min-height:100vh;font-family:'Courier New',monospace;color:#eee;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;}
@@ -14,24 +16,38 @@
     input{width:100%;background:#0d0d1a;border:1px solid #2a2a3a;border-radius:6px;padding:10px 12px;color:#eee;font-family:'Courier New',monospace;font-size:0.85rem;outline:none;transition:border-color 0.2s;}
     input:focus{border-color:#00d4aa;}
     .hint{font-size:0.62rem;color:#444;margin-top:4px;}
-    .btn{width:100%;margin-top:28px;padding:13px;background:linear-gradient(135deg,#00d4aa,#0088cc);border:none;border-radius:8px;color:#000;font-family:'Courier New',monospace;font-size:0.9rem;letter-spacing:3px;font-weight:bold;cursor:pointer;transition:opacity 0.15s;}
+    .btn{width:100%;margin-top:24px;padding:13px;background:linear-gradient(135deg,#00d4aa,#0088cc);border:none;border-radius:8px;color:#000;font-family:'Courier New',monospace;font-size:0.9rem;letter-spacing:3px;font-weight:bold;cursor:pointer;transition:opacity 0.15s;}
     .btn:hover{opacity:0.85;}
     .btn:disabled{opacity:0.4;cursor:not-allowed;}
-    .btn-sec{width:100%;margin-top:12px;padding:11px;background:transparent;border:1px solid #333;border-radius:8px;color:#666;font-family:'Courier New',monospace;font-size:0.8rem;letter-spacing:2px;cursor:pointer;transition:all 0.15s;}
-    .btn-sec:hover{border-color:#555;color:#aaa;}
+    .btn-sec{width:100%;margin-top:10px;padding:11px;background:transparent;border:1px solid #2a2a3a;border-radius:8px;color:#555;font-family:'Courier New',monospace;font-size:0.78rem;letter-spacing:2px;cursor:pointer;transition:all 0.15s;}
+    .btn-sec:hover:not(:disabled){border-color:#555;color:#aaa;}
+    .btn-sec:disabled{opacity:0.35;cursor:not-allowed;}
     .msg{margin-top:14px;text-align:center;font-size:0.75rem;min-height:20px;}
     .err{color:#ff5566;}
     .ok{color:#00d4aa;}
-    .link{display:block;text-align:center;margin-top:20px;font-size:0.7rem;color:#555;text-decoration:none;letter-spacing:2px;}
+    .info{color:#aaa;}
+    .link{display:block;text-align:center;margin-top:20px;font-size:0.7rem;color:#444;text-decoration:none;letter-spacing:2px;}
     .link:hover{color:#888;}
     #lang-btn{position:fixed;top:14px;left:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:0.72rem;padding:5px 10px;cursor:pointer;z-index:10;}
     #back-btn{position:fixed;top:14px;right:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:0.72rem;padding:5px 10px;cursor:pointer;z-index:10;text-decoration:none;}
-    .otp-display{background:#0a1a14;border:1px solid #00d4aa;border-radius:8px;padding:18px;text-align:center;margin-top:20px;}
-    .otp-code{font-size:2.2rem;letter-spacing:10px;color:#00d4aa;font-weight:bold;text-shadow:0 0 16px rgba(0,212,170,0.5);}
-    .otp-note{font-size:0.65rem;color:#555;margin-top:8px;letter-spacing:1px;}
-    .step-indicator{display:flex;justify-content:center;gap:8px;margin-bottom:24px;}
-    .step{width:28px;height:4px;border-radius:2px;background:#1e1e2e;}
+    .step-indicator{display:flex;justify-content:center;gap:8px;margin-bottom:28px;}
+    .step{width:28px;height:4px;border-radius:2px;background:#1e1e2e;transition:background 0.3s;}
     .step.active{background:#00d4aa;}
+    /* Step 2 email notice */
+    .email-sent-box{background:#0a1f18;border:1px solid #1a4a36;border-radius:10px;padding:18px 20px;margin-top:4px;text-align:center;}
+    .email-sent-icon{font-size:2rem;margin-bottom:8px;}
+    .email-sent-to{font-size:0.75rem;color:#aaa;margin-bottom:4px;}
+    .email-sent-addr{font-size:0.88rem;color:#00d4aa;letter-spacing:1px;word-break:break-all;}
+    .email-sent-note{font-size:0.63rem;color:#444;margin-top:8px;line-height:1.6;}
+    /* OTP input */
+    #otp-input{text-align:center;letter-spacing:8px;font-size:1.4rem;font-weight:bold;padding:14px 12px;}
+    .resend-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;}
+    .resend-countdown{font-size:0.7rem;color:#555;letter-spacing:1px;}
+    #resend-btn{background:transparent;border:none;color:#0088cc;font-family:'Courier New',monospace;font-size:0.72rem;letter-spacing:1px;cursor:pointer;padding:0;text-decoration:underline;}
+    #resend-btn:disabled{color:#333;cursor:not-allowed;text-decoration:none;}
+    /* Spinner */
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid #333;border-top-color:#00d4aa;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px;}
+    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
@@ -40,13 +56,13 @@
 
 <div class="box">
   <h2 id="title-reg">REGISTER</h2>
-  <div class="sub" id="sub-reg">CREATE YOUR ACCOUNT</div>
+  <div class="sub" id="sub-reg">アカウント作成</div>
   <div class="step-indicator">
     <div class="step active" id="step1-dot"></div>
     <div class="step" id="step2-dot"></div>
   </div>
 
-  <!-- Step 1: Info -->
+  <!-- ── Step 1: 情報入力 ── -->
   <div id="step1">
     <label id="lbl-fullname">氏名</label>
     <input type="text" id="fullname" autocomplete="name">
@@ -71,17 +87,28 @@
     <button class="btn" id="reg-btn">次へ</button>
   </div>
 
-  <!-- Step 2: OTP -->
+  <!-- ── Step 2: メール認証 ── -->
   <div id="step2" style="display:none">
-    <div class="otp-display">
-      <div class="otp-code" id="otp-display">------</div>
-      <div class="otp-note" id="otp-note">このコードをメールアドレスに送信しました（デモ：画面に表示）</div>
+    <div class="email-sent-box">
+      <div class="email-sent-icon">📧</div>
+      <div class="email-sent-to" id="sent-to-label">認証コードを送信しました</div>
+      <div class="email-sent-addr" id="sent-to-addr"></div>
+      <div class="email-sent-note" id="sent-note">
+        メールに記載された6桁のコードを入力してください。<br>
+        届かない場合は迷惑メールフォルダをご確認ください。
+      </div>
     </div>
 
-    <label id="lbl-otp" style="margin-top:24px">認証コード（6桁）</label>
-    <input type="text" id="otp-input" maxlength="6" autocomplete="one-time-code" style="text-align:center;letter-spacing:6px;font-size:1.2rem;">
+    <label id="lbl-otp" style="margin-top:22px">認証コード（6桁）</label>
+    <input type="text" id="otp-input" maxlength="6" autocomplete="one-time-code" inputmode="text" placeholder="——————">
 
-    <button class="btn" id="verify-btn" style="margin-top:24px">認証して登録</button>
+    <button class="btn" id="verify-btn">認証して登録</button>
+
+    <div class="resend-row">
+      <span class="resend-countdown" id="resend-countdown"></span>
+      <button id="resend-btn" disabled></button>
+    </div>
+
     <button class="btn-sec" id="back-step-btn">← 戻る</button>
   </div>
 
@@ -90,124 +117,299 @@
 </div>
 
 <script>
-const SUPABASE_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
-const SUPABASE_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+// ═══════════════════════════════════════════════
+//  EmailJS 設定 — https://www.emailjs.com/
+//  下記3つの値をEmailJSダッシュボードの値に変更してください
+// ═══════════════════════════════════════════════
+const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';   // Account > General > Public Key
+const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';   // Email Services のサービスID
+const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';  // Email Templates のテンプレートID
+// ═══════════════════════════════════════════════
 
-const T_={
-  ja:{title:'REGISTER',sub:'アカウント作成',lFullname:'氏名',lBirth:'生年月日',lUid:'ユーザID',hUid:'半角英数字・アンダースコア、20文字以内',lEmail:'メールアドレス',lPw:'パスワード',hPw:'8文字以上',lPw2:'パスワード（確認）',btnNext:'次へ',lOtp:'認証コード（6桁）',otpNote:'このコードをメールアドレスに送信しました（デモ：画面に表示）',btnVerify:'認証して登録',btnBack:'← 戻る',linkLogin:'ログインはこちら',back:'← HOME',errEmpty:'すべての項目を入力してください',errUid:'ユーザIDは半角英数字・アンダースコアのみ使用可能です',errEmail:'有効なメールアドレスを入力してください',errPwLen:'パスワードは8文字以上にしてください',errPwMatch:'パスワードが一致しません',errTaken:'このユーザIDは既に使用されています',errEmailTaken:'このメールアドレスは既に使用されています',errOtp:'認証コードが違います',errExpired:'認証コードの有効期限が切れています',ok:'登録完了！ログインページに移動します…',errServer:'エラーが発生しました'},
-  en:{title:'REGISTER',sub:'CREATE YOUR ACCOUNT',lFullname:'Full Name',lBirth:'Date of Birth',lUid:'User ID',hUid:'Letters, numbers, underscores — max 20 chars',lEmail:'Email Address',lPw:'Password',hPw:'At least 8 characters',lPw2:'Confirm Password',btnNext:'NEXT',lOtp:'Verification Code (6 digits)',otpNote:'This code was sent to your email (demo: shown on screen)',btnVerify:'VERIFY & REGISTER',btnBack:'← Back',linkLogin:'Already have an account? Login',back:'← HOME',errEmpty:'Please fill in all fields',errUid:'User ID: letters, numbers, underscores only',errEmail:'Please enter a valid email address',errPwLen:'Password must be at least 8 characters',errPwMatch:'Passwords do not match',errTaken:'This user ID is already taken',errEmailTaken:'This email is already in use',errOtp:'Incorrect verification code',errExpired:'Verification code has expired',ok:'Registered! Redirecting to login…',errServer:'An error occurred'}
+const SUPABASE_URL = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+
+emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
+
+const T_ = {
+  ja:{
+    title:'REGISTER', sub:'アカウント作成',
+    lFullname:'氏名', lBirth:'生年月日', lUid:'ユーザID',
+    hUid:'半角英数字・アンダースコア、20文字以内',
+    lEmail:'メールアドレス', lPw:'パスワード', hPw:'8文字以上',
+    lPw2:'パスワード（確認）', btnNext:'認証コードを送信',
+    lOtp:'認証コード（6桁）',
+    sentToLabel:'認証コードを送信しました',
+    sentNote:'メールに記載された6桁のコードを入力してください。\n届かない場合は迷惑メールフォルダをご確認ください。',
+    btnVerify:'認証して登録', btnBack:'← 戻る', btnResend:'再送信',
+    resendIn:'{n}秒後に再送信可能',
+    linkLogin:'ログインはこちら', back:'← HOME',
+    errEmpty:'すべての項目を入力してください',
+    errUid:'ユーザIDは半角英数字・アンダースコアのみ使用可能です',
+    errEmail:'有効なメールアドレスを入力してください',
+    errPwLen:'パスワードは8文字以上にしてください',
+    errPwMatch:'パスワードが一致しません',
+    errTaken:'このユーザIDは既に使用されています',
+    errEmailTaken:'このメールアドレスは既に使用されています',
+    errOtp:'認証コードが違います', errExpired:'認証コードの有効期限が切れています（再送信してください）',
+    sending:'送信中…', sendOk:'認証コードを送信しました', sendErr:'メール送信に失敗しました。しばらく待ってから再試行してください',
+    ok:'登録完了！ログインページに移動します…', errServer:'エラーが発生しました'
+  },
+  en:{
+    title:'REGISTER', sub:'CREATE YOUR ACCOUNT',
+    lFullname:'Full Name', lBirth:'Date of Birth', lUid:'User ID',
+    hUid:'Letters, numbers, underscores — max 20 chars',
+    lEmail:'Email Address', lPw:'Password', hPw:'At least 8 characters',
+    lPw2:'Confirm Password', btnNext:'SEND VERIFICATION CODE',
+    lOtp:'Verification Code (6 digits)',
+    sentToLabel:'Verification code sent to',
+    sentNote:'Enter the 6-digit code from your email.\nCheck your spam folder if you don\'t see it.',
+    btnVerify:'VERIFY & REGISTER', btnBack:'← Back', btnResend:'Resend',
+    resendIn:'Resend in {n}s',
+    linkLogin:'Already have an account? Login', back:'← HOME',
+    errEmpty:'Please fill in all fields',
+    errUid:'User ID: letters, numbers, underscores only',
+    errEmail:'Please enter a valid email address',
+    errPwLen:'Password must be at least 8 characters',
+    errPwMatch:'Passwords do not match',
+    errTaken:'This user ID is already taken',
+    errEmailTaken:'This email is already in use',
+    errOtp:'Incorrect verification code', errExpired:'Code expired — please resend',
+    sending:'Sending…', sendOk:'Verification code sent', sendErr:'Failed to send email. Please try again',
+    ok:'Registered! Redirecting to login…', errServer:'An error occurred'
+  }
 };
-let lang=localStorage.getItem('lang')||'ja';
-function T(k){return T_[lang][k]||T_.ja[k]||k;}
-function applyLang(){
-  document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
-  document.getElementById('title-reg').textContent=T('title');
-  document.getElementById('sub-reg').textContent=T('sub');
-  document.getElementById('lbl-fullname').textContent=T('lFullname');
-  document.getElementById('lbl-birth').textContent=T('lBirth');
-  document.getElementById('lbl-uid').textContent=T('lUid');
-  document.getElementById('hint-uid').textContent=T('hUid');
-  document.getElementById('lbl-email').textContent=T('lEmail');
-  document.getElementById('lbl-pw').textContent=T('lPw');
-  document.getElementById('hint-pw').textContent=T('hPw');
-  document.getElementById('lbl-pw2').textContent=T('lPw2');
-  document.getElementById('reg-btn').textContent=T('btnNext');
-  document.getElementById('lbl-otp').textContent=T('lOtp');
-  document.getElementById('otp-note').textContent=T('otpNote');
-  document.getElementById('verify-btn').textContent=T('btnVerify');
-  document.getElementById('back-step-btn').textContent=T('btnBack');
-  document.getElementById('link-login').textContent=T('linkLogin');
-  document.getElementById('back-btn').textContent=T('back');
-  document.documentElement.lang=lang;
+let lang = localStorage.getItem('lang') || 'ja';
+function T(k, v={}) {
+  let s = T_[lang][k] || T_.ja[k] || k;
+  Object.entries(v).forEach(([a,b]) => s = s.replace('{'+a+'}', b));
+  return s;
 }
-document.getElementById('lang-btn').addEventListener('click',()=>{lang=lang==='ja'?'en':'ja';localStorage.setItem('lang',lang);applyLang();});
+function applyLang() {
+  document.getElementById('lang-btn').textContent = lang==='ja' ? 'EN' : 'JA';
+  document.getElementById('title-reg').textContent = T('title');
+  document.getElementById('sub-reg').textContent = T('sub');
+  document.getElementById('lbl-fullname').textContent = T('lFullname');
+  document.getElementById('lbl-birth').textContent = T('lBirth');
+  document.getElementById('lbl-uid').textContent = T('lUid');
+  document.getElementById('hint-uid').textContent = T('hUid');
+  document.getElementById('lbl-email').textContent = T('lEmail');
+  document.getElementById('lbl-pw').textContent = T('lPw');
+  document.getElementById('hint-pw').textContent = T('hPw');
+  document.getElementById('lbl-pw2').textContent = T('lPw2');
+  document.getElementById('reg-btn').textContent = T('btnNext');
+  document.getElementById('lbl-otp').textContent = T('lOtp');
+  document.getElementById('sent-to-label').textContent = T('sentToLabel');
+  document.getElementById('sent-note').textContent = T('sentNote');
+  document.getElementById('verify-btn').textContent = T('btnVerify');
+  document.getElementById('back-step-btn').textContent = T('btnBack');
+  document.getElementById('resend-btn').textContent = T('btnResend');
+  document.getElementById('link-login').textContent = T('linkLogin');
+  document.getElementById('back-btn').textContent = T('back');
+  document.documentElement.lang = lang;
+}
+document.getElementById('lang-btn').addEventListener('click', () => {
+  lang = lang==='ja' ? 'en' : 'ja';
+  localStorage.setItem('lang', lang);
+  applyLang();
+  updateResendCountdown(); // re-render countdown text in new lang
+});
 applyLang();
 
-async function hashPw(pw){
-  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+async function hashPw(pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+async function sb(path, opts={}) {
+  const r = await fetch(SUPABASE_URL+path, {
+    headers: {'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,
+              'Content-Type':'application/json','Prefer':'return=representation',...(opts.headers||{})},
+    ...opts
+  });
+  const t = await r.text(); return t ? JSON.parse(t) : null;
 }
 
-async function sb(path,opts={}){
-  const r=await fetch(SUPABASE_URL+path,{headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':'return=representation',...(opts.headers||{})},...opts});
-  const t=await r.text();return t?JSON.parse(t):null;
+function genOtp() {
+  // 6桁の数字コード（メールで読みやすい）
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-function genOtp(){return Math.random().toString(36).substring(2,8).toUpperCase();}
+function maskEmail(email) {
+  const [local, domain] = email.split('@');
+  const masked = local.length <= 2
+    ? local[0] + '*'.repeat(local.length-1)
+    : local[0] + '*'.repeat(Math.min(local.length-2, 4)) + local.slice(-1);
+  return masked + '@' + domain;
+}
 
-let pendingData=null;
+async function sendOtpEmail(email, username, otp) {
+  await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+    to_email:  email,
+    to_name:   username,
+    otp_code:  otp,
+    expires_in: '10'
+  });
+}
 
-document.getElementById('reg-btn').addEventListener('click',async()=>{
-  const fn=document.getElementById('fullname').value.trim();
-  const birth=document.getElementById('birth').value;
-  const uid=document.getElementById('uid').value.trim();
-  const email=document.getElementById('email').value.trim();
-  const pw=document.getElementById('pw').value;
-  const pw2=document.getElementById('pw2').value;
-  const msg=document.getElementById('msg');
-  msg.className='msg';msg.textContent='';
+// ── Resend countdown ──
+let resendTimer = null;
+let resendSeconds = 0;
 
-  if(!fn||!birth||!uid||!email||!pw||!pw2){msg.className='msg err';msg.textContent=T('errEmpty');return;}
-  if(!/^[a-zA-Z0-9_]+$/.test(uid)){msg.className='msg err';msg.textContent=T('errUid');return;}
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg.className='msg err';msg.textContent=T('errEmail');return;}
-  if(pw.length<8){msg.className='msg err';msg.textContent=T('errPwLen');return;}
-  if(pw!==pw2){msg.className='msg err';msg.textContent=T('errPwMatch');return;}
+function startResendCountdown(seconds=60) {
+  resendSeconds = seconds;
+  document.getElementById('resend-btn').disabled = true;
+  updateResendCountdown();
+  if (resendTimer) clearInterval(resendTimer);
+  resendTimer = setInterval(() => {
+    resendSeconds--;
+    if (resendSeconds <= 0) {
+      clearInterval(resendTimer);
+      resendTimer = null;
+      document.getElementById('resend-btn').disabled = false;
+      document.getElementById('resend-countdown').textContent = '';
+    } else {
+      updateResendCountdown();
+    }
+  }, 1000);
+}
 
-  document.getElementById('reg-btn').disabled=true;
-  try{
-    const existing=await sb(`/rest/v1/users?username=eq.${encodeURIComponent(uid)}&select=id`);
-    if(existing&&existing.length>0){msg.className='msg err';msg.textContent=T('errTaken');document.getElementById('reg-btn').disabled=false;return;}
-    const existEmail=await sb(`/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=id`);
-    if(existEmail&&existEmail.length>0){msg.className='msg err';msg.textContent=T('errEmailTaken');document.getElementById('reg-btn').disabled=false;return;}
+function updateResendCountdown() {
+  const el = document.getElementById('resend-countdown');
+  if (resendSeconds > 0) {
+    el.textContent = T('resendIn', {n: resendSeconds});
+  }
+}
 
-    const otp=genOtp();
-    const expires=new Date(Date.now()+10*60*1000).toISOString();
-    const hash=await hashPw(pw);
-    pendingData={fn,birth,uid,email,hash,otp,expires};
+let pendingData = null;
 
-    document.getElementById('otp-display').textContent=otp;
-    document.getElementById('step1').style.display='none';
-    document.getElementById('step2').style.display='';
+// ── Step 1: 入力検証 → メール送信 ──
+document.getElementById('reg-btn').addEventListener('click', async () => {
+  const fn    = document.getElementById('fullname').value.trim();
+  const birth = document.getElementById('birth').value;
+  const uid   = document.getElementById('uid').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const pw    = document.getElementById('pw').value;
+  const pw2   = document.getElementById('pw2').value;
+  const msg   = document.getElementById('msg');
+  msg.className = 'msg'; msg.textContent = '';
+
+  if (!fn||!birth||!uid||!email||!pw||!pw2) { msg.className='msg err'; msg.textContent=T('errEmpty'); return; }
+  if (!/^[a-zA-Z0-9_]+$/.test(uid))         { msg.className='msg err'; msg.textContent=T('errUid');   return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.className='msg err'; msg.textContent=T('errEmail'); return; }
+  if (pw.length < 8)  { msg.className='msg err'; msg.textContent=T('errPwLen');   return; }
+  if (pw !== pw2)     { msg.className='msg err'; msg.textContent=T('errPwMatch'); return; }
+
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span>${T('sending')}`;
+
+  try {
+    const existing   = await sb(`/rest/v1/users?username=eq.${encodeURIComponent(uid)}&select=id`);
+    if (existing && existing.length > 0) { msg.className='msg err'; msg.textContent=T('errTaken'); btn.disabled=false; btn.textContent=T('btnNext'); return; }
+    const existEmail = await sb(`/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=id`);
+    if (existEmail && existEmail.length > 0) { msg.className='msg err'; msg.textContent=T('errEmailTaken'); btn.disabled=false; btn.textContent=T('btnNext'); return; }
+
+    const otp     = genOtp();
+    const expires = new Date(Date.now() + 10*60*1000).toISOString();
+    const hash    = await hashPw(pw);
+    pendingData   = { fn, birth, uid, email, hash, otp, expires };
+
+    await sendOtpEmail(email, uid, otp);
+
+    // ── Step 2 へ ──
+    document.getElementById('sent-to-addr').textContent = maskEmail(email);
+    document.getElementById('step1').style.display = 'none';
+    document.getElementById('step2').style.display = '';
     document.getElementById('step1-dot').classList.remove('active');
     document.getElementById('step2-dot').classList.add('active');
-    document.getElementById('otp-input').value='';
+    document.getElementById('otp-input').value = '';
     document.getElementById('otp-input').focus();
-  }catch(e){msg.className='msg err';msg.textContent=T('errServer');}
-  document.getElementById('reg-btn').disabled=false;
+    msg.className = 'msg ok'; msg.textContent = T('sendOk');
+    startResendCountdown(60);
+  } catch(e) {
+    console.error('Email send error:', e);
+    msg.className = 'msg err'; msg.textContent = T('sendErr');
+  }
+  btn.disabled = false; btn.textContent = T('btnNext');
 });
 
-document.getElementById('back-step-btn').addEventListener('click',()=>{
-  document.getElementById('step2').style.display='none';
-  document.getElementById('step1').style.display='';
+// ── 再送信 ──
+document.getElementById('resend-btn').addEventListener('click', async () => {
+  if (!pendingData) return;
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('resend-btn');
+  btn.disabled = true;
+  msg.className = 'msg info'; msg.textContent = T('sending');
+
+  // 新しいOTPを発行
+  const otp     = genOtp();
+  const expires = new Date(Date.now() + 10*60*1000).toISOString();
+  pendingData.otp     = otp;
+  pendingData.expires = expires;
+
+  try {
+    await sendOtpEmail(pendingData.email, pendingData.uid, otp);
+    msg.className = 'msg ok'; msg.textContent = T('sendOk');
+    document.getElementById('otp-input').value = '';
+    document.getElementById('otp-input').focus();
+    startResendCountdown(60);
+  } catch(e) {
+    console.error('Resend error:', e);
+    msg.className = 'msg err'; msg.textContent = T('sendErr');
+    btn.disabled = false;
+  }
+});
+
+// ── 戻るボタン ──
+document.getElementById('back-step-btn').addEventListener('click', () => {
+  if (resendTimer) { clearInterval(resendTimer); resendTimer = null; }
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step1').style.display = '';
   document.getElementById('step1-dot').classList.add('active');
   document.getElementById('step2-dot').classList.remove('active');
-  document.getElementById('msg').textContent='';
+  document.getElementById('msg').textContent = '';
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = false; btn.textContent = T('btnNext');
 });
 
-document.getElementById('verify-btn').addEventListener('click',async()=>{
-  const entered=document.getElementById('otp-input').value.trim().toUpperCase();
-  const msg=document.getElementById('msg');
-  msg.className='msg';msg.textContent='';
-  if(!pendingData)return;
-  if(new Date()>new Date(pendingData.expires)){msg.className='msg err';msg.textContent=T('errExpired');return;}
-  if(entered!==pendingData.otp){msg.className='msg err';msg.textContent=T('errOtp');return;}
+// ── OTP 認証 & アカウント作成 ──
+document.getElementById('verify-btn').addEventListener('click', async () => {
+  const entered = document.getElementById('otp-input').value.trim();
+  const msg = document.getElementById('msg');
+  msg.className = 'msg'; msg.textContent = '';
+  if (!pendingData) return;
 
-  document.getElementById('verify-btn').disabled=true;
-  try{
-    await sb('/rest/v1/users',{method:'POST',body:JSON.stringify({
-      username:pendingData.uid,
-      full_name:pendingData.fn,
-      birth_date:pendingData.birth,
-      email:pendingData.email,
-      email_verified:true,
-      password_hash:pendingData.hash
+  if (new Date() > new Date(pendingData.expires)) {
+    msg.className = 'msg err'; msg.textContent = T('errExpired'); return;
+  }
+  if (entered !== pendingData.otp) {
+    msg.className = 'msg err'; msg.textContent = T('errOtp'); return;
+  }
+
+  const btn = document.getElementById('verify-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span>`;
+  try {
+    await sb('/rest/v1/users', {method:'POST', body:JSON.stringify({
+      username:       pendingData.uid,
+      full_name:      pendingData.fn,
+      birth_date:     pendingData.birth,
+      email:          pendingData.email,
+      email_verified: true,
+      password_hash:  pendingData.hash
     })});
-    msg.className='msg ok';msg.textContent=T('ok');
-    setTimeout(()=>location.href='login.html',1800);
-  }catch(e){msg.className='msg err';msg.textContent=T('errServer');document.getElementById('verify-btn').disabled=false;}
+    if (resendTimer) clearInterval(resendTimer);
+    msg.className = 'msg ok'; msg.textContent = T('ok');
+    setTimeout(() => location.href = 'login.html', 1800);
+  } catch(e) {
+    msg.className = 'msg err'; msg.textContent = T('errServer');
+    btn.disabled = false; btn.textContent = T('btnVerify');
+  }
 });
 
-document.getElementById('otp-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('verify-btn').click();});
+document.getElementById('otp-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('verify-btn').click();
+});
 </script>
 </body>
 </html>
