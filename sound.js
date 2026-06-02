@@ -6,7 +6,6 @@
   let _muted = localStorage.getItem('snd_muted') === '1';
   let _bgmRunning = false, _bgmTimer = null, _bgmTheme = 'title';
 
-  // ── Note table (Hz) ───────────────────────────────────────────
   const N = {
     C3:130.8,D3:146.8,E3:164.8,F3:174.6,G3:196,A3:220,B3:246.9,
     C4:261.6,D4:293.7,E4:329.6,F4:349.2,G4:392,A4:440,B4:493.9,
@@ -14,7 +13,6 @@
     r:0
   };
 
-  // ── Audio context ─────────────────────────────────────────────
   function _ac() {
     if (!_ctx) {
       try {
@@ -28,7 +26,6 @@
     return _ctx;
   }
 
-  // ── Low-level oscillator ──────────────────────────────────────
   function _osc(freq, t0, dur, type, vol, atk, rel) {
     const c = _ac(); if (!c || !freq) return;
     const osc = c.createOscillator();
@@ -45,7 +42,6 @@
   }
   function _b(f,t,d,type='square',v=0.18,a=0.005,r=0.04){_osc(f,t,d,type,v,a,r);}
 
-  // ── SFX ──────────────────────────────────────────────────────
   const sfx = {
     place() {
       const c=_ac();if(!c)return;const t=c.currentTime;
@@ -95,14 +91,10 @@
     }
   };
 
-  // ── BGM sequences ─────────────────────────────────────────────
-  // Each entry: [freq|0, duration_in_beats]
-  // 0 = rest
   const THEMES = {
     title: {
       bpm: 152,
       mel: [
-        // Phrase A  (Tetris-inspired, C major)
         [N.E5,.5],[N.B4,.25],[N.C5,.25],
         [N.D5,.25],[N.C5,.25],[N.B4,.5],
         [N.A4,.5],[N.A4,.25],[N.C5,.25],
@@ -111,7 +103,6 @@
         [N.D5,.5],[N.E5,.5],
         [N.C5,.5],[N.A4,.5],
         [N.A4,.5],[0,1],
-        // Phrase B
         [0,.25],[N.D5,.5],[N.F5,.25],
         [N.A5,.5],[N.G5,.25],[N.F5,.25],
         [N.E5,.75],[N.C5,.25],
@@ -130,7 +121,6 @@
         [N.A3,.5],[0,.5],[N.A3,.5],[0,.5],
         [N.F3,.5],[0,.5],[N.F3,.5],[0,.5],
         [N.A3,.5],[0,.5],[N.A3,.5],[0,.5],
-        // B
         [N.D3,.5],[0,.5],[N.D3,.5],[0,.5],
         [N.D3,.5],[0,.5],[N.D3,.5],[0,.5],
         [N.E3,.5],[0,.5],[N.E3,.5],[0,.5],
@@ -191,7 +181,6 @@
     const now = _ctx.currentTime;
     const dur = _scheduleSeq(seq, 'mel',  now, 0.14, 'square');
     _scheduleSeq(seq, 'bass', now, 0.11, 'triangle');
-    // Re-schedule 200ms before loop end to avoid gaps
     _bgmTimer = setTimeout(_scheduleLoop, Math.max(50, (dur - 0.25) * 1000));
   }
 
@@ -223,7 +212,6 @@
   function toggleMute() { setMuted(!_muted); return _muted; }
   function isMuted() { return _muted; }
 
-  // ── Sound button helper ───────────────────────────────────────
   function createBtn(parent) {
     if (document.getElementById('snd-btn')) return;
     const btn = document.createElement('button');

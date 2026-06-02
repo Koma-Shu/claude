@@ -17,8 +17,6 @@
     .btn{width:100%;margin-top:28px;padding:13px;background:linear-gradient(135deg,#00d4aa,#0088cc);border:none;border-radius:8px;color:#000;font-family:'Courier New',monospace;font-size:0.9rem;letter-spacing:3px;font-weight:bold;cursor:pointer;transition:opacity 0.15s;}
     .btn:hover{opacity:0.85;}
     .btn:disabled{opacity:0.4;cursor:not-allowed;}
-    .btn-sec{width:100%;margin-top:12px;padding:11px;background:transparent;border:1px solid #333;border-radius:8px;color:#666;font-family:'Courier New',monospace;font-size:0.8rem;letter-spacing:2px;cursor:pointer;transition:all 0.15s;}
-    .btn-sec:hover{border-color:#555;color:#aaa;}
     .msg{margin-top:14px;text-align:center;font-size:0.75rem;min-height:20px;}
     .err{color:#ff5566;}
     .ok{color:#00d4aa;}
@@ -26,12 +24,6 @@
     .link:hover{color:#888;}
     #lang-btn{position:fixed;top:14px;left:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:0.72rem;padding:5px 10px;cursor:pointer;z-index:10;}
     #back-btn{position:fixed;top:14px;right:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:0.72rem;padding:5px 10px;cursor:pointer;z-index:10;text-decoration:none;}
-    .otp-display{background:#0a1a14;border:1px solid #00d4aa;border-radius:8px;padding:18px;text-align:center;margin-top:20px;}
-    .otp-code{font-size:2.2rem;letter-spacing:10px;color:#00d4aa;font-weight:bold;text-shadow:0 0 16px rgba(0,212,170,0.5);}
-    .otp-note{font-size:0.65rem;color:#555;margin-top:8px;letter-spacing:1px;}
-    .step-indicator{display:flex;justify-content:center;gap:8px;margin-bottom:24px;}
-    .step{width:28px;height:4px;border-radius:2px;background:#1e1e2e;}
-    .step.active{background:#00d4aa;}
   </style>
 </head>
 <body>
@@ -41,50 +33,25 @@
 <div class="box">
   <h2 id="title-reg">REGISTER</h2>
   <div class="sub" id="sub-reg">CREATE YOUR ACCOUNT</div>
-  <div class="step-indicator">
-    <div class="step active" id="step1-dot"></div>
-    <div class="step" id="step2-dot"></div>
-  </div>
 
-  <!-- Step 1: Info -->
-  <div id="step1">
-    <label id="lbl-fullname">氏名</label>
-    <input type="text" id="fullname" autocomplete="name">
+  <label id="lbl-fullname">氏名</label>
+  <input type="text" id="fullname" autocomplete="name">
 
-    <label id="lbl-birth">生年月日</label>
-    <input type="date" id="birth">
+  <label id="lbl-birth">生年月日</label>
+  <input type="date" id="birth">
 
-    <label id="lbl-uid">ユーザID</label>
-    <input type="text" id="uid" autocomplete="username" maxlength="20">
-    <div class="hint" id="hint-uid">半角英数字・アンダースコア、20文字以内</div>
+  <label id="lbl-uid">ユーザID</label>
+  <input type="text" id="uid" autocomplete="username" maxlength="20">
+  <div class="hint" id="hint-uid">半角英数字・アンダースコア、20文字以内</div>
 
-    <label id="lbl-email">メールアドレス</label>
-    <input type="email" id="email" autocomplete="email">
+  <label id="lbl-pw">パスワード</label>
+  <input type="password" id="pw" autocomplete="new-password" maxlength="64">
+  <div class="hint" id="hint-pw">8文字以上</div>
 
-    <label id="lbl-pw">パスワード</label>
-    <input type="password" id="pw" autocomplete="new-password" maxlength="64">
-    <div class="hint" id="hint-pw">8文字以上</div>
+  <label id="lbl-pw2">パスワード（確認）</label>
+  <input type="password" id="pw2" autocomplete="new-password" maxlength="64">
 
-    <label id="lbl-pw2">パスワード（確認）</label>
-    <input type="password" id="pw2" autocomplete="new-password" maxlength="64">
-
-    <button class="btn" id="reg-btn">次へ</button>
-  </div>
-
-  <!-- Step 2: OTP -->
-  <div id="step2" style="display:none">
-    <div class="otp-display">
-      <div class="otp-code" id="otp-display">------</div>
-      <div class="otp-note" id="otp-note">このコードをメールアドレスに送信しました（デモ：画面に表示）</div>
-    </div>
-
-    <label id="lbl-otp" style="margin-top:24px">認証コード（6桁）</label>
-    <input type="text" id="otp-input" maxlength="6" autocomplete="one-time-code" style="text-align:center;letter-spacing:6px;font-size:1.2rem;">
-
-    <button class="btn" id="verify-btn" style="margin-top:24px">認証して登録</button>
-    <button class="btn-sec" id="back-step-btn">← 戻る</button>
-  </div>
-
+  <button class="btn" id="reg-btn">登録</button>
   <div class="msg" id="msg"></div>
   <a href="login.html" class="link" id="link-login">ログインはこちら</a>
 </div>
@@ -94,8 +61,8 @@ const SUPABASE_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SUPABASE_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
 
 const T_={
-  ja:{title:'REGISTER',sub:'アカウント作成',lFullname:'氏名',lBirth:'生年月日',lUid:'ユーザID',hUid:'半角英数字・アンダースコア、20文字以内',lEmail:'メールアドレス',lPw:'パスワード',hPw:'8文字以上',lPw2:'パスワード（確認）',btnNext:'次へ',lOtp:'認証コード（6桁）',otpNote:'このコードをメールアドレスに送信しました（デモ：画面に表示）',btnVerify:'認証して登録',btnBack:'← 戻る',linkLogin:'ログインはこちら',back:'← HOME',errEmpty:'すべての項目を入力してください',errUid:'ユーザIDは半角英数字・アンダースコアのみ使用可能です',errEmail:'有効なメールアドレスを入力してください',errPwLen:'パスワードは8文字以上にしてください',errPwMatch:'パスワードが一致しません',errTaken:'このユーザIDは既に使用されています',errEmailTaken:'このメールアドレスは既に使用されています',errOtp:'認証コードが違います',errExpired:'認証コードの有効期限が切れています',ok:'登録完了！ログインページに移動します…',errServer:'エラーが発生しました'},
-  en:{title:'REGISTER',sub:'CREATE YOUR ACCOUNT',lFullname:'Full Name',lBirth:'Date of Birth',lUid:'User ID',hUid:'Letters, numbers, underscores — max 20 chars',lEmail:'Email Address',lPw:'Password',hPw:'At least 8 characters',lPw2:'Confirm Password',btnNext:'NEXT',lOtp:'Verification Code (6 digits)',otpNote:'This code was sent to your email (demo: shown on screen)',btnVerify:'VERIFY & REGISTER',btnBack:'← Back',linkLogin:'Already have an account? Login',back:'← HOME',errEmpty:'Please fill in all fields',errUid:'User ID: letters, numbers, underscores only',errEmail:'Please enter a valid email address',errPwLen:'Password must be at least 8 characters',errPwMatch:'Passwords do not match',errTaken:'This user ID is already taken',errEmailTaken:'This email is already in use',errOtp:'Incorrect verification code',errExpired:'Verification code has expired',ok:'Registered! Redirecting to login…',errServer:'An error occurred'}
+  ja:{title:'REGISTER',sub:'アカウント作成',lFullname:'氏名',lBirth:'生年月日',lUid:'ユーザID',hUid:'半角英数字・アンダースコア、20文字以内',lPw:'パスワード',hPw:'8文字以上',lPw2:'パスワード（確認）',btn:'登録',linkLogin:'ログインはこちら',back:'← HOME',errEmpty:'すべての項目を入力してください',errUid:'ユーザIDは半角英数字・アンダースコアのみ使用可能です',errPwLen:'パスワードは8文字以上にしてください',errPwMatch:'パスワードが一致しません',errTaken:'このユーザIDは既に使用されています',ok:'登録完了！ログインページに移動します…',errServer:'エラーが発生しました'},
+  en:{title:'REGISTER',sub:'CREATE YOUR ACCOUNT',lFullname:'Full Name',lBirth:'Date of Birth',lUid:'User ID',hUid:'Letters, numbers, underscores — max 20 chars',lPw:'Password',hPw:'At least 8 characters',lPw2:'Confirm Password',btn:'REGISTER',linkLogin:'Already have an account? Login',back:'← HOME',errEmpty:'Please fill in all fields',errUid:'User ID: letters, numbers, underscores only',errPwLen:'Password must be at least 8 characters',errPwMatch:'Passwords do not match',errTaken:'This user ID is already taken',ok:'Registered! Redirecting to login…',errServer:'An error occurred'}
 };
 let lang=localStorage.getItem('lang')||'ja';
 function T(k){return T_[lang][k]||T_.ja[k]||k;}
@@ -107,15 +74,10 @@ function applyLang(){
   document.getElementById('lbl-birth').textContent=T('lBirth');
   document.getElementById('lbl-uid').textContent=T('lUid');
   document.getElementById('hint-uid').textContent=T('hUid');
-  document.getElementById('lbl-email').textContent=T('lEmail');
   document.getElementById('lbl-pw').textContent=T('lPw');
   document.getElementById('hint-pw').textContent=T('hPw');
   document.getElementById('lbl-pw2').textContent=T('lPw2');
-  document.getElementById('reg-btn').textContent=T('btnNext');
-  document.getElementById('lbl-otp').textContent=T('lOtp');
-  document.getElementById('otp-note').textContent=T('otpNote');
-  document.getElementById('verify-btn').textContent=T('btnVerify');
-  document.getElementById('back-step-btn').textContent=T('btnBack');
+  document.getElementById('reg-btn').textContent=T('btn');
   document.getElementById('link-login').textContent=T('linkLogin');
   document.getElementById('back-btn').textContent=T('back');
   document.documentElement.lang=lang;
@@ -133,23 +95,17 @@ async function sb(path,opts={}){
   const t=await r.text();return t?JSON.parse(t):null;
 }
 
-function genOtp(){return Math.random().toString(36).substring(2,8).toUpperCase();}
-
-let pendingData=null;
-
 document.getElementById('reg-btn').addEventListener('click',async()=>{
   const fn=document.getElementById('fullname').value.trim();
   const birth=document.getElementById('birth').value;
   const uid=document.getElementById('uid').value.trim();
-  const email=document.getElementById('email').value.trim();
   const pw=document.getElementById('pw').value;
   const pw2=document.getElementById('pw2').value;
   const msg=document.getElementById('msg');
   msg.className='msg';msg.textContent='';
 
-  if(!fn||!birth||!uid||!email||!pw||!pw2){msg.className='msg err';msg.textContent=T('errEmpty');return;}
+  if(!fn||!birth||!uid||!pw||!pw2){msg.className='msg err';msg.textContent=T('errEmpty');return;}
   if(!/^[a-zA-Z0-9_]+$/.test(uid)){msg.className='msg err';msg.textContent=T('errUid');return;}
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg.className='msg err';msg.textContent=T('errEmail');return;}
   if(pw.length<8){msg.className='msg err';msg.textContent=T('errPwLen');return;}
   if(pw!==pw2){msg.className='msg err';msg.textContent=T('errPwMatch');return;}
 
@@ -157,57 +113,12 @@ document.getElementById('reg-btn').addEventListener('click',async()=>{
   try{
     const existing=await sb(`/rest/v1/users?username=eq.${encodeURIComponent(uid)}&select=id`);
     if(existing&&existing.length>0){msg.className='msg err';msg.textContent=T('errTaken');document.getElementById('reg-btn').disabled=false;return;}
-    const existEmail=await sb(`/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=id`);
-    if(existEmail&&existEmail.length>0){msg.className='msg err';msg.textContent=T('errEmailTaken');document.getElementById('reg-btn').disabled=false;return;}
-
-    const otp=genOtp();
-    const expires=new Date(Date.now()+10*60*1000).toISOString();
     const hash=await hashPw(pw);
-    pendingData={fn,birth,uid,email,hash,otp,expires};
-
-    document.getElementById('otp-display').textContent=otp;
-    document.getElementById('step1').style.display='none';
-    document.getElementById('step2').style.display='';
-    document.getElementById('step1-dot').classList.remove('active');
-    document.getElementById('step2-dot').classList.add('active');
-    document.getElementById('otp-input').value='';
-    document.getElementById('otp-input').focus();
-  }catch(e){msg.className='msg err';msg.textContent=T('errServer');}
-  document.getElementById('reg-btn').disabled=false;
-});
-
-document.getElementById('back-step-btn').addEventListener('click',()=>{
-  document.getElementById('step2').style.display='none';
-  document.getElementById('step1').style.display='';
-  document.getElementById('step1-dot').classList.add('active');
-  document.getElementById('step2-dot').classList.remove('active');
-  document.getElementById('msg').textContent='';
-});
-
-document.getElementById('verify-btn').addEventListener('click',async()=>{
-  const entered=document.getElementById('otp-input').value.trim().toUpperCase();
-  const msg=document.getElementById('msg');
-  msg.className='msg';msg.textContent='';
-  if(!pendingData)return;
-  if(new Date()>new Date(pendingData.expires)){msg.className='msg err';msg.textContent=T('errExpired');return;}
-  if(entered!==pendingData.otp){msg.className='msg err';msg.textContent=T('errOtp');return;}
-
-  document.getElementById('verify-btn').disabled=true;
-  try{
-    await sb('/rest/v1/users',{method:'POST',body:JSON.stringify({
-      username:pendingData.uid,
-      full_name:pendingData.fn,
-      birth_date:pendingData.birth,
-      email:pendingData.email,
-      email_verified:true,
-      password_hash:pendingData.hash
-    })});
+    await sb('/rest/v1/users',{method:'POST',body:JSON.stringify({username:uid,full_name:fn,birth_date:birth,password_hash:hash})});
     msg.className='msg ok';msg.textContent=T('ok');
     setTimeout(()=>location.href='login.html',1800);
-  }catch(e){msg.className='msg err';msg.textContent=T('errServer');document.getElementById('verify-btn').disabled=false;}
+  }catch(e){msg.className='msg err';msg.textContent=T('errServer');document.getElementById('reg-btn').disabled=false;}
 });
-
-document.getElementById('otp-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('verify-btn').click();});
 </script>
 </body>
 </html>
