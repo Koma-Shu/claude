@@ -33,6 +33,8 @@
     .btn-primary:hover{opacity:0.85;}
     #lang-btn{position:fixed;top:14px;left:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:0.72rem;padding:5px 10px;cursor:pointer;z-index:10;}
     #back-btn{position:fixed;top:14px;right:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:0.72rem;padding:5px 10px;cursor:pointer;z-index:10;text-decoration:none;}
+    .loading{color:#444;font-size:0.8rem;text-align:center;padding:20px;}
+    .no-login{color:#555;text-align:center;padding:40px;}
   </style>
 </head>
 <body>
@@ -43,13 +45,14 @@
 <div class="uid" id="pg-uid"></div>
 
 <div id="content">
-  <div id="no-login" style="display:none;text-align:center;padding:40px;color:#555">
+  <div class="no-login" id="no-login" style="display:none">
     <p id="no-login-msg">ログインしていません</p>
     <br>
     <a href="login.html" class="btn btn-primary" id="no-login-btn" style="margin-top:12px">ログイン</a>
   </div>
 
   <div id="profile-content" style="display:none">
+    <!-- User info -->
     <div class="section">
       <div class="sec-title" id="sec-info">ユーザー情報</div>
       <div class="info-row"><span class="info-label" id="lbl-fullname">氏名</span><span class="info-val" id="val-fullname"></span></div>
@@ -57,6 +60,8 @@
       <div class="info-row"><span class="info-label" id="lbl-birth">生年月日</span><span class="info-val" id="val-birth"></span></div>
       <div class="info-row"><span class="info-label" id="lbl-since">登録日</span><span class="info-val" id="val-since"></span></div>
     </div>
+
+    <!-- Overall rating -->
     <div class="section">
       <div class="sec-title" id="sec-overall">総合レーティング</div>
       <div class="overall">
@@ -67,17 +72,32 @@
         </div>
       </div>
     </div>
+
+    <!-- Per-game ratings -->
     <div class="section">
       <div class="sec-title" id="sec-games">ゲーム別レーティング</div>
       <table class="rating-table">
-        <thead><tr><th id="th-game">ゲーム</th><th id="th-rating">レーティング</th><th id="th-wins">勝</th><th id="th-losses">敗</th><th id="th-draws">引</th></tr></thead>
-        <tbody id="game-ratings-tbody"><tr><td colspan="5" style="color:#444;padding:16px;text-align:center;font-size:0.75rem" id="ratings-loading">読み込み中…</td></tr></tbody>
+        <thead>
+          <tr>
+            <th id="th-game">ゲーム</th>
+            <th id="th-rating">レーティング</th>
+            <th id="th-wins">勝</th>
+            <th id="th-losses">敗</th>
+            <th id="th-draws">引</th>
+          </tr>
+        </thead>
+        <tbody id="game-ratings-tbody">
+          <tr><td colspan="5" class="loading" id="ratings-loading">読み込み中…</td></tr>
+        </tbody>
       </table>
     </div>
+
+    <!-- Actions -->
     <div class="section">
       <div class="sec-title" id="sec-actions">アクション</div>
       <div class="btn-row">
         <a href="chat.html" class="btn btn-primary" id="btn-chat">チャット</a>
+        <a href="friends.html" class="btn" id="btn-friends">フレンド</a>
         <button class="btn btn-danger" id="logout-btn">ログアウト</button>
       </div>
     </div>
@@ -89,8 +109,8 @@ const SUPABASE_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SUPABASE_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
 
 const T_={
-  ja:{pgTitle:'PROFILE',secInfo:'ユーザー情報',lFullname:'氏名',lUid:'ユーザID',lBirth:'生年月日',lSince:'登録日',secOverall:'総合レーティング',overallLabel:'OVERALL RATING',secGames:'ゲーム別レーティング',thGame:'ゲーム',thRating:'レーティング',thWins:'勝',thLosses:'敗',thDraws:'引',secActions:'アクション',btnChat:'チャット',logout:'ログアウト',noLogin:'ログインしていません',noLoginBtn:'ログイン',back:'← HOME',loading:'読み込み中…',noData:'まだ記録がありません',wld:'勝{w} 敗{l} 引{d}'},
-  en:{pgTitle:'PROFILE',secInfo:'User Info',lFullname:'Full Name',lUid:'User ID',lBirth:'Date of Birth',lSince:'Registered',secOverall:'Overall Rating',overallLabel:'OVERALL RATING',secGames:'Per-Game Ratings',thGame:'Game',thRating:'Rating',thWins:'W',thLosses:'L',thDraws:'D',secActions:'Actions',btnChat:'CHAT',logout:'LOGOUT',noLogin:'You are not logged in',noLoginBtn:'Login',back:'← HOME',loading:'Loading…',noData:'No records yet',wld:'{w}W {l}L {d}D'}
+  ja:{pgTitle:'PROFILE',secInfo:'ユーザー情報',lFullname:'氏名',lUid:'ユーザID',lBirth:'生年月日',lSince:'登録日',secOverall:'総合レーティング',overallLabel:'OVERALL RATING',secGames:'ゲーム別レーティング',thGame:'ゲーム',thRating:'レーティング',thWins:'勝',thLosses:'敗',thDraws:'引',secActions:'アクション',btnChat:'チャット',btnFriends:'フレンド',logout:'ログアウト',noLogin:'ログインしていません',noLoginBtn:'ログイン',back:'← HOME',loading:'読み込み中…',noData:'まだ記録がありません',wld:'勝{w} 敗{l} 引{d}'},
+  en:{pgTitle:'PROFILE',secInfo:'User Info',lFullname:'Full Name',lUid:'User ID',lBirth:'Date of Birth',lSince:'Registered',secOverall:'Overall Rating',overallLabel:'OVERALL RATING',secGames:'Per-Game Ratings',thGame:'Game',thRating:'Rating',thWins:'W',thLosses:'L',thDraws:'D',secActions:'Actions',btnChat:'CHAT',btnFriends:'FRIENDS',logout:'LOGOUT',noLogin:'You are not logged in',noLoginBtn:'Login',back:'← HOME',loading:'Loading…',noData:'No records yet',wld:'{w}W {l}L {d}D'}
 };
 let lang=localStorage.getItem('lang')||'ja';
 function T(k,v={}){let s=T_[lang][k]||T_.ja[k]||k;Object.entries(v).forEach(([a,b])=>s=s.replace('{'+a+'}',b));return s;}
@@ -112,6 +132,7 @@ function applyLang(){
   document.getElementById('th-draws').textContent=T('thDraws');
   document.getElementById('sec-actions').textContent=T('secActions');
   document.getElementById('btn-chat').textContent=T('btnChat');
+  document.getElementById('btn-friends').textContent=T('btnFriends');
   document.getElementById('logout-btn').textContent=T('logout');
   document.getElementById('no-login-msg').textContent=T('noLogin');
   document.getElementById('no-login-btn').textContent=T('noLoginBtn');
