@@ -72,12 +72,14 @@
     .btn-gomoku { background: linear-gradient(135deg, #ff8855, #cc3300); color: #fff; font-weight: bold; }
     .btn-chess { background: linear-gradient(135deg, #e8c84a, #aa8800); color: #000; font-weight: bold; }
     .btn-shogi { background: linear-gradient(135deg, #cc88ff, #8844cc); color: #fff; font-weight: bold; }
+    #lang-btn { position:fixed; top:14px; left:14px; background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; z-index:10; }
   </style>
 </head>
 <body>
 
+<button id="lang-btn">EN</button>
 <h1>ARCADE</h1>
-<p class="subtitle">SELECT YOUR GAME</p>
+<p class="subtitle" id="subtitle">SELECT YOUR GAME</p>
 
 <div class="cards">
 
@@ -89,22 +91,22 @@
         <div class="card-title" style="color:#00d4aa">SNAKE</div>
         <div class="avg-badge" id="avg-snake"></div>
       </div>
-      <p class="card-desc">クラシックなスネークゲーム。エサを食べるほどヘビが成長する。壁や自分の体に当たるとゲームオーバー。</p>
-      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> スマホ&nbsp; 両対応</div>
+      <p class="card-desc" id="desc-snake"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
       <div class="controls">
-        <div class="controls-title">PC 操作</div>
+        <div class="controls-title pc-ctrl-title"></div>
         <div class="controls-grid">
           <span><span class="key">↑</span><span class="key">↓</span><span class="key">←</span><span class="key">→</span></span>
-          <span class="ctrl-desc">移動方向</span>
+          <span class="ctrl-desc move-dir"></span>
           <span><span class="key">Space</span></span>
-          <span class="ctrl-desc">スタート / リスタート</span>
+          <span class="ctrl-desc start-restart"></span>
         </div>
-        <div class="controls-title" style="margin-top:8px">📱 スマホ操作</div>
+        <div class="controls-title mobile-ctrl-title" style="margin-top:8px"></div>
         <div class="controls-grid">
           <span style="color:#888;font-size:0.72rem">D-pad</span>
-          <span class="ctrl-desc">画面下のボタンで操作</span>
-          <span style="color:#888;font-size:0.72rem">タップ</span>
-          <span class="ctrl-desc">スタート / リスタート</span>
+          <span class="ctrl-desc dpad-desc"></span>
+          <span style="color:#888;font-size:0.72rem" class="tap-label"></span>
+          <span class="ctrl-desc start-restart2"></span>
         </div>
       </div>
       <div class="card-tags">
@@ -123,24 +125,24 @@
         <div class="card-title" style="color:#ffe066">SYMBIONT</div>
         <div class="avg-badge" id="avg-symbiont"></div>
       </div>
-      <p class="card-desc">光と闇、2つの生命体を同時に操作する唯一無二のゲーム。糸で繋がれた2体を天敵から守りながら栄養を集めろ。</p>
-      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> スマホ&nbsp; 両対応</div>
+      <p class="card-desc" id="desc-symbiont"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
       <div class="controls">
-        <div class="controls-title">PC 操作</div>
+        <div class="controls-title pc-ctrl-title"></div>
         <div class="controls-grid">
           <span><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></span>
-          <span class="ctrl-desc" style="color:#ffe066">光の生命体（上半分）</span>
+          <span class="ctrl-desc" style="color:#ffe066" id="sym-light-ctrl"></span>
           <span><span class="key">↑</span><span class="key">↓</span><span class="key">←</span><span class="key">→</span></span>
-          <span class="ctrl-desc" style="color:#aa88ff">闇の生命体（下半分）</span>
+          <span class="ctrl-desc" style="color:#aa88ff" id="sym-dark-ctrl"></span>
           <span><span class="key">Space</span></span>
-          <span class="ctrl-desc">スタート</span>
+          <span class="ctrl-desc sym-start"></span>
         </div>
-        <div class="controls-title" style="margin-top:8px">📱 スマホ操作</div>
+        <div class="controls-title mobile-ctrl-title" style="margin-top:8px"></div>
         <div class="controls-grid">
-          <span style="color:#ffe066;font-size:0.72rem">上ドラッグ</span>
-          <span class="ctrl-desc">光の生命体を操作</span>
-          <span style="color:#aa88ff;font-size:0.72rem">下ドラッグ</span>
-          <span class="ctrl-desc">闇の生命体を操作</span>
+          <span style="color:#ffe066;font-size:0.72rem" class="drag-up-label"></span>
+          <span class="ctrl-desc sym-drag-light"></span>
+          <span style="color:#aa88ff;font-size:0.72rem" class="drag-down-label"></span>
+          <span class="ctrl-desc sym-drag-dark"></span>
         </div>
       </div>
       <div class="card-tags">
@@ -152,6 +154,7 @@
     </div>
   </div>
 
+
   <!-- Reversi -->
   <div class="card">
     <canvas class="preview" id="revPreview" width="320" height="200"></canvas>
@@ -160,8 +163,8 @@
         <div class="card-title" style="color:#44ff99">REVERSI</div>
         <div class="avg-badge" id="avg-reversi"></div>
       </div>
-      <p class="card-desc">クラシックなリバーシ（オセロ）。相手の石を挟んでひっくり返せ。CPU 対戦＆オンライン 2P に対応。時間制限・投了機能付き。</p>
-      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> スマホ&nbsp; 両対応</div>
+      <p class="card-desc" id="desc-reversi"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
       <div class="card-tags">
         <span class="tag">1-2 PLAYER</span>
         <span class="tag">STRATEGY</span>
@@ -179,8 +182,8 @@
         <div class="card-title" style="color:#ff6644">GOMOKU</div>
         <div class="avg-badge" id="avg-gomoku"></div>
       </div>
-      <p class="card-desc">フリー五目並べ。縦・横・斜めに5つ並べた方の勝ち。CPU 対戦＆オンライン 2P 対応。難易度3段階。</p>
-      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> スマホ&nbsp; 両対応</div>
+      <p class="card-desc" id="desc-gomoku"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
       <div class="card-tags">
         <span class="tag">1-2 PLAYER</span>
         <span class="tag">STRATEGY</span>
@@ -198,8 +201,8 @@
         <div class="card-title" style="color:#e8c84a">CHESS</div>
         <div class="avg-badge" id="avg-chess"></div>
       </div>
-      <p class="card-desc">本格チェス。キャスリング・アンパッサン・ポーン成り完全対応。CPU 対戦＆オンライン 2P。難易度3段階。</p>
-      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> スマホ&nbsp; 両対応</div>
+      <p class="card-desc" id="desc-chess"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
       <div class="card-tags">
         <span class="tag">1-2 PLAYER</span>
         <span class="tag">STRATEGY</span>
@@ -214,11 +217,11 @@
     <canvas class="preview" id="shogiPreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
-        <div class="card-title" style="color:#cc88ff">将棋</div>
+        <div class="card-title" style="color:#cc88ff" id="shogi-title">将棋</div>
         <div class="avg-badge" id="avg-shogi"></div>
       </div>
-      <p class="card-desc">本格将棋。成り・打ち（持ち駒）完全対応。CPU 対戦＆オンライン 2P。難易度3段階。日英対応。</p>
-      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> スマホ&nbsp; 両対応</div>
+      <p class="card-desc" id="desc-shogi"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
       <div class="card-tags">
         <span class="tag">1-2 PLAYER</span>
         <span class="tag">STRATEGY</span>
@@ -231,6 +234,100 @@
 </div>
 
 <script>
+const ITEXT = {
+  ja: {
+    subtitle: 'SELECT YOUR GAME',
+    descSnake: 'クラシックなスネークゲーム。エサを食べるほどヘビが成長する。壁や自分の体に当たるとゲームオーバー。',
+    descSymbiont: '光と闇、2つの生命体を同時に操作する唯一無二のゲーム。糸で繋がれた2体を天敵から守りながら栄養を集めろ。',
+    descReversi: 'クラシックなリバーシ（オセロ）。相手の石を指んでひっくり返せ。CPU 対戦＆オンライン 2P に対応。時間制限・投了機能付き。',
+    descGomoku: 'フリー五目並べ。縦・横・斜めに5つ並べた方の勝ち。CPU 対戦＆オンライン 2P 対応。難易度3段階。',
+    descChess: '本格チェス。キャスリング・アンパッサン・ポーン成り完全対応。CPU 対戦＆オンライン 2P。難易度3段階。',
+    descShogi: '本格将棋。成り・打ち（持ち駒）完全対応。CPU 対戦＆オンライン 2P。難易度3段階。日英対応。',
+    shogiTitle: '将棋',
+    mobile: 'スマホ',
+    both: '両対応',
+    pcCtrl: 'PC 操作',
+    mobileCtrl: '📱 スマホ操作',
+    moveDir: '移動方向',
+    startRestart: 'スタート / リスタート',
+    dpadDesc: '画面下のボタンで操作',
+    tap: 'タップ',
+    symLight: '光の生命体（上半分）',
+    symDark: '闇の生命体（下半分）',
+    symStart: 'スタート',
+    dragUp: '上ドラッグ',
+    dragDown: '下ドラッグ',
+    symDragLight: '光の生命体を操作',
+    symDragDark: '闇の生命体を操作',
+  },
+  en: {
+    subtitle: 'SELECT YOUR GAME',
+    descSnake: 'Classic snake game. Eat food to grow longer. Hit walls or your own body and it\'s game over.',
+    descSymbiont: 'Control two life forms simultaneously in this unique game. Protect two creatures linked by a thread from predators while collecting nutrients.',
+    descReversi: 'Classic Reversi (Othello). Flank opponent\'s pieces to flip them. CPU battle & Online 2P with time controls and resign function.',
+    descGomoku: 'Free-style Gomoku. First to line 5 in a row wins. CPU battle & Online 2P. 3 difficulty levels.',
+    descChess: 'Full-featured Chess with castling, en passant, and pawn promotion. CPU battle & Online 2P. 3 difficulty levels.',
+    descShogi: 'Full-featured Shogi with promotion and drops. CPU battle & Online 2P. 3 difficulty levels. Bilingual.',
+    shogiTitle: 'SHOGI',
+    mobile: 'Mobile',
+    both: 'Both supported',
+    pcCtrl: 'PC Controls',
+    mobileCtrl: '📱 Mobile Controls',
+    moveDir: 'Move direction',
+    startRestart: 'Start / Restart',
+    dpadDesc: 'On-screen D-pad',
+    tap: 'Tap',
+    symLight: 'Light form (upper half)',
+    symDark: 'Dark form (lower half)',
+    symStart: 'Start',
+    dragUp: 'Drag up',
+    dragDown: 'Drag down',
+    symDragLight: 'Control light form',
+    symDragDark: 'Control dark form',
+  }
+};
+
+let lang = localStorage.getItem('lang') || 'ja';
+
+function T(k) { return ITEXT[lang][k] || ITEXT.ja[k] || k; }
+
+function applyLang() {
+  document.getElementById('lang-btn').textContent = lang === 'ja' ? 'EN' : 'JA';
+  document.getElementById('subtitle').textContent = T('subtitle');
+  document.getElementById('desc-snake').textContent = T('descSnake');
+  document.getElementById('desc-symbiont').textContent = T('descSymbiont');
+  document.getElementById('desc-reversi').textContent = T('descReversi');
+  document.getElementById('desc-gomoku').textContent = T('descGomoku');
+  document.getElementById('desc-chess').textContent = T('descChess');
+  document.getElementById('desc-shogi').textContent = T('descShogi');
+  document.getElementById('shogi-title').textContent = T('shogiTitle');
+  document.querySelectorAll('.mobile-label').forEach(el => el.textContent = T('mobile'));
+  document.querySelectorAll('.both-label').forEach(el => el.textContent = T('both'));
+  document.querySelectorAll('.pc-ctrl-title').forEach(el => el.textContent = T('pcCtrl'));
+  document.querySelectorAll('.mobile-ctrl-title').forEach(el => el.textContent = T('mobileCtrl'));
+  document.querySelectorAll('.move-dir').forEach(el => el.textContent = T('moveDir'));
+  document.querySelectorAll('.start-restart').forEach(el => el.textContent = T('startRestart'));
+  document.querySelectorAll('.start-restart2').forEach(el => el.textContent = T('startRestart'));
+  document.querySelectorAll('.dpad-desc').forEach(el => el.textContent = T('dpadDesc'));
+  document.querySelectorAll('.tap-label').forEach(el => el.textContent = T('tap'));
+  document.getElementById('sym-light-ctrl').textContent = T('symLight');
+  document.getElementById('sym-dark-ctrl').textContent = T('symDark');
+  document.querySelectorAll('.sym-start').forEach(el => el.textContent = T('symStart'));
+  document.querySelectorAll('.drag-up-label').forEach(el => el.textContent = T('dragUp'));
+  document.querySelectorAll('.drag-down-label').forEach(el => el.textContent = T('dragDown'));
+  document.querySelectorAll('.sym-drag-light').forEach(el => el.textContent = T('symDragLight'));
+  document.querySelectorAll('.sym-drag-dark').forEach(el => el.textContent = T('symDragDark'));
+  document.documentElement.lang = lang;
+}
+
+document.getElementById('lang-btn').addEventListener('click', () => {
+  lang = lang === 'ja' ? 'en' : 'ja';
+  localStorage.setItem('lang', lang);
+  applyLang();
+});
+
+applyLang();
+
 const SUPABASE_URL = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
 
