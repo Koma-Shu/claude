@@ -69,6 +69,7 @@
     .back { display:block; margin-top:14px; font-size:0.75rem; color:#444; text-decoration:none; letter-spacing:2px; text-align:center; }
     .back:hover { color:#888; }
   </style>
+<script src="sound.js"></script>
 </head>
 <body>
 <button id="lang-btn">EN</button>
@@ -121,7 +122,7 @@
 <div id="help-panel">
   <div class="hp-t">SHOGI PIECES</div>
   <div class="hp-n" id="help-content">
-    王/玉 OU — 8方向で1マス（王将）<br>
+    王/玉 OU — 8方向1マス（王将）<br>
     飛 HI — 縦横（飛車）<br>
     角 KA — 斜め（角行）<br>
     金 KI — 前後左右+斜め前<br>
@@ -129,9 +130,9 @@
     桂 KE — 前方2マス+左右1マス<br>
     香 KY — 前方のみ複数マス<br>
     歩 FU — 前方1マス<br>
-    ― 成り駒は金と同じ動き<br>
-    ― 馬（角成）= 角+1歩<br>
-    ― 竜（飛成）= 飛+斜めで1歩<br><br>
+    ─ 成り駒は金と同じ動き<br>
+    ─ 馬（角成）= 角+1歩<br>
+    ─ 竜（飛成）= 飛+斜め1歩<br><br>
     ● 相手の陣地（3段目）で成れる<br>
     ● 取った駒を自分の駒として使える（打ち）<br>
     ● 王を詰めた方が勝ち
@@ -172,7 +173,7 @@ const LANG={
       promoTitle:'成りますか？',promoYes:'成る',promoNo:'成らない',
       goteHandLabel:'後手（上）持ち駒',senteHandLabel:'先手（下）持ち駒',
       handNone:'なし',
-      helpContent:'王/玉 OU — 8方向で1マス<br>飛 HI — 縦横（飛車）<br>角 KA — 斜め（角行）<br>金 KI — 前後左右+斜め前<br>銀 GI — 前3方向+斜め後ろ<br>桂 KE — 前方2マス+左右1マス<br>香 KY — 前方のみ複数マス<br>歩 FU — 前方1マス<br>― 成り駒は金と同じ動き<br>― 馬（角成）= 角+1歩<br>― 竜（飛成）= 飛+斜めで1歩<br><br>● 相手の陣地（3段目）で成れる<br>● 取った駒を自分の駒として使える（打ち）<br>● 王を詰めた方が勝ち'},
+      helpContent:'王/玉 OU — 8方向1マス<br>飛 HI — 縦横（飛車）<br>角 KA — 斜め（角行）<br>金 KI — 前後左右+斜め前<br>銀 GI — 前3方向+斜め後ろ<br>桂 KE — 前方2マス+左右1マス<br>香 KY — 前方のみ複数マス<br>歩 FU — 前方1マス<br>─ 成り駒は金と同じ動き<br>─ 馬（角成）= 角+1歩<br>─ 竜（飛成）= 飛+斜め1歩<br><br>● 相手の陣地（3段目）で成れる<br>● 取った駒を自分の駒として使える（打ち）<br>● 王を詰めた方が勝ち'},
   en:{yourTurn:'▲ Your turn (Sente)',cpuThink:'CPU thinking...',win:'You win! 🎉',cpuWin:'CPU wins (checkmate)',opWin:'Opponent wins (checkmate)',resign:'Resign',resignMsg:'Resign?',weak:'Weak',normal:'Normal',strong:'Strong',
       senteTurn:'▲ Sente\'s turn',goteTurn:'▽ Gote\'s turn',
       yourTurnS:'▲ Your turn',yourTurnG:'▽ Your turn',
@@ -190,7 +191,7 @@ const LANG={
       promoTitle:'Promote?',promoYes:'Promote',promoNo:'No promote',
       goteHandLabel:'Gote (top) hand',senteHandLabel:'Sente (bottom) hand',
       handNone:'none',
-      helpContent:'OU — King: 8 directions 1 sq<br>HI — Rook: ranks &amp; files<br>KA — Bishop: diagonals<br>KI — Gold: forward 3 + sides + back<br>GI — Silver: forward 3 + diag back<br>KE — Knight: 2 fwd + 1 side<br>KY — Lance: forward only<br>FU — Pawn: 1 forward<br>― Promoted pieces move like Gold<br>― Horse (KA+)= Bishop + 1 step<br>― Dragon (HI+) = Rook + diag 1 step<br><br>● Promote in opponent\'s territory (rows 1-3)<br>● Captured pieces can be dropped<br>● Checkmate the king to win'}
+      helpContent:'OU — King: 8 directions 1 sq<br>HI — Rook: ranks &amp; files<br>KA — Bishop: diagonals<br>KI — Gold: forward 3 + sides + back<br>GI — Silver: forward 3 + diag back<br>KE — Knight: 2 fwd + 1 side<br>KY — Lance: forward only<br>FU — Pawn: 1 forward<br>─ Promoted pieces move like Gold<br>─ Horse (KA+)= Bishop + 1 step<br>─ Dragon (HI+) = Rook + diag 1 step<br><br>● Promote in opponent\'s territory (rows 1-3)<br>● Captured pieces can be dropped<br>● Checkmate the king to win'}
 };
 let lang = localStorage.getItem('lang') || 'ja';
 function T(k,vars={}){let s=LANG[lang][k]||LANG.ja[k]||k;Object.entries(vars).forEach(([v,val])=>s=s.replace('{'+v+'}',val));return s;}
@@ -231,6 +232,11 @@ const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 let CELL, SZ;
 
+// Shogi: player 1 = sente (先手, bottom), player 2 = gote (後手, top)
+// Pieces: FU KY KE GI KI KA HI OU | promoted: TO NY NK NG UM RY
+// Board stored as [row][col] = {t:type, cl:1|2} or null
+// Rows 0-8 from top, cols 0-8 from right (shogi notation: file 9-1 left to right visually)
+
 const KANJI = {
   FU:'歩',KY:'香',KE:'桂',GI:'銀',KI:'金',KA:'角',HI:'飛',OU:'王',
   TO:'と',NY:'杏',NK:'圭',NG:'全',UM:'馬',RY:'竜'
@@ -242,10 +248,12 @@ const PIECE_VAL = {FU:1,KY:3,KE:3,GI:5,KI:6,KA:8,HI:10,OU:0,TO:7,NY:6,NK:6,NG:6,
 
 function initBoard() {
   const b = Array.from({length:9},()=>Array(9).fill(null));
+  // Gote (cl=2) pieces at top
   const back = ['KY','KE','GI','KI','OU','KI','GI','KE','KY'];
   for (let c=0;c<9;c++) b[0][c]={t:back[c],cl:2};
   b[1][1]={t:'HI',cl:2}; b[1][7]={t:'KA',cl:2};
   for (let c=0;c<9;c++) b[2][c]={t:'FU',cl:2};
+  // Sente (cl=1) pieces at bottom
   for (let c=0;c<9;c++) b[8][c]={t:back[8-c],cl:1};
   b[7][7]={t:'HI',cl:1}; b[7][1]={t:'KA',cl:1};
   for (let c=0;c<9;c++) b[6][c]={t:'FU',cl:1};
@@ -255,6 +263,7 @@ function initBoard() {
 function cloneBoard(b){return b.map(r=>r.map(p=>p?{...p}:null));}
 function cloneHands(h){return {1:[...h[1]],2:[...h[2]]};}
 
+// Direction helpers: forward for sente(cl=1) = up(-1 row), gote(cl=2) = down(+1 row)
 function fwd(cl){return cl===1?-1:1;}
 
 function getMoves(b, r, c, hands, checkKing=true) {
@@ -285,6 +294,13 @@ function getMoves(b, r, c, hands, checkKing=true) {
       if(b[nr][nc]) break;
       nr+=dr; nc+=dc;
     }
+  };
+  const goldMoves=()=>[[f,0],[0,-1],[0,1],[-1*f,0],[f,-1],[f,1]].forEach(([dr,dc])=>add(r+dr*Math.sign(f),c+dc,false).length===0&&add(r+f,c+dc));
+  // Rewrite gold moves properly
+  const addGold=()=>{
+    const dirs=[[f,0],[f,-1],[f,1],[0,-1],[0,1],[-f,0]]; // forward 3, sides, backward
+    // Actually gold: forward, forward-left, forward-right, left, right, backward
+    dirs.forEach(([dr,dc])=>add(r+dr,c+dc));
   };
 
   switch(p.t){
@@ -322,13 +338,16 @@ function getDrops(b,hands,cl,checkKing=true){
   for(const t of myHand){
     for(let r=0;r<9;r++) for(let c=0;c<9;c++){
       if(b[r][c]) continue;
+      // No FU drop on file with own FU (nifu)
       if(t==='FU'&&[...Array(9)].some((_,rr)=>b[rr][c]?.t==='FU'&&b[rr][c]?.cl===cl)) continue;
+      // FU/KY can't drop on last row, KE can't drop on last 2 rows
       if(t==='FU'||t==='KY'){if(cl===1&&r===0) continue; if(cl===2&&r===8) continue;}
       if(t==='KE'){if(cl===1&&r<=1) continue; if(cl===2&&r>=7) continue;}
       if(checkKing){
         const nb=cloneBoard(b);
         nb[r][c]={t,cl};
         if(inCheck(nb,cl)) continue;
+        // No uchifu tsume (very hard - skip for now)
       }
       drops.push({r,c,drop:t});
     }
@@ -342,6 +361,7 @@ function findKing(b,cl){
 }
 
 function isAttackedBy(b,r,c,attacker){
+  // Check if [r,c] is attacked by any piece of color 'attacker'
   for(let ar=0;ar<9;ar++) for(let ac=0;ac<9;ac++){
     if(b[ar][ac]?.cl!==attacker) continue;
     const mvs=getMoves(b,ar,ac,{1:[],2:[]},false);
@@ -385,6 +405,7 @@ function applyMove(b,hands,move){
   return{nb,nh};
 }
 
+// CPU evaluation
 function evalPosition(b,hands){
   let score=0;
   for(let r=0;r<9;r++) for(let c=0;c<9;c++){
@@ -404,6 +425,7 @@ function cpuPickMove(b,hands,cl){
   const opp=3-cl;
   let best=null, bestScore=cl===1?-Infinity:Infinity;
 
+  // Check for checkmate move first
   for(const m of moves){
     const {nb,nh}=applyMove(b,hands,{...m,cl});
     if(getAllMoves(nb,nh,opp).length===0&&inCheck(nb,opp)) return m;
@@ -420,6 +442,7 @@ function cpuPickMove(b,hands,cl){
       const sample=oppMoves.slice(0,Math.min(sampleSize,oppMoves.length));
       for(const om of sample){
         const {nb:nb2,nh:nh2}=applyMove(nb,nh,{...om,cl:opp});
+        // For strong: also look one more ply
         if(difficulty==='strong'){
           const myMoves2=getAllMoves(nb2,nh2,cl);
           if(myMoves2.length>0){
@@ -448,6 +471,7 @@ function cpuPickMove(b,hands,cl){
   return best||moves[Math.floor(Math.random()*moves.length)];
 }
 
+// --- Draw ---
 function resize(){
   CELL=Math.floor(Math.min(window.innerWidth-20,486)/9);
   SZ=CELL*9; canvas.width=SZ; canvas.height=SZ;
@@ -460,21 +484,26 @@ let roomId=null,myRole=null,pollTid=null,lastMoveCount=-1;
 let promoResolve=null;
 
 function draw(){
+  // Board background
   ctx.fillStyle='#3a2810'; ctx.fillRect(0,0,SZ,SZ);
+  // Grid
   ctx.strokeStyle='#5a3c18'; ctx.lineWidth=1;
   for(let i=0;i<=9;i++){
     ctx.beginPath(); ctx.moveTo(i*CELL,0); ctx.lineTo(i*CELL,SZ); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0,i*CELL); ctx.lineTo(SZ,i*CELL); ctx.stroke();
   }
+  // Highlight last move
   if(lastMoveInfo){
     ctx.fillStyle='rgba(255,220,100,0.2)';
     if(lastMoveInfo.type==='move') ctx.fillRect(lastMoveInfo.fc*CELL,lastMoveInfo.fr*CELL,CELL,CELL);
     ctx.fillRect(lastMoveInfo.c*CELL,lastMoveInfo.r*CELL,CELL,CELL);
   }
+  // Selected square
   if(selected){
     ctx.fillStyle='rgba(204,136,255,0.35)';
     ctx.fillRect(selected.c*CELL,selected.r*CELL,CELL,CELL);
   }
+  // Legal moves
   if(legalMoves){
     legalMoves.forEach(m=>{
       ctx.fillStyle=board[m.r][m.c]?'rgba(255,80,80,0.35)':'rgba(204,136,255,0.25)';
@@ -483,12 +512,15 @@ function draw(){
       ctx.fillStyle='rgba(204,136,255,0.6)'; ctx.fill();
     });
   }
+  // Pieces
   const fs=Math.max(10,CELL*0.48);
   for(let r=0;r<9;r++) for(let c=0;c<9;c++){
     const p=board[r][c]; if(!p) continue;
     const x=c*CELL+CELL/2, y=r*CELL+CELL/2;
+    // Piece background
     ctx.save();
     if(p.cl===2){ctx.translate(x,y);ctx.rotate(Math.PI);ctx.translate(-x,-y);}
+    // Pentagon shape
     const pw=CELL*0.82, ph=CELL*0.88, px=x-pw/2, py=y-ph*0.42;
     ctx.beginPath();
     ctx.moveTo(x, py);
@@ -504,6 +536,7 @@ function draw(){
     ctx.fill();
     ctx.strokeStyle=p.cl===1?'#8a6030':'#6a5028'; ctx.lineWidth=1; ctx.stroke();
     ctx.restore();
+    // Kanji
     ctx.save();
     if(p.cl===2){ctx.translate(x,y);ctx.rotate(Math.PI);ctx.translate(-x,-y);}
     ctx.font=`bold ${fs}px serif`;
@@ -512,6 +545,7 @@ function draw(){
     ctx.fillText(KANJI[p.t]||p.t,x,y);
     ctx.restore();
   }
+  // Column/row labels
   ctx.font=`${CELL*0.2}px Courier New`;
   ctx.fillStyle='#6a4828'; ctx.textAlign='center'; ctx.textBaseline='middle';
   for(let c=0;c<9;c++) ctx.fillText(9-c,c*CELL+CELL/2,CELL*0.12);
@@ -571,6 +605,7 @@ async function handleBoardClick(r,c){
   if(mode==='cpu'&&turn!==myColor) return;
   if(mode==='online'&&turn!==myColor) return;
 
+  // If drop selected, try to place
   if(selectedDrop){
     const drop=legalMoves?.find(d=>d.r===r&&d.c===c);
     if(drop){
@@ -585,6 +620,7 @@ async function handleBoardClick(r,c){
     draw(); return;
   }
 
+  // Move flow
   if(selected){
     const mv=legalMoves?.find(m=>m.r===r&&m.c===c);
     if(mv){
@@ -629,6 +665,12 @@ document.getElementById('promo-no').addEventListener('click',()=>{
 
 async function executeAction(action){
   const {nb,nh}=applyMove(board,hands,action);
+  if(window.SND){
+    if(action.drop)SND.sfx.place();
+    else if(action.promote)SND.sfx.promote();
+    else if(nb[action.to.r]&&nb[action.to.r][action.to.c]!==board[action.to.r]?.[action.to.c])SND.sfx.capture();
+    else SND.sfx.move();
+  }
   board=nb; hands=nh;
   lastMoveInfo=action; selected=null; selectedDrop=null; legalMoves=null;
   turn=3-turn;
@@ -645,6 +687,7 @@ function checkEndGame(){
   if(moves.length===0){
     gameOver=true;
     const winner=3-turn;
+    if(window.SND){if(winner===myColor)SND.sfx.win();else SND.sfx.lose();}
     if(mode==='cpu') setStatus(winner===myColor?T('win'):T('cpuWin'));
     else setStatus(winner===myColor?T('win'):T('opWin'));
     updateResignBtn();
@@ -824,6 +867,22 @@ startGame();
 loadRatings();
 const hash=location.hash.slice(1);
 if(hash.length===6){document.getElementById('code-input').value=hash;document.getElementById('btn-online').click();}
+</script>
+<script>
+(function(){
+  var _started=false;
+  function _startAudio(){
+    if(_started)return;_started=true;
+    SND.startBGM("game");
+    SND.createBtn();
+    document.querySelectorAll("canvas").forEach(function(c){
+      c.addEventListener("mousedown",function(){SND.sfx.move();});
+      c.addEventListener("touchstart",function(){SND.sfx.move();},{passive:true});
+    });
+  }
+  document.addEventListener("click",_startAudio,{once:true});
+  document.addEventListener("keydown",_startAudio,{once:true});
+})();
 </script>
 </body>
 </html>
