@@ -40,6 +40,8 @@
     .card-title { font-size: 1.3rem; letter-spacing: 4px; }
     .avg-badge { font-size: 0.75rem; color: #ffd700; }
     .card-desc { font-size: 0.78rem; color: #888; line-height: 1.8; margin-bottom: 14px; }
+
+    /* 対応デバイス */
     .device-badge {
       display: inline-flex; align-items: center; gap: 5px;
       font-size: 0.65rem; padding: 4px 10px;
@@ -47,6 +49,8 @@
       color: #666; margin-bottom: 14px;
     }
     .device-badge .icon { font-size: 0.8rem; }
+
+    /* 操作方法 */
     .controls {
       background: #0d0d1a; border: 1px solid #2a2a3a; border-radius: 8px;
       padding: 11px 13px; margin-bottom: 14px;
@@ -58,6 +62,7 @@
       border-radius: 4px; padding: 1px 6px; font-size: 0.68rem; color: #ccc; white-space: nowrap;
     }
     .ctrl-desc { color: #666; align-self: center; }
+
     .card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
     .tag { font-size: 0.65rem; padding: 3px 10px; border-radius: 20px; border: 1px solid #333; color: #666; letter-spacing: 1px; }
     .play-btn {
@@ -77,7 +82,18 @@
     .auth-btn { background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; text-decoration:none; display:inline-block; transition:color 0.15s,border-color 0.15s; }
     .auth-btn:hover { color:#eee; border-color:#666; }
     .auth-btn.primary { border-color:#00d4aa; color:#00d4aa; }
+    /* Search + Sort */
+    #search-sort { display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:center; margin-bottom:32px; width:100%; max-width:760px; }
+    #game-search { flex:1; min-width:180px; max-width:320px; background:#13131f; border:1px solid #2a2a3a; border-radius:8px; padding:9px 14px; color:#eee; font-family:'Courier New',monospace; font-size:0.8rem; outline:none; transition:border-color .2s; }
+    #game-search:focus { border-color:#00d4aa; }
+    #game-search::placeholder { color:#444; }
+    .sort-btns { display:flex; gap:6px; flex-wrap:wrap; }
+    .sort-btn { background:transparent; border:1px solid #2a2a3a; border-radius:6px; color:#555; font-family:'Courier New',monospace; font-size:0.65rem; padding:6px 12px; cursor:pointer; letter-spacing:2px; transition:all .15s; }
+    .sort-btn:hover { border-color:#555; color:#aaa; }
+    .sort-btn.active { border-color:#00d4aa; color:#00d4aa; background:rgba(0,212,170,0.07); }
+    #no-results { color:#333; letter-spacing:3px; font-size:0.75rem; text-align:center; padding:40px; display:none; width:100%; }
   </style>
+  <script src="sound.js"></script>
 </head>
 <body>
 
@@ -86,10 +102,21 @@
 <h1>ARCADE</h1>
 <p class="subtitle" id="subtitle">SELECT YOUR GAME</p>
 
-<div class="cards">
+<div id="search-sort">
+  <input type="text" id="game-search" placeholder="SEARCH…" autocomplete="off">
+  <div class="sort-btns">
+    <button class="sort-btn active" data-sort="popular" id="sb-popular">★ 人気順</button>
+    <button class="sort-btn" data-sort="rating" id="sb-rating">評価順</button>
+    <button class="sort-btn" data-sort="plays" id="sb-plays">プレイ数順</button>
+    <button class="sort-btn" data-sort="name" id="sb-name">名前順</button>
+  </div>
+</div>
+
+<div class="cards" id="cards-container">
+<div id="no-results"></div>
 
   <!-- Snake -->
-  <div class="card">
+  <div class="card" data-game="snake">
     <canvas class="preview" id="snakePreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
@@ -123,7 +150,7 @@
   </div>
 
   <!-- Symbiont -->
-  <div class="card">
+  <div class="card" data-game="symbiont">
     <canvas class="preview" id="symbPreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
@@ -159,8 +186,9 @@
     </div>
   </div>
 
+
   <!-- Reversi -->
-  <div class="card">
+  <div class="card" data-game="reversi">
     <canvas class="preview" id="revPreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
@@ -179,7 +207,7 @@
   </div>
 
   <!-- Gomoku -->
-  <div class="card">
+  <div class="card" data-game="gomoku">
     <canvas class="preview" id="gomokuPreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
@@ -198,7 +226,7 @@
   </div>
 
   <!-- Chess -->
-  <div class="card">
+  <div class="card" data-game="chess">
     <canvas class="preview" id="chessPreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
@@ -217,7 +245,7 @@
   </div>
 
   <!-- Shogi -->
-  <div class="card">
+  <div class="card" data-game="shogi">
     <canvas class="preview" id="shogiPreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
@@ -243,7 +271,7 @@ const ITEXT = {
     subtitle: 'SELECT YOUR GAME',
     descSnake: 'クラシックなスネークゲーム。エサを食べるほどヘビが成長する。壁や自分の体に当たるとゲームオーバー。',
     descSymbiont: '光と闇、2つの生命体を同時に操作する唯一無二のゲーム。糸で繋がれた2体を天敵から守りながら栄養を集めろ。',
-    descReversi: 'クラシックなリバーシ（オセロ）。相手の石を挈んでひっくり返せ。CPU 対戦＆オンライン 2P に対応。時間制限・投了機能付き。',
+    descReversi: 'クラシックなリバーシ（オセロ）。相手の石を挑んでひっくり返せ。CPU 対戦＆オンライン 2P に対応。時間制限・投了機能付き。',
     descGomoku: 'フリー五目並べ。縦・横・斜めに5つ並べた方の勝ち。CPU 対戦＆オンライン 2P 対応。難易度3段階。',
     descChess: '本格チェス。キャスリング・アンパッサン・ポーン成り完全対応。CPU 対戦＆オンライン 2P。難易度3段階。',
     descShogi: '本格将棋。成り・打ち（持ち駒）完全対応。CPU 対戦＆オンライン 2P。難易度3段階。日英対応。',
@@ -339,6 +367,8 @@ document.getElementById('lang-btn').addEventListener('click', () => {
   localStorage.setItem('lang', lang);
   applyLang();
   renderAuth();
+  updateSortLabels();
+  sortAndFilter();
 });
 
 applyLang();
@@ -347,35 +377,150 @@ renderAuth();
 const SUPABASE_URL = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
 
-async function sbGet(path) {
+// ── Search & Sort ───────────────────────────────────────────────
+const GAME_NAMES = {
+  snake:    {ja:'スネーク',     en:'SNAKE'},
+  symbiont: {ja:'シンビオント', en:'SYMBIONT'},
+  reversi:  {ja:'リバーシ',     en:'REVERSI'},
+  gomoku:   {ja:'五目並べ',     en:'GOMOKU'},
+  chess:    {ja:'チェス',       en:'CHESS'},
+  shogi:    {ja:'将棋',         en:'SHOGI'},
+};
+
+const gameStats = {}; // game → {avg, count, plays}
+let currentSort = 'popular';
+let searchQuery = '';
+
+function popScore(g) {
+  const d = gameStats[g] || {};
+  const r = d.avg || 0, n = d.count || 0, p = d.plays || 0;
+  return r * Math.log(1 + n) + 0.08 * Math.log(1 + p);
+}
+
+function sortAndFilter() {
+  const q = searchQuery.toLowerCase();
+  const container = document.getElementById('cards-container');
+  const cards = [...container.querySelectorAll('.card[data-game]')];
+  let any = false;
+  cards.forEach(c => {
+    const g = c.dataset.game;
+    const name = (GAME_NAMES[g]?.[lang] || g).toLowerCase();
+    const desc = (c.querySelector('.card-desc')?.textContent || '').toLowerCase();
+    const vis = !q || name.includes(q) || desc.includes(q) || g.includes(q);
+    c.style.display = vis ? '' : 'none';
+    if (vis) any = true;
+  });
+  document.getElementById('no-results').style.display = any ? 'none' : '';
+
+  const visible = cards.filter(c => c.style.display !== 'none');
+  visible.sort((a, b) => {
+    const ga = a.dataset.game, gb = b.dataset.game;
+    if (currentSort === 'popular') return popScore(gb) - popScore(ga);
+    if (currentSort === 'rating')  return (gameStats[gb]?.avg || 0) - (gameStats[ga]?.avg || 0);
+    if (currentSort === 'plays')   return (gameStats[gb]?.plays || 0) - (gameStats[ga]?.plays || 0);
+    return ga.localeCompare(gb);
+  });
+  visible.forEach(c => container.appendChild(c));
+}
+
+function updateSortLabels() {
+  const lbls = {
+    ja: { popular:'★ 人気順', rating:'評価順', plays:'プレイ数順', name:'名前順' },
+    en: { popular:'★ Popular', rating:'Rating', plays:'Most Played', name:'A–Z' }
+  };
+  document.querySelectorAll('.sort-btn').forEach(btn => {
+    const k = btn.dataset.sort;
+    if (lbls[lang]?.[k]) btn.textContent = lbls[lang][k];
+  });
+  const noRes = document.getElementById('no-results');
+  if (noRes) noRes.textContent = lang === 'ja' ? '該当するゲームがありません' : 'No games found';
+  const inp = document.getElementById('game-search');
+  if (inp) inp.placeholder = lang === 'ja' ? '検索…' : 'SEARCH…';
+}
+
+// Sort button clicks
+document.querySelectorAll('.sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentSort = btn.dataset.sort;
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    SND.sfx.click();
+    sortAndFilter();
+  });
+});
+
+// Search input
+document.getElementById('game-search').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  sortAndFilter();
+});
+
+// Play count tracking (localStorage)
+document.querySelectorAll('.play-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const game = btn.closest('.card[data-game]')?.dataset.game;
+    if (!game) return;
+    const n = parseInt(localStorage.getItem('plays_' + game) || '0') + 1;
+    localStorage.setItem('plays_' + game, n);
+  });
+});
+
+// Load ratings from Supabase (single bulk query)
+async function loadAllStats() {
+  const GAMES = ['snake','symbiont','reversi','gomoku','chess','shogi'];
+  GAMES.forEach(g => {
+    gameStats[g] = { avg: 0, count: 0, plays: parseInt(localStorage.getItem('plays_' + g) || '0') };
+  });
+
   try {
-    const res = await fetch(SUPABASE_URL + path, {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/ratings?select=game,stars', {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
     });
-    const text = await res.text();
-    return text ? JSON.parse(text) : [];
-  } catch(e) { return []; }
+    const rows = res.ok ? (JSON.parse(await res.text()) || []) : [];
+    const totals = {};
+    rows.forEach(r => {
+      if (!totals[r.game]) totals[r.game] = { sum: 0, n: 0 };
+      totals[r.game].sum += r.stars;
+      totals[r.game].n++;
+    });
+    GAMES.forEach(g => {
+      const t = totals[g];
+      if (t && t.n > 0) {
+        gameStats[g].avg = t.sum / t.n;
+        gameStats[g].count = t.n;
+        const el = document.getElementById('avg-' + g);
+        if (el) el.textContent = `★ ${gameStats[g].avg.toFixed(1)} (${t.n})`;
+      } else {
+        // Fallback: localStorage ratings
+        const ls = JSON.parse(localStorage.getItem('ratings_' + g) || '[]');
+        if (ls.length) {
+          gameStats[g].avg = ls.reduce((s, r) => s + r.stars, 0) / ls.length;
+          gameStats[g].count = ls.length;
+          const el = document.getElementById('avg-' + g);
+          if (el) el.textContent = `★ ${gameStats[g].avg.toFixed(1)} (${ls.length})`;
+        }
+      }
+    });
+  } catch(e) {}
+  sortAndFilter();
 }
 
-async function loadGlobalAvg(game, elId) {
-  const rows = await sbGet(`/rest/v1/ratings?game=eq.${game}&select=stars`);
-  if (!rows.length) {
-    const list = JSON.parse(localStorage.getItem('ratings_' + game) || '[]');
-    if (!list.length) return;
-    const avg = (list.reduce((s,r) => s + r.stars, 0) / list.length).toFixed(1);
-    document.getElementById(elId).textContent = `★ ${avg} (${list.length})`;
-    return;
-  }
-  const avg = (rows.reduce((s,r) => s + r.stars, 0) / rows.length).toFixed(1);
-  document.getElementById(elId).textContent = `★ ${avg} (${rows.length})`;
-}
+updateSortLabels();
+loadAllStats();
 
-loadGlobalAvg('snake', 'avg-snake');
-loadGlobalAvg('symbiont', 'avg-symbiont');
-loadGlobalAvg('reversi', 'avg-reversi');
-loadGlobalAvg('gomoku', 'avg-gomoku');
-loadGlobalAvg('chess', 'avg-chess');
-loadGlobalAvg('shogi', 'avg-shogi');
+// ── BGM: start on first user interaction ──────────────────────
+document.addEventListener('click', function startAudio() {
+  SND.startBGM('title');
+  SND.createBtn();
+  document.removeEventListener('click', startAudio);
+}, { once: true });
+
+// Also initialize on first keydown (for keyboard users)
+document.addEventListener('keydown', function startAudioKey() {
+  SND.startBGM('title');
+  SND.createBtn();
+  document.removeEventListener('keydown', startAudioKey);
+}, { once: true });
 
 // --- Snake preview ---
 (function() {
@@ -501,10 +646,9 @@ loadGlobalAvg('shogi', 'avg-shogi');
     ctx.beginPath();ctx.moveTo(OX+i*CELL,OY);ctx.lineTo(OX+i*CELL,OY+CELL*9);ctx.stroke();
     ctx.beginPath();ctx.moveTo(OX,OY+i*CELL);ctx.lineTo(OX+CELL*9,OY+i*CELL);ctx.stroke();
   }
-  const KANJI={王:'王',歩:'歩',金:'金',銀:'銀',飛:'飛',角:'角'};
+  const KANJI={OU:'王',FU:'歩',KI:'金',GI:'銀',HI:'飛',KA:'角'};
   const ps2=[[0,4,'OU',2],[0,3,'KI',2],[0,5,'KI',2],[0,2,'GI',2],[0,1,'HI',2]];
   const ps1=[[8,4,'OU',1],[8,5,'KI',1],[8,3,'KI',1],[8,6,'GI',1],[8,7,'HI',1]];
-  const KAN={OU:'王',KI:'金',GI:'銀',HI:'飛',KA:'角'};
   [...ps2,...ps1].forEach(([r,cc,t,cl])=>{
     const x=OX+cc*CELL+CELL/2,y=OY+r*CELL+CELL/2;
     ctx.save();
@@ -516,7 +660,7 @@ loadGlobalAvg('shogi', 'avg-shogi');
     ctx.save();
     if(cl===2){ctx.translate(x,y);ctx.rotate(Math.PI);ctx.translate(-x,-y);}
     ctx.font=`bold ${CELL*0.45}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillStyle='#2a1000';ctx.fillText(KAN[t]||t,x,y);ctx.restore();
+    ctx.fillStyle='#2a1000';ctx.fillText(KANJI[t]||t,x,y);ctx.restore();
   });
   ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(0,H-26,W,26);
   ctx.fillStyle='#cc88ff';ctx.font='10px Courier New';ctx.textAlign='left';
