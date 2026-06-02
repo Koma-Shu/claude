@@ -7,379 +7,415 @@
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     body{background:#0d0d1a;min-height:100vh;font-family:'Courier New',monospace;color:#eee;display:flex;flex-direction:column;align-items:center;padding:60px 20px 40px;}
-    h1{font-size:1.4rem;letter-spacing:8px;color:#00d4aa;margin-bottom:32px;text-shadow:0 0 16px rgba(0,212,170,0.4);}
+    h1{font-size:1.4rem;letter-spacing:8px;color:#00d4aa;margin-bottom:28px;text-shadow:0 0 16px rgba(0,212,170,0.4);}
     #lang-btn{position:fixed;top:14px;left:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:0.72rem;padding:5px 10px;cursor:pointer;z-index:10;}
     #back-btn{position:fixed;top:14px;right:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:0.72rem;padding:5px 10px;cursor:pointer;z-index:10;text-decoration:none;}
-    .tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid #1a1a2a;width:100%;max-width:560px;}
-    .tab{padding:10px 18px;font-size:0.68rem;letter-spacing:3px;color:#555;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;}
+    #no-login-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:16px;color:#555;}
+    #no-login-screen a{padding:10px 24px;background:linear-gradient(135deg,#00d4aa,#0088cc);border-radius:8px;color:#000;font-family:'Courier New',monospace;font-size:0.85rem;font-weight:bold;text-decoration:none;letter-spacing:2px;}
+    #main-app{display:none;flex-direction:column;align-items:center;width:100%;}
+    .tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid #1a1a2a;width:100%;max-width:560px;}
+    .tab{padding:10px 20px;font-size:0.68rem;letter-spacing:3px;color:#555;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;user-select:none;}
     .tab.active{color:#00d4aa;border-bottom-color:#00d4aa;}
     .tab:hover:not(.active){color:#888;}
+    .badge{display:inline-block;background:#00d4aa;color:#000;border-radius:10px;font-size:0.58rem;padding:1px 6px;margin-left:5px;font-weight:bold;vertical-align:middle;}
     .panel{width:100%;max-width:560px;display:none;}
     .panel.active{display:block;}
-    .search-row{display:flex;gap:8px;margin-bottom:16px;}
+    .search-row{display:flex;gap:8px;margin-bottom:14px;}
     .search-row input{flex:1;background:#13131f;border:1px solid #222;border-radius:6px;padding:10px 12px;color:#eee;font-family:'Courier New',monospace;font-size:0.82rem;outline:none;}
     .search-row input:focus{border-color:#00d4aa;}
     .search-row button{padding:0 18px;background:linear-gradient(135deg,#00d4aa,#0088cc);border:none;border-radius:6px;color:#000;font-family:'Courier New',monospace;font-size:0.8rem;font-weight:bold;cursor:pointer;letter-spacing:2px;}
     .search-row button:hover{opacity:0.85;}
     .user-card{background:#13131f;border:1px solid #1e1e2e;border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
     .user-info{display:flex;flex-direction:column;gap:3px;min-width:0;}
-    .u-name{font-size:0.85rem;color:#eee;letter-spacing:1px;}
+    .u-name{font-size:0.85rem;color:#eee;}
     .u-full{font-size:0.68rem;color:#555;}
-    .btn-sm{padding:6px 14px;border-radius:6px;font-family:'Courier New',monospace;font-size:0.7rem;letter-spacing:2px;cursor:pointer;transition:all 0.15s;border:1px solid #333;background:transparent;color:#888;}
+    .btn-group{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
+    .btn-sm{padding:6px 14px;border-radius:6px;font-family:'Courier New',monospace;font-size:0.7rem;letter-spacing:1px;cursor:pointer;transition:all 0.15s;border:1px solid #333;background:transparent;color:#888;}
     .btn-sm:hover{border-color:#555;color:#eee;}
-    .btn-add{background:linear-gradient(135deg,#00d4aa,#0088cc);border:none;color:#000;font-weight:bold;}
-    .btn-add:hover{opacity:0.85;}
+    .btn-add   {background:linear-gradient(135deg,#00d4aa,#0088cc);border:none;color:#000;font-weight:bold;}
     .btn-accept{background:#00aa44;border:none;color:#fff;font-weight:bold;}
-    .btn-accept:hover{opacity:0.85;}
-    .btn-decline{border-color:#ff3333;color:#ff5555;}
-    .btn-decline:hover{background:#ff1111;color:#fff;border-color:#ff1111;}
-    .btn-remove{border-color:#555;color:#666;}
-    .btn-remove:hover{border-color:#ff5555;color:#ff5555;}
-    .btn-chat{background:linear-gradient(135deg,#5555ff,#0088cc);border:none;color:#fff;font-weight:bold;}
-    .btn-chat:hover{opacity:0.85;}
-    .btn-group{display:flex;gap:6px;flex-shrink:0;}
-    .empty{color:#333;font-size:0.78rem;letter-spacing:2px;text-align:center;padding:32px;}
-    .badge{background:#00d4aa;color:#000;border-radius:10px;font-size:0.6rem;padding:1px 7px;margin-left:6px;font-weight:bold;vertical-align:middle;}
-    .no-login{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:16px;color:#555;padding-top:80px;}
-    .no-login a{padding:10px 24px;background:linear-gradient(135deg,#00d4aa,#0088cc);border-radius:8px;color:#000;font-family:'Courier New',monospace;font-size:0.85rem;font-weight:bold;text-decoration:none;letter-spacing:2px;}
-    .msg-inline{font-size:0.72rem;text-align:center;padding:8px;min-height:22px;}
-    .err{color:#ff5566;} .ok{color:#00d4aa;} .info{color:#888;}
-    .pending-label{font-size:0.62rem;color:#aaa88a;background:#2a2510;border:1px solid #443a10;border-radius:4px;padding:3px 8px;letter-spacing:1px;}
-    .spinner{display:inline-block;width:12px;height:12px;border:2px solid #333;border-top-color:#00d4aa;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;}
-    @keyframes spin{to{transform:rotate(360deg)}}
+    .btn-decline{border-color:#ff4444;color:#ff6666;}
+    .btn-decline:hover{background:#cc0000;border-color:#cc0000;color:#fff;}
+    .btn-remove{border-color:#555;color:#555;}
+    .btn-remove:hover{border-color:#ff6666;color:#ff6666;}
+    .btn-chat  {background:linear-gradient(135deg,#5566ff,#0088cc);border:none;color:#fff;font-weight:bold;}
+    .pending-lbl{font-size:0.6rem;color:#998866;background:#2a2510;border:1px solid #443a10;border-radius:4px;padding:3px 8px;}
+    .empty{color:#333;font-size:0.78rem;text-align:center;padding:36px;letter-spacing:2px;}
+    .flash{font-size:0.72rem;text-align:center;padding:8px;min-height:22px;}
+    .flash.ok {color:#00d4aa;}
+    .flash.err{color:#ff5566;}
+    .flash.inf{color:#888;}
   </style>
 </head>
 <body>
+
 <button id="lang-btn">EN</button>
 <a href="index.html" id="back-btn">← HOME</a>
 
-<div id="no-login-screen" style="display:none" class="no-login">
-  <div id="no-login-msg"></div>
-  <a href="login.html?next=friends.html" id="no-login-btn"></a>
+<!-- ログインしていない場合 -->
+<div id="no-login-screen">
+  <div id="nl-msg" style="letter-spacing:3px;font-size:0.8rem;"></div>
+  <a href="login.html?next=friends.html" id="nl-btn"></a>
 </div>
 
-<div id="app" style="display:none;flex-direction:column;align-items:center;width:100%">
-  <h1 id="pg-title">FRIENDS</h1>
-  <div class="tabs">
-    <div class="tab active" id="tab-friends" data-tab="friends"></div>
-    <div class="tab" id="tab-requests" data-tab="requests">
-      <span id="tab-req-label"></span><span id="req-badge" class="badge" style="display:none">0</span>
+<!-- メインUI -->
+<div id="main-app">
+  <h1>FRIENDS</h1>
+
+  <div class="tabs" id="tabs-row">
+    <div class="tab active" id="tab-friends" data-panel="pnl-friends"></div>
+    <div class="tab"        id="tab-requests" data-panel="pnl-requests">
+      <span id="tab-req-txt"></span><span id="req-badge" class="badge" style="display:none"></span>
     </div>
-    <div class="tab" id="tab-search" data-tab="search"></div>
+    <div class="tab"        id="tab-search"   data-panel="pnl-search"></div>
   </div>
 
-  <div class="panel active" id="panel-friends">
-    <div class="msg-inline" id="friends-msg"></div>
-    <div id="friends-list"></div>
+  <!-- フレンド一覧 -->
+  <div class="panel active" id="pnl-friends">
+    <div class="flash" id="flash-friends"></div>
+    <div id="list-friends"></div>
   </div>
 
-  <div class="panel" id="panel-requests">
-    <div class="msg-inline" id="requests-msg"></div>
-    <div id="requests-list"></div>
+  <!-- 申請一覧 -->
+  <div class="panel" id="pnl-requests">
+    <div class="flash" id="flash-requests"></div>
+    <div id="list-requests"></div>
   </div>
 
-  <div class="panel" id="panel-search">
+  <!-- ユーザー検索 -->
+  <div class="panel" id="pnl-search">
     <div class="search-row">
-      <input type="text" id="search-input" maxlength="30">
-      <button id="search-btn"></button>
+      <input type="text" id="search-q" maxlength="30">
+      <button id="search-go"></button>
     </div>
-    <div class="msg-inline" id="search-msg"></div>
-    <div id="search-results"></div>
+    <div class="flash" id="flash-search"></div>
+    <div id="list-search"></div>
   </div>
 </div>
 
 <script>
-const SUPABASE_URL = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+'use strict';
 
-const T_ = {
-  ja:{pgTitle:'FRIENDS',tabFriends:'フレンド',tabRequests:'申請',tabSearch:'ユーザー検索',
-    searchPlaceholder:'ユーザIDで検索',searchBtn:'検索',noLogin:'ログインが必要です',
-    noLoginBtn:'ログイン',back:'← HOME',emptyFriends:'フレンドがいません',
-    emptyRequests:'フレンド申請はありません',emptySearch:'ユーザーが見つかりません',
-    btnAdd:'申請する',btnAccept:'承認',btnDecline:'拒否',btnRemove:'削除',btnChat:'チャット',
-    pending:'申請中',searching:'検索中…',loading:'読み込み中…',
-    sendOk:'フレンド申請を送りました',sendErr:'送信に失敗しました',alreadySent:'既に申請済みです',
-    acceptOk:'フレンド申請を承認しました',declineOk:'申請を拒否しました',removeOk:'フレンドを削除しました',
-    searchEmpty:'ユーザIDを入力してください'},
-  en:{pgTitle:'FRIENDS',tabFriends:'Friends',tabRequests:'Requests',tabSearch:'Search Users',
-    searchPlaceholder:'Search by user ID',searchBtn:'SEARCH',noLogin:'Login required',
-    noLoginBtn:'LOGIN',back:'← HOME',emptyFriends:'No friends yet',
-    emptyRequests:'No pending requests',emptySearch:'No users found',
-    btnAdd:'ADD',btnAccept:'ACCEPT',btnDecline:'DECLINE',btnRemove:'REMOVE',btnChat:'CHAT',
-    pending:'PENDING',searching:'Searching…',loading:'Loading…',
-    sendOk:'Friend request sent',sendErr:'Failed to send request',alreadySent:'Already sent',
-    acceptOk:'Friend request accepted',declineOk:'Request declined',removeOk:'Friend removed',
-    searchEmpty:'Enter a user ID'}
+/* ── 定数 ─────────────────────────────────── */
+const SB_URL = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
+const SB_KEY = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+
+/* ── i18n ────────────────────────────────── */
+const TX = {
+  ja:{
+    tabF:'フレンド', tabR:'申請', tabS:'ユーザー検索',
+    phSearch:'ユーザIDで検索', btnSearch:'検索',
+    noLogin:'ログインが必要です', noLoginBtn:'ログイン', back:'← HOME',
+    emptyF:'フレンドはいません', emptyR:'フレンド申請はありません', emptyS:'見つかりません',
+    btnAdd:'申請する', btnAccept:'承認', btnDecline:'拒否',
+    btnRemove:'削除', btnChat:'チャット', pending:'申請中',
+    searching:'検索中…',
+    sendOk:'フレンド申請を送りました',
+    sendErr:'送信に失敗しました。しばらく待ってから再試行してください',
+    alreadySent:'既に申請済みです',
+    acceptOk:'承認しました', declineOk:'拒否しました', removeOk:'削除しました',
+    needQuery:'ユーザIDを入力してください'
+  },
+  en:{
+    tabF:'Friends', tabR:'Requests', tabS:'Search',
+    phSearch:'Search by user ID', btnSearch:'SEARCH',
+    noLogin:'Login required', noLoginBtn:'LOGIN', back:'← HOME',
+    emptyF:'No friends yet', emptyR:'No pending requests', emptyS:'No users found',
+    btnAdd:'ADD', btnAccept:'ACCEPT', btnDecline:'DECLINE',
+    btnRemove:'REMOVE', btnChat:'CHAT', pending:'PENDING',
+    searching:'Searching…',
+    sendOk:'Friend request sent',
+    sendErr:'Failed to send. Please try again',
+    alreadySent:'Already sent',
+    acceptOk:'Accepted', declineOk:'Declined', removeOk:'Removed',
+    needQuery:'Enter a user ID'
+  }
 };
 let lang = localStorage.getItem('lang') || 'ja';
-function T(k){ return T_[lang][k] || T_.ja[k] || k; }
-function applyLang(){
-  document.getElementById('lang-btn').textContent = lang==='ja'?'EN':'JA';
-  document.getElementById('pg-title').textContent = T('pgTitle');
-  document.getElementById('tab-friends').textContent = T('tabFriends');
-  document.getElementById('tab-req-label').textContent = T('tabRequests');
-  document.getElementById('tab-search').textContent = T('tabSearch');
-  document.getElementById('search-input').placeholder = T('searchPlaceholder');
-  document.getElementById('search-btn').textContent = T('searchBtn');
-  document.getElementById('back-btn').textContent = T('back');
-  const nlm = document.getElementById('no-login-msg'); if(nlm) nlm.textContent = T('noLogin');
-  const nlb = document.getElementById('no-login-btn'); if(nlb) nlb.textContent = T('noLoginBtn');
+const T = k => TX[lang][k] || TX.ja[k] || k;
+
+function applyLang() {
+  document.getElementById('lang-btn').textContent   = lang === 'ja' ? 'EN' : 'JA';
+  document.getElementById('back-btn').textContent   = T('back');
+  document.getElementById('tab-friends').textContent = T('tabF');
+  document.getElementById('tab-req-txt').textContent = T('tabR');
+  document.getElementById('tab-search').textContent  = T('tabS');
+  document.getElementById('search-q').placeholder   = T('phSearch');
+  document.getElementById('search-go').textContent  = T('btnSearch');
+  const nlm = document.getElementById('nl-msg'); if (nlm) nlm.textContent = T('noLogin');
+  const nlb = document.getElementById('nl-btn'); if (nlb) nlb.textContent = T('noLoginBtn');
   document.documentElement.lang = lang;
 }
-document.getElementById('lang-btn').addEventListener('click',()=>{
-  lang = lang==='ja'?'en':'ja'; localStorage.setItem('lang',lang); applyLang(); renderAll();
+
+document.getElementById('lang-btn').addEventListener('click', () => {
+  lang = lang === 'ja' ? 'en' : 'ja';
+  localStorage.setItem('lang', lang);
+  applyLang();
+  if (typeof renderAll === 'function') renderAll();
 });
 applyLang();
 
-// ── Supabase helper: HTTPステータスも確認 ──────────────────
+/* ── Supabase helpers ────────────────────── */
 async function sbGet(path) {
   try {
-    const r = await fetch(SUPABASE_URL + path, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    const r = await fetch(SB_URL + path, {
+      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY }
     });
-    const t = await r.text();
-    const data = t ? JSON.parse(t) : null;
-    if (!r.ok) { console.warn('sbGet error', r.status, data); return null; }
-    return Array.isArray(data) ? data : null;
-  } catch(e) { console.error('sbGet fetch error', e); return null; }
+    const txt = await r.text();
+    const data = txt ? JSON.parse(txt) : null;
+    if (!r.ok) { console.warn('sbGet', r.status, data); return null; }
+    return Array.isArray(data) ? data : [];
+  } catch (e) { console.error('sbGet', e); return null; }
 }
 
-async function sbWrite(path, method, body, extraHeaders={}) {
+async function sbPost(path, body) {
   try {
-    const r = await fetch(SUPABASE_URL + path, {
-      method,
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal',   // ボディなしで返す（余計なエラーを避ける）
-        ...extraHeaders
-      },
-      body: body ? JSON.stringify(body) : undefined
+    const r = await fetch(SB_URL + path, {
+      method: 'POST',
+      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY,
+                 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify(body)
     });
-    return r.ok;   // true = 成功, false = 失敗
-  } catch(e) { console.error('sbWrite error', e); return false; }
+    return r.ok;
+  } catch (e) { console.error('sbPost', e); return false; }
 }
 
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function setMsg(id, text, cls){
-  const el = document.getElementById(id);
-  el.textContent = text; el.className = 'msg-inline ' + (cls||'');
-  setTimeout(()=>{ if(el.textContent===text) el.textContent=''; }, 3000);
+async function sbPatch(path, body) {
+  try {
+    const r = await fetch(SB_URL + path, {
+      method: 'PATCH',
+      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY,
+                 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify(body)
+    });
+    return r.ok;
+  } catch (e) { console.error('sbPatch', e); return false; }
 }
 
-const me = JSON.parse(localStorage.getItem('arcade_user') || 'null');
+async function sbDelete(path) {
+  try {
+    const r = await fetch(SB_URL + path, {
+      method: 'DELETE',
+      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY }
+    });
+    return r.ok;
+  } catch (e) { console.error('sbDelete', e); return false; }
+}
+
+/* ── ユーティリティ ──────────────────────── */
+const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function flash(elId, text, cls) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'flash ' + (cls || '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { if (el.textContent === text) el.textContent = ''; }, 3000);
+}
+
+/* ── ログイン確認 ────────────────────────── */
+let me = null;
+try { me = JSON.parse(localStorage.getItem('arcade_user') || 'null'); } catch(e) { me = null; }
 
 if (!me) {
   document.getElementById('no-login-screen').style.display = 'flex';
 } else {
-  document.getElementById('app').style.display = 'flex';
-  let friends=[], pendingIn=[], pendingOut=[];
+  document.getElementById('main-app').style.display = 'flex';
+  init();
+}
 
-  // ── タブ切り替え ──
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
-    });
+/* ── メイン処理 ──────────────────────────── */
+function init() {
+  let friends = [], pendingIn = [], pendingOut = [];
+
+  /* タブ切り替え */
+  document.getElementById('tabs-row').addEventListener('click', e => {
+    const tab = e.target.closest('.tab');
+    if (!tab) return;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    const pnl = document.getElementById(tab.dataset.panel);
+    if (pnl) pnl.classList.add('active');
   });
 
-  // ── フレンドデータ読み込み ──────────────────────────────
+  /* ── データ読み込み ─────────────────────── */
   async function loadAll() {
-    // 送った申請 + 受け取った申請 を別クエリで取得
-    const [sent, received] = await Promise.all([
-      sbGet(`/rest/v1/friends?requester_id=eq.${me.id}&select=id,requester_id,addressee_id,status`),
-      sbGet(`/rest/v1/friends?addressee_id=eq.${me.id}&select=id,requester_id,addressee_id,status`)
+    const [sent, recv] = await Promise.all([
+      sbGet('/rest/v1/friends?requester_id=eq.' + me.id + '&select=id,requester_id,addressee_id,status'),
+      sbGet('/rest/v1/friends?addressee_id=eq.'  + me.id + '&select=id,requester_id,addressee_id,status')
     ]);
 
-    // テーブルが存在しない場合
-    if (sent === null && received === null) {
-      document.getElementById('friends-list').innerHTML =
-        `<div class="empty" style="color:#ff5566">friendsテーブルが存在しません。<br>Supabase SQL Editorでsupabase_migrate.sqlを実行してください。</div>`;
+    if (sent === null && recv === null) {
+      document.getElementById('list-friends').innerHTML =
+        '<div class="empty" style="color:#ff5566">friendsテーブルが見つかりません。<br>Supabase SQL Editorでmigrate SQLを実行してください。</div>';
       return;
     }
 
-    friends=[]; pendingIn=[]; pendingOut=[];
-    const userIds = new Set();
+    const rows = [...(sent || []), ...(recv || [])];
+    friends = []; pendingIn = []; pendingOut = [];
     const seen = new Set();
+    const needIds = new Set();
 
-    for (const r of [...(sent||[]), ...(received||[])]) {
+    for (const r of rows) {
       if (seen.has(r.id)) continue;
       seen.add(r.id);
       if (r.status === 'accepted') {
         const otherId = r.requester_id === me.id ? r.addressee_id : r.requester_id;
-        friends.push({...r, otherId});
-        userIds.add(otherId);
+        friends.push({ id: r.id, otherId });
+        needIds.add(otherId);
       } else if (r.status === 'pending') {
-        if (r.requester_id === me.id) {
-          pendingOut.push(r);
-          userIds.add(r.addressee_id);
-        } else {
-          pendingIn.push(r);
-          userIds.add(r.requester_id);
-        }
+        if (r.requester_id === me.id) { pendingOut.push(r); needIds.add(r.addressee_id); }
+        else                           { pendingIn.push(r);  needIds.add(r.requester_id); }
       }
     }
 
-    // ユーザー情報を取得
+    /* ユーザー情報を取得 */
     const umap = {};
-    if (userIds.size > 0) {
-      const idList = [...userIds];
-      // 一度に最大20件取得（in フィルタを使用）
-      const inFilter = idList.map(id => `"${id}"`).join(',');
-      const users = await sbGet(`/rest/v1/users?id=in.(${encodeURIComponent(idList.join(','))})&select=id,username,full_name`) || [];
-      users.forEach(u => umap[u.id] = u);
+    if (needIds.size > 0) {
+      const ids = [...needIds].join(',');
+      const users = await sbGet('/rest/v1/users?id=in.(' + ids + ')&select=id,username,full_name') || [];
+      users.forEach(u => { umap[u.id] = u; });
     }
 
-    friends   = friends.map(f   => ({...f, user: umap[f.otherId]        || {username:'?',full_name:''}}));
-    pendingIn = pendingIn.map(f => ({...f, user: umap[f.requester_id]   || {username:'?',full_name:''}}));
-    pendingOut= pendingOut.map(f=> ({...f, user: umap[f.addressee_id]   || {username:'?',full_name:''}}));
+    friends    = friends.map(f    => ({ ...f, user: umap[f.otherId]      || { username:'?', full_name:'' } }));
+    pendingIn  = pendingIn.map(f  => ({ ...f, user: umap[f.requester_id] || { username:'?', full_name:'' } }));
+    pendingOut = pendingOut.map(f => ({ ...f, user: umap[f.addressee_id] || { username:'?', full_name:'' } }));
 
     const badge = document.getElementById('req-badge');
     badge.textContent = pendingIn.length;
     badge.style.display = pendingIn.length > 0 ? '' : 'none';
+
     renderAll();
   }
 
-  function renderAll(){ renderFriends(); renderRequests(); }
+  /* ── 描画 ───────────────────────────────── */
+  function renderAll() { renderFriends(); renderRequests(); }
+  window.renderAll = renderAll;  // lang切替から呼べるよう公開
 
-  function renderFriends(){
-    const el = document.getElementById('friends-list');
-    if (!friends.length) { el.innerHTML=`<div class="empty">${T('emptyFriends')}</div>`; return; }
-    el.innerHTML = friends.map(f => `
-      <div class="user-card">
-        <div class="user-info">
-          <div class="u-name">@${esc(f.user.username)}</div>
-          <div class="u-full">${esc(f.user.full_name)}</div>
-        </div>
-        <div class="btn-group">
-          <button class="btn-sm btn-chat"   onclick="goChat('${esc(f.user.username)}')">${T('btnChat')}</button>
-          <button class="btn-sm btn-remove" onclick="removeFriend('${f.id}')">${T('btnRemove')}</button>
-        </div>
-      </div>`).join('');
+  function renderFriends() {
+    const el = document.getElementById('list-friends');
+    if (!friends.length) { el.innerHTML = '<div class="empty">' + T('emptyF') + '</div>'; return; }
+    el.innerHTML = friends.map(f =>
+      '<div class="user-card">' +
+        '<div class="user-info">' +
+          '<div class="u-name">@' + esc(f.user.username) + '</div>' +
+          '<div class="u-full">' + esc(f.user.full_name) + '</div>' +
+        '</div>' +
+        '<div class="btn-group">' +
+          '<button class="btn-sm btn-chat"   onclick="doChat(\''   + esc(f.user.username) + '\')">' + T('btnChat')   + '</button>' +
+          '<button class="btn-sm btn-remove" onclick="doRemove(\'' + f.id                 + '\')">' + T('btnRemove') + '</button>' +
+        '</div>' +
+      '</div>'
+    ).join('');
   }
 
-  function renderRequests(){
-    const el = document.getElementById('requests-list');
-    const html = [];
+  function renderRequests() {
+    const el = document.getElementById('list-requests');
+    const rows = [];
+
     pendingIn.forEach(f => {
-      html.push(`<div class="user-card">
-        <div class="user-info">
-          <div class="u-name">@${esc(f.user.username)}</div>
-          <div class="u-full">${esc(f.user.full_name)}</div>
-        </div>
-        <div class="btn-group">
-          <button class="btn-sm btn-accept"  onclick="acceptFriend('${f.id}')">${T('btnAccept')}</button>
-          <button class="btn-sm btn-decline" onclick="declineFriend('${f.id}')">${T('btnDecline')}</button>
-        </div>
-      </div>`);
+      rows.push(
+        '<div class="user-card">' +
+          '<div class="user-info">' +
+            '<div class="u-name">@' + esc(f.user.username) + '</div>' +
+            '<div class="u-full">' + esc(f.user.full_name) + '</div>' +
+          '</div>' +
+          '<div class="btn-group">' +
+            '<button class="btn-sm btn-accept"  onclick="doAccept(\''  + f.id + '\')">' + T('btnAccept')  + '</button>' +
+            '<button class="btn-sm btn-decline" onclick="doDecline(\'' + f.id + '\')">' + T('btnDecline') + '</button>' +
+          '</div>' +
+        '</div>'
+      );
     });
+
     pendingOut.forEach(f => {
-      html.push(`<div class="user-card">
-        <div class="user-info">
-          <div class="u-name">@${esc(f.user.username)}</div>
-          <div class="u-full">${esc(f.user.full_name)}</div>
-        </div>
-        <div class="btn-group"><span class="pending-label">${T('pending')}</span></div>
-      </div>`);
+      rows.push(
+        '<div class="user-card">' +
+          '<div class="user-info">' +
+            '<div class="u-name">@' + esc(f.user.username) + '</div>' +
+            '<div class="u-full">' + esc(f.user.full_name) + '</div>' +
+          '</div>' +
+          '<div class="btn-group"><span class="pending-lbl">' + T('pending') + '</span></div>' +
+        '</div>'
+      );
     });
-    if (!html.length) { el.innerHTML=`<div class="empty">${T('emptyRequests')}</div>`; }
-    else { el.innerHTML = html.join(''); }
+
+    el.innerHTML = rows.length ? rows.join('') : '<div class="empty">' + T('emptyR') + '</div>';
   }
 
-  // ── 承認 / 拒否 / 削除 ───────────────────────────────
-  async function acceptFriend(id){
-    const ok = await sbWrite(`/rest/v1/friends?id=eq.${id}`, 'PATCH', {status:'accepted'});
-    if (ok) { setMsg('requests-msg', T('acceptOk'), 'ok'); await loadAll(); }
-  }
-  async function declineFriend(id){
-    const ok = await sbWrite(`/rest/v1/friends?id=eq.${id}`, 'DELETE');
-    if (ok) { setMsg('requests-msg', T('declineOk'), 'ok'); await loadAll(); }
-  }
-  async function removeFriend(id){
-    const ok = await sbWrite(`/rest/v1/friends?id=eq.${id}`, 'DELETE');
-    if (ok) { setMsg('friends-msg', T('removeOk'), 'ok'); await loadAll(); }
-  }
-  function goChat(username){ location.href = 'chat.html?user=' + encodeURIComponent(username); }
+  /* ── アクション ─────────────────────────── */
+  window.doAccept = async function(id) {
+    if (await sbPatch('/rest/v1/friends?id=eq.' + id, { status: 'accepted' })) {
+      flash('flash-requests', T('acceptOk'), 'ok'); loadAll();
+    }
+  };
+  window.doDecline = async function(id) {
+    if (await sbDelete('/rest/v1/friends?id=eq.' + id)) {
+      flash('flash-requests', T('declineOk'), 'ok'); loadAll();
+    }
+  };
+  window.doRemove = async function(id) {
+    if (await sbDelete('/rest/v1/friends?id=eq.' + id)) {
+      flash('flash-friends', T('removeOk'), 'ok'); loadAll();
+    }
+  };
+  window.doChat = function(username) {
+    location.href = 'chat.html?user=' + encodeURIComponent(username);
+  };
 
-  // ── ユーザー検索 ──────────────────────────────────────
-  document.getElementById('search-btn').addEventListener('click', doSearch);
-  document.getElementById('search-input').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(); });
+  /* ── ユーザー検索 ───────────────────────── */
+  document.getElementById('search-go').addEventListener('click', doSearch);
+  document.getElementById('search-q').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
 
-  async function doSearch(){
-    const q   = document.getElementById('search-input').value.trim();
-    const msg = document.getElementById('search-msg');
-    const res = document.getElementById('search-results');
-    if (!q) { msg.className='msg-inline err'; msg.textContent=T('searchEmpty'); return; }
-    msg.className='msg-inline info'; msg.textContent=T('searching');
-    res.innerHTML = '';
+  async function doSearch() {
+    const q = document.getElementById('search-q').value.trim();
+    if (!q) { flash('flash-search', T('needQuery'), 'err'); return; }
+    flash('flash-search', T('searching'), 'inf');
+    document.getElementById('list-search').innerHTML = '';
 
-    const rows = await sbGet(`/rest/v1/users?username=ilike.*${encodeURIComponent(q)}*&select=id,username,full_name&limit=20`) || [];
-    const filtered = rows.filter(u => u.id !== me.id);
-    msg.textContent = '';
-    if (!filtered.length) { res.innerHTML=`<div class="empty">${T('emptySearch')}</div>`; return; }
+    const rows = await sbGet('/rest/v1/users?username=ilike.*' + encodeURIComponent(q) + '*&select=id,username,full_name&limit=20') || [];
+    const list = rows.filter(u => u.id !== me.id);
 
-    const friendIds    = new Set(friends.map(f => f.otherId));
-    const pendingOutIds= new Set(pendingOut.map(f => f.addressee_id));
-    const pendingInIds = new Set(pendingIn.map(f => f.requester_id));
+    document.getElementById('flash-search').textContent = '';
+    if (!list.length) { document.getElementById('list-search').innerHTML = '<div class="empty">' + T('emptyS') + '</div>'; return; }
 
-    res.innerHTML = filtered.map(u => {
-      let btn = '';
-      if      (friendIds.has(u.id))     btn = `<button class="btn-sm btn-chat"  onclick="goChat('${esc(u.username)}')">${T('btnChat')}</button>`;
-      else if (pendingOutIds.has(u.id)) btn = `<span class="pending-label">${T('pending')}</span>`;
-      else if (pendingInIds.has(u.id))  btn = `<button class="btn-sm btn-accept" onclick="acceptFromSearch('${u.id}')">${T('btnAccept')}</button>`;
-      else                               btn = `<button class="btn-sm btn-add"    onclick="sendRequest('${u.id}','${esc(u.username)}')">${T('btnAdd')}</button>`;
-      return `<div class="user-card">
-        <div class="user-info"><div class="u-name">@${esc(u.username)}</div><div class="u-full">${esc(u.full_name)}</div></div>
-        <div class="btn-group">${btn}</div>
-      </div>`;
+    const fIds  = new Set(friends.map(f => f.otherId));
+    const outIds= new Set(pendingOut.map(f => f.addressee_id));
+    const inIds = new Set(pendingIn.map(f => f.requester_id));
+
+    document.getElementById('list-search').innerHTML = list.map(u => {
+      let btn;
+      if      (fIds.has(u.id))   btn = '<button class="btn-sm btn-chat"    onclick="doChat(\''       + esc(u.username) + '\')">' + T('btnChat')   + '</button>';
+      else if (outIds.has(u.id)) btn = '<span class="pending-lbl">' + T('pending') + '</span>';
+      else if (inIds.has(u.id))  btn = '<button class="btn-sm btn-accept"   onclick="doAcceptUser(\'' + u.id            + '\')">' + T('btnAccept') + '</button>';
+      else                        btn = '<button class="btn-sm btn-add"      onclick="doSend(\''       + u.id + '\',\'' + esc(u.username) + '\')">' + T('btnAdd')    + '</button>';
+      return '<div class="user-card"><div class="user-info"><div class="u-name">@' + esc(u.username) + '</div><div class="u-full">' + esc(u.full_name) + '</div></div><div class="btn-group">' + btn + '</div></div>';
     }).join('');
   }
 
-  // ── フレンド申請送信 ──────────────────────────────────
-  async function sendRequest(userId, username){
-    // 既存チェック（2方向）
-    const [ex1, ex2] = await Promise.all([
-      sbGet(`/rest/v1/friends?requester_id=eq.${me.id}&addressee_id=eq.${userId}&select=id`),
-      sbGet(`/rest/v1/friends?requester_id=eq.${userId}&addressee_id=eq.${me.id}&select=id`)
+  /* ── 申請送信 ───────────────────────────── */
+  window.doSend = async function(userId, username) {
+    /* 既存チェック（2方向） */
+    const [a, b] = await Promise.all([
+      sbGet('/rest/v1/friends?requester_id=eq.' + me.id   + '&addressee_id=eq.' + userId + '&select=id'),
+      sbGet('/rest/v1/friends?requester_id=eq.' + userId  + '&addressee_id=eq.' + me.id  + '&select=id')
     ]);
-    if ((ex1 && ex1.length > 0) || (ex2 && ex2.length > 0)) {
-      setMsg('search-msg', T('alreadySent'), 'info'); return;
-    }
+    if ((a && a.length) || (b && b.length)) { flash('flash-search', T('alreadySent'), 'inf'); return; }
 
-    const ok = await sbWrite('/rest/v1/friends', 'POST', {
-      requester_id: me.id,
-      addressee_id: userId,
-      status: 'pending'
-    });
+    const ok = await sbPost('/rest/v1/friends', { requester_id: me.id, addressee_id: userId, status: 'pending' });
+    if (ok) { flash('flash-search', T('sendOk'), 'ok'); await loadAll(); doSearch(); }
+    else    { flash('flash-search', T('sendErr'), 'err'); }
+  };
 
-    if (ok) {
-      setMsg('search-msg', T('sendOk'), 'ok');
-      await loadAll();
-      doSearch();
-    } else {
-      setMsg('search-msg', T('sendErr'), 'err');
-    }
-  }
-
-  async function acceptFromSearch(userId){
+  window.doAcceptUser = async function(userId) {
     const row = pendingIn.find(f => f.requester_id === userId);
-    if (row) { await acceptFriend(row.id); doSearch(); }
-  }
+    if (row) { await window.doAccept(row.id); doSearch(); }
+  };
 
-  // グローバルに公開（onclick属性から呼ぶため）
-  window.sendRequest    = sendRequest;
-  window.acceptFromSearch = acceptFromSearch;
-  window.goChat         = goChat;
-  window.acceptFriend   = acceptFriend;
-  window.declineFriend  = declineFriend;
-  window.removeFriend   = removeFriend;
-
+  /* ── 初期ロード & ポーリング ─────────────── */
   loadAll();
-  // 10秒ごとに自動更新
   setInterval(loadAll, 10000);
 }
 </script>
