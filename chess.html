@@ -66,6 +66,7 @@
     .back { display:block; margin-top:14px; font-size:0.75rem; color:#444; text-decoration:none; letter-spacing:2px; text-align:center; }
     .back:hover { color:#888; }
   </style>
+<script src="sound.js"></script>
 </head>
 <body>
 <button id="lang-btn">EN</button>
@@ -205,6 +206,9 @@ const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 let CELL, SZ;
 
+// --- Chess logic ---
+// color: 1=white, 2=black
+// piece types: K Q R B N P
 const SYMS = {
   '1K':'♔','1Q':'♕','1R':'♖','1B':'♗','1N':'♘','1P':'♙',
   '2K':'♚','2Q':'♛','2R':'♜','2B':'♝','2N':'♞','2P':'♟'
@@ -234,17 +238,21 @@ function cloneBoard(b) { return b.map(row=>row.map(p=>p?{...p}:null)); }
 function serBoard(b) { return b.map(row=>row.map(p=>p?p.cl+''+p.t:'')); }
 function deserBoard(s) { return s.map(row=>row.map(c=>c?{cl:+c[0],t:c.slice(1)}:null)); }
 
+// Check if square is attacked by 'cl'
 function isAttacked(b, r, c, cl) {
   const opp = cl;
+  // Pawn attacks
   const pd = opp===1?1:-1;
   for (const dc of [-1,1]) {
     const nr=r+pd,nc=c+dc;
     if (nr>=0&&nr<8&&nc>=0&&nc<8&&b[nr][nc]?.cl===opp&&b[nr][nc]?.t==='P') return true;
   }
+  // Knight
   for (const [dr,dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) {
     const nr=r+dr,nc=c+dc;
     if (nr>=0&&nr<8&&nc>=0&&nc<8&&b[nr][nc]?.cl===opp&&b[nr][nc]?.t==='N') return true;
   }
+  // Rays: rook/queen
   for (const [dr,dc] of [[0,1],[0,-1],[1,0],[-1,0]]) {
     let nr=r+dr,nc=c+dc;
     while (nr>=0&&nr<8&&nc>=0&&nc<8) {
@@ -253,6 +261,7 @@ function isAttacked(b, r, c, cl) {
       nr+=dr; nc+=dc;
     }
   }
+  // Rays: bishop/queen
   for (const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]]) {
     let nr=r+dr,nc=c+dc;
     while (nr>=0&&nr<8&&nc>=0&&nc<8) {
@@ -261,6 +270,7 @@ function isAttacked(b, r, c, cl) {
       nr+=dr; nc+=dc;
     }
   }
+  // King
   for (const [dr,dc] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]) {
     const nr=r+dr,nc=c+dc;
     if (nr>=0&&nr<8&&nc>=0&&nc<8&&b[nr][nc]?.cl===opp&&b[nr][nc]?.t==='K') return true;
@@ -311,8 +321,10 @@ function getLegalMoves(b, r, c, cr, ep) {
       const nr=r+dr,nc=c+dc;
       if (nr>=0&&nr<8&&nc>=0&&nc<8&&b[nr][nc]?.cl!==cl) add(nr,nc);
     }
+    // Castling
     const kingR=cl===1?7:0;
     if (r===kingR&&c===4&&!inCheck(b,cl)) {
+      // Kingside
       if (cr[cl].k&&!b[kingR][5]&&!b[kingR][6]&&
           !isAttacked(b,kingR,5,opp)&&!isAttacked(b,kingR,6,opp)) {
         const nb=cloneBoard(b);
@@ -320,6 +332,7 @@ function getLegalMoves(b, r, c, cr, ep) {
         nb[kingR][5]=nb[kingR][7]; nb[kingR][7]=null;
         if (!inCheck(nb,cl)) moves.push({r:kingR,c:6,special:'castle-k'});
       }
+      // Queenside
       if (cr[cl].q&&!b[kingR][3]&&!b[kingR][2]&&!b[kingR][1]&&
           !isAttacked(b,kingR,3,opp)&&!isAttacked(b,kingR,2,opp)) {
         const nb=cloneBoard(b);
@@ -361,13 +374,16 @@ function applyMove(b, fr, fc, tr, tc, special, promoType, cr, ep) {
   if (nb[tr][tc]) cap.push(nb[tr][tc]);
   if (special==='ep') { cap.push(nb[fr][tc]); nb[fr][tc]=null; }
   nb[tr][tc]=p; nb[fr][fc]=null;
+  // Castling rook
   if (special==='castle-k') { nb[tr][tc-1]=nb[tr][7]; nb[tr][7]=null; }
   if (special==='castle-q') { nb[tr][tc+1]=nb[tr][0]; nb[tr][0]=null; }
+  // Promotion
   let newEp=null;
   if (p.t==='P') {
     if ((p.cl===1&&tr===0)||(p.cl===2&&tr===7)) nb[tr][tc]={t:promoType||'Q',cl:p.cl};
     if (Math.abs(tr-fr)===2) newEp=[(fr+tr)/2,tc];
   }
+  // Update castle rights
   const ncr={1:{k:cr[1].k,q:cr[1].q},2:{k:cr[2].k,q:cr[2].q}};
   if (p.t==='K') { ncr[p.cl].k=false; ncr[p.cl].q=false; }
   if (fr===7&&fc===7) ncr[1].k=false; if (fr===7&&fc===0) ncr[1].q=false;
@@ -375,6 +391,7 @@ function applyMove(b, fr, fc, tr, tc, special, promoType, cr, ep) {
   return {nb, cap, newEp, ncr};
 }
 
+// Simple evaluation for minimax
 const PST = {
   P: [[0,0,0,0,0,0,0,0],[50,50,50,50,50,50,50,50],[10,10,20,30,30,20,10,10],[5,5,10,25,25,10,5,5],[0,0,0,20,20,0,0,0],[5,-5,-10,0,0,-10,-5,5],[5,10,10,-20,-20,10,10,5],[0,0,0,0,0,0,0,0]],
   N: [[-50,-40,-30,-30,-30,-30,-40,-50],[-40,-20,0,0,0,0,-20,-40],[-30,0,10,15,15,10,0,-30],[-30,5,15,20,20,15,5,-30],[-30,0,15,20,20,15,0,-30],[-30,5,10,15,15,10,5,-30],[-40,-20,0,5,5,0,-20,-40],[-50,-40,-30,-30,-30,-30,-40,-50]],
@@ -405,7 +422,7 @@ function minimax(b, depth, alpha, beta, maximize, cr, ep) {
   if (depth===0||moves.length===0) {
     if (moves.length===0) {
       if (inCheck(b,cl)) return maximize?-100000:100000;
-      return 0;
+      return 0; // stalemate
     }
     return evalBoard(b);
   }
@@ -445,6 +462,7 @@ function cpuPickMove(b, cl, cr, ep) {
   return best;
 }
 
+// --- Draw ---
 function resize() {
   CELL=Math.floor(Math.min(window.innerWidth-20,480)/8);
   SZ=CELL*8; canvas.width=SZ; canvas.height=SZ;
@@ -457,15 +475,18 @@ function draw() {
     ctx.fillStyle=light?'#f0d9b5':'#b58863';
     ctx.fillRect(c*CELL,r*CELL,CELL,CELL);
   }
+  // Selected
   if (selectedCell) {
     ctx.fillStyle='rgba(255,255,0,0.4)';
     ctx.fillRect(selectedCell.c*CELL,selectedCell.r*CELL,CELL,CELL);
   }
+  // Last move
   if (lastMove) {
     ctx.fillStyle='rgba(20,200,80,0.3)';
     ctx.fillRect(lastMove.fc*CELL,lastMove.fr*CELL,CELL,CELL);
     ctx.fillRect(lastMove.tc*CELL,lastMove.tr*CELL,CELL,CELL);
   }
+  // Legal moves
   if (legalMoves) {
     legalMoves.forEach(m=>{
       if (board[m.r][m.c]) {
@@ -477,6 +498,7 @@ function draw() {
       }
     });
   }
+  // Pieces
   ctx.textAlign='center'; ctx.textBaseline='middle';
   for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
     const p=board[r][c]; if (!p) continue;
@@ -494,6 +516,7 @@ function draw() {
       ctx.fillText(sym,c*CELL+CELL/2,r*CELL+CELL/2);
     }
   }
+  // Coords
   ctx.font=`${CELL*0.22}px Courier New`; ctx.lineWidth=1;
   for (let i=0;i<8;i++) {
     const light=i%2===0;
@@ -562,6 +585,11 @@ async function executeMove(fr,fc,tr,tc,special) {
   const {nb,cap,newEp,ncr}=applyMove(board,fr,fc,tr,tc,special,promoType,castleRights,enPassantSq);
   board=nb; castleRights=ncr; enPassantSq=newEp;
   captured.push(...cap);
+  if(window.SND){
+    if(promoType&&promoType!=='default')SND.sfx.promote();
+    else if(cap&&cap.length>0)SND.sfx.capture();
+    else SND.sfx.place();
+  }
   lastMove={fr,fc,tr,tc}; selectedCell=null; legalMoves=null;
   turn=3-turn;
   if (mode==='online') {
@@ -575,6 +603,7 @@ function askPromo(cl) {
   return new Promise(res=>{
     promoResolve=res;
     const modal=document.getElementById('promo-modal');
+    // Update symbols to match color
     modal.querySelectorAll('.promo-btn').forEach(btn=>{
       const sym={Q:cl===1?'♕':'♛',R:cl===1?'♖':'♜',B:cl===1?'♗':'♝',N:cl===1?'♘':'♞'};
       btn.textContent=sym[btn.dataset.p];
@@ -598,16 +627,18 @@ function checkEndGame() {
     if (inCheck(board,cl)) {
       const ckWinner = cl===myColor ? (mode==='cpu'?T('cpuWin'):T('opWin')) : T('win');
       setStatus(T('checkmate')+' — '+ckWinner);
+      if(window.SND){if(cl===myColor)SND.sfx.lose();else SND.sfx.win();}
       if (mode==='online') pushGameOver(3-cl);
     } else {
       setStatus(T('stalemate'));
+      if(window.SND) SND.sfx.lose();
       if (mode==='online') pushGameOver(3);
     }
     updateResignBtn();
     if (pollTid) { clearInterval(pollTid); pollTid=null; }
     return;
   }
-  if (inCheck(board,cl)) setStatus(cl===1?T('checkWhite'):T('checkBlack'));
+  if (inCheck(board,cl)) { setStatus(cl===1?T('checkWhite'):T('checkBlack')); if(window.SND)SND.sfx.check(); }
   else setStatus(cl===1?T('whiteTurn'):T('blackTurn'));
   if (mode==='cpu'&&turn===cpuColor) {
     cpuBusy=true; setStatus(T('cpuThink')); updateResignBtn();
@@ -654,6 +685,7 @@ canvas.addEventListener('touchend',e=>{
   if (r>=0&&r<8&&c>=0&&c<8) handleClick(r,c);
 },{passive:false});
 
+// Online
 document.getElementById('btn-cpu').addEventListener('click',()=>{
   mode='cpu';
   document.getElementById('btn-cpu').classList.add('active');
@@ -741,7 +773,7 @@ async function pollRoom() {
 }
 
 async function pushOnlineMove(fr,fc,tr,tc,special,promo,nb,ncr,nep,mc) {
-  const cl=3-turn;
+  const cl=3-turn; // the player who just moved
   const moves=getAllLegal(nb,turn,ncr,nep);
   let winner=0;
   if (moves.length===0) winner=inCheck(nb,turn)?cl:3;
@@ -793,6 +825,22 @@ startGame();
 loadRatings();
 const hash=location.hash.slice(1);
 if(hash.length===6){document.getElementById('code-input').value=hash;document.getElementById('btn-online').click();}
+</script>
+<script>
+(function(){
+  var _started=false;
+  function _startAudio(){
+    if(_started)return;_started=true;
+    SND.startBGM("game");
+    SND.createBtn();
+    document.querySelectorAll("canvas").forEach(function(c){
+      c.addEventListener("mousedown",function(){SND.sfx.move();});
+      c.addEventListener("touchstart",function(){SND.sfx.move();},{passive:true});
+    });
+  }
+  document.addEventListener("click",_startAudio,{once:true});
+  document.addEventListener("keydown",_startAudio,{once:true});
+})();
 </script>
 </body>
 </html>
