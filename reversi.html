@@ -68,6 +68,7 @@
     .back { display:block; margin-top:14px; font-size:0.75rem; color:#444; text-decoration:none; letter-spacing:2px; text-align:center; }
     .back:hover { color:#888; }
   </style>
+<script src="sound.js"></script>
 </head>
 <body>
 <button id="lang-btn">EN</button>
@@ -225,7 +226,7 @@ document.getElementById('lang-btn').addEventListener('click',()=>{
   applyLang();
 });
 
-let difficulty='weak';
+let difficulty='weak'; // 'weak'|'normal'|'strong'
 document.querySelectorAll('.dbtn').forEach(b=>b.addEventListener('click',()=>{
   difficulty=b.dataset.d;
   document.querySelectorAll('.dbtn').forEach(x=>x.classList.toggle('active',x===b));
@@ -248,9 +249,10 @@ let mode = 'cpu';
 let myColor = 1, cpuColor = 2, cpuBusy = false;
 let roomId = null, myRole = null, pollTid = null, lastMoves = -1;
 
-let timeMode = 'none';
+// --- Time control ---
+let timeMode = 'none'; // 'none'|'move'|'total'
 let moveSecs = 30;
-let totalTimes = [0, 0, 0];
+let totalTimes = [0, 0, 0]; // index 1=black, 2=white (seconds remaining)
 let timerTid = null;
 let timerLeft = 0;
 
@@ -271,7 +273,10 @@ function fmtSecs(s) {
 function updateTimerDisplay() {
   const tb = document.getElementById('timer-b');
   const tw = document.getElementById('timer-w');
-  if (timeMode === 'none') { tb.style.display = tw.style.display = 'none'; return; }
+  if (timeMode === 'none') {
+    tb.style.display = tw.style.display = 'none';
+    return;
+  }
   tb.style.display = tw.style.display = 'inline-block';
   if (timeMode === 'move') {
     const isB = turn === 1 && !gameOver;
@@ -291,33 +296,47 @@ function updateTimerDisplay() {
 function startMoveTimer() {
   stopTimer();
   if (timeMode === 'none' || gameOver) return;
-  if (mode === 'cpu' && turn === cpuColor) return;
+  if (mode === 'cpu' && turn === cpuColor) return; // don't time CPU
   if (timeMode === 'move') {
     timerLeft = moveSecs;
     updateTimerDisplay();
-    timerTid = setInterval(() => { timerLeft--; updateTimerDisplay(); if (timerLeft <= 0) { stopTimer(); timeoutLose(turn); } }, 1000);
+    timerTid = setInterval(() => {
+      timerLeft--;
+      updateTimerDisplay();
+      if (timerLeft <= 0) { stopTimer(); timeoutLose(turn); }
+    }, 1000);
   } else {
-    timerTid = setInterval(() => { totalTimes[turn]--; updateTimerDisplay(); if (totalTimes[turn] <= 0) { stopTimer(); timeoutLose(turn); } }, 1000);
+    timerTid = setInterval(() => {
+      totalTimes[turn]--;
+      updateTimerDisplay();
+      if (totalTimes[turn] <= 0) { stopTimer(); timeoutLose(turn); }
+    }, 1000);
   }
 }
 
-function stopTimer() { if (timerTid) { clearInterval(timerTid); timerTid = null; } }
+function stopTimer() {
+  if (timerTid) { clearInterval(timerTid); timerTid = null; }
+}
 
 function timeoutLose(loser) {
-  gameOver = true; stopTimer();
+  gameOver = true;
+  stopTimer();
   const winner = loser === 1 ? T('whiteLabel') : T('blackLabel');
   const loserName = loser === 1 ? T('blackLabel') : T('whiteLabel');
   setStatus(T('timeoutLose',{loser:loserName,winner}));
-  draw(); updateResignBtn();
+  draw();
+  updateResignBtn();
 }
 
 function initTimers() {
   parseTimeSel();
-  if (timeMode === 'total') totalTimes = [0, totalTimes[1], totalTimes[2]];
-  parseTimeSel();
-  stopTimer(); updateTimerDisplay();
+  if (timeMode === 'total') totalTimes = [0, totalTimes[1], totalTimes[2]]; // re-parse sets them
+  parseTimeSel(); // parse again to set correctly
+  stopTimer();
+  updateTimerDisplay();
 }
 
+// --- Board logic ---
 function initBoard() {
   const b = Array.from({length:BS}, () => Array(BS).fill(0));
   b[3][3]=2; b[3][4]=1; b[4][3]=1; b[4][4]=2;
@@ -355,10 +374,15 @@ function cpuPick(b, p) {
   if (difficulty==='weak') return mv[Math.floor(Math.random()*mv.length)];
   if (difficulty==='strong') return cpuPickStrong(b, p);
   let best = mv[0], bs = -Infinity;
-  for (const m of mv) { const sc = W8[m.r][m.c] + getFlips(b,m.r,m.c,p).length * 0.5; if (sc > bs) { bs=sc; best=m; } }
+  for (const m of mv) {
+    const sc = W8[m.r][m.c] + getFlips(b,m.r,m.c,p).length * 0.5;
+    if (sc > bs) { bs=sc; best=m; }
+  }
   return best;
 }
-function scoreReversi(b, p) { const {bk,wh}=getScore(b); return p===1?bk-wh:wh-bk; }
+function scoreReversi(b, p) {
+  const {bk,wh}=getScore(b); return p===1?bk-wh:wh-bk;
+}
 function minimaxR(b, depth, p, a, be) {
   const mv=validFor(b,p);
   if(depth===0||(!mv.length&&!validFor(b,3-p).length)) return scoreReversi(b,cpuColor);
@@ -374,26 +398,46 @@ function minimaxR(b, depth, p, a, be) {
   return best;
 }
 function cpuPickStrong(b, p) {
-  const mv=validFor(b,p); if(!mv.length) return null;
+  const mv=validFor(b,p);
+  if(!mv.length) return null;
   let best=mv[0],bs=-Infinity;
-  for(const m of mv){ const nb=applyMove(b,m.r,m.c,p); const sc=minimaxR(nb,4,3-p,-Infinity,Infinity); if(sc>bs){bs=sc;best=m;} }
+  for(const m of mv){
+    const nb=applyMove(b,m.r,m.c,p);
+    const sc=minimaxR(nb,4,3-p,-Infinity,Infinity);
+    if(sc>bs){bs=sc;best=m;}
+  }
   return best;
 }
 
-function resize() { CELL = Math.floor(Math.min(window.innerWidth-20, 480) / BS); SZ = CELL * BS; canvas.width = SZ; canvas.height = SZ; }
+// --- Draw ---
+function resize() {
+  CELL = Math.floor(Math.min(window.innerWidth-20, 480) / BS);
+  SZ = CELL * BS;
+  canvas.width = SZ; canvas.height = SZ;
+}
 function draw() {
   ctx.fillStyle = '#0a1f0a'; ctx.fillRect(0,0,SZ,SZ);
   ctx.strokeStyle = '#1a4020'; ctx.lineWidth = 1;
-  for (let i=0;i<=BS;i++) { ctx.beginPath(); ctx.moveTo(i*CELL,0); ctx.lineTo(i*CELL,SZ); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,i*CELL); ctx.lineTo(SZ,i*CELL); ctx.stroke(); }
-  [[2,2],[2,6],[6,2],[6,6]].forEach(([r,c]) => { ctx.beginPath(); ctx.arc(c*CELL, r*CELL, 3, 0, Math.PI*2); ctx.fillStyle = '#2a5030'; ctx.fill(); });
-  if (lastMove) { ctx.fillStyle = 'rgba(255,255,100,0.15)'; ctx.fillRect(lastMove.c*CELL, lastMove.r*CELL, CELL, CELL); }
+  for (let i=0;i<=BS;i++) {
+    ctx.beginPath(); ctx.moveTo(i*CELL,0); ctx.lineTo(i*CELL,SZ); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,i*CELL); ctx.lineTo(SZ,i*CELL); ctx.stroke();
+  }
+  [[2,2],[2,6],[6,2],[6,6]].forEach(([r,c]) => {
+    ctx.beginPath(); ctx.arc(c*CELL, r*CELL, 3, 0, Math.PI*2);
+    ctx.fillStyle = '#2a5030'; ctx.fill();
+  });
+  if (lastMove) {
+    ctx.fillStyle = 'rgba(255,255,100,0.15)';
+    ctx.fillRect(lastMove.c*CELL, lastMove.r*CELL, CELL, CELL);
+  }
   const canAct = !gameOver && !cpuBusy && (mode==='cpu' ? turn===myColor : turn===myColor);
   if (canAct && validMoves) {
     validMoves.forEach(({r,c}) => {
       ctx.fillStyle = turn===1 ? 'rgba(0,212,170,0.18)' : 'rgba(255,192,0,0.18)';
       ctx.fillRect(c*CELL+1, r*CELL+1, CELL-2, CELL-2);
       ctx.beginPath(); ctx.arc(c*CELL+CELL/2, r*CELL+CELL/2, 4, 0, Math.PI*2);
-      ctx.fillStyle = turn===1 ? 'rgba(0,212,170,0.5)' : 'rgba(255,192,0,0.5)'; ctx.fill();
+      ctx.fillStyle = turn===1 ? 'rgba(0,212,170,0.5)' : 'rgba(255,192,0,0.5)';
+      ctx.fill();
     });
   }
   for (let r=0;r<BS;r++) for (let c=0;c<BS;c++) {
@@ -409,19 +453,28 @@ function draw() {
     ctx.fillStyle = isB ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.55)'; ctx.fill();
   }
 }
-function updScore() { const {bk,wh} = getScore(board); document.getElementById('sb').textContent = bk; document.getElementById('sw').textContent = wh; }
+function updScore() {
+  const {bk,wh} = getScore(board);
+  document.getElementById('sb').textContent = bk;
+  document.getElementById('sw').textContent = wh;
+}
 function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
 function updateResignBtn() {
   const btn = document.getElementById('btn-resign');
-  btn.style.display = (!gameOver && !cpuBusy && turn === myColor) ? 'inline-block' : 'none';
+  const canResign = !gameOver && !cpuBusy &&
+    (mode === 'cpu' ? turn === myColor : turn === myColor);
+  btn.style.display = canResign ? 'inline-block' : 'none';
 }
 
+// --- Game flow ---
 function startCpu() {
   board=initBoard(); turn=1; gameOver=false; lastMove=null; cpuBusy=false;
   myColor=1; cpuColor=2;
   validMoves=validFor(board,turn);
   setStatus('⬛ '+T('yourTurn'));
-  initTimers(); startMoveTimer();
+  initTimers();
+  startMoveTimer();
   updScore(); draw(); updateResignBtn();
 }
 
@@ -429,10 +482,17 @@ function doPlace(r, c) {
   if (gameOver || cpuBusy) return;
   if (mode==='cpu' && turn!==myColor) return;
   if (mode==='online' && turn!==myColor) return;
-  if (!getFlips(board,r,c,turn).length) return;
+  if (!getFlips(board,r,c,turn).length) { if(window.SND)SND.sfx.invalid(); return; }
   stopTimer();
-  board = applyMove(board,r,c,turn); lastMove = {r,c}; updScore();
-  if (mode==='online') { const mc = lastMoves + 1; pushMove(r,c,turn,board,mc); }
+  const flips=getFlips(board,r,c,turn);
+  board = applyMove(board,r,c,turn);
+  lastMove = {r,c};
+  if(window.SND){if(flips.length>2)SND.sfx.capture();else SND.sfx.flip();}
+  updScore();
+  if (mode==='online') {
+    const mc = lastMoves + 1;
+    pushMove(r,c,turn,board,mc);
+  }
   afterMove();
 }
 
@@ -446,10 +506,13 @@ function afterMove() {
     validMoves = sv;
     draw(); updateResignBtn(); startMoveTimer(); return;
   }
-  turn = next; validMoves = nv;
+  turn = next;
+  validMoves = nv;
   if (checkGameOver()) return;
   if (mode==='cpu' && turn===cpuColor) {
-    cpuBusy = true; setStatus(T('cpuThink')); draw(); updateResignBtn();
+    cpuBusy = true;
+    setStatus(T('cpuThink'));
+    draw(); updateResignBtn();
     setTimeout(doCpu, 650);
   } else {
     setStatus(turn===1 ? T('blackTurn') : T('whiteTurn'));
@@ -459,9 +522,11 @@ function afterMove() {
 
 function doCpu() {
   if (gameOver) { cpuBusy=false; return; }
-  const m = cpuPick(board, cpuColor); cpuBusy = false;
+  const m = cpuPick(board, cpuColor);
+  cpuBusy = false;
   if (!m) { turn=myColor; validMoves=validFor(board,myColor); setStatus(T('yourTurnB')); draw(); updateResignBtn(); startMoveTimer(); return; }
-  board = applyMove(board,m.r,m.c,cpuColor); lastMove = m;
+  board = applyMove(board,m.r,m.c,cpuColor);
+  lastMove = m;
   updScore(); afterMove();
 }
 
@@ -477,6 +542,11 @@ function endGame() {
   let msg;
   if (mode==='cpu') msg = bk>wh?T('win'):wh>bk?T('cpuWin'):T('draw');
   else msg = bk>wh?(myColor===1?T('win'):T('opWin')):wh>bk?(myColor===2?T('win'):T('opWin')):T('draw');
+  if(window.SND){
+    const iWin=(mode==='cpu'&&bk>wh)||(mode!=='cpu'&&((myColor===1&&bk>wh)||(myColor===2&&wh>bk)));
+    const isDraw=bk===wh;
+    if(isDraw)SND.sfx.lose();else if(iWin)SND.sfx.win();else SND.sfx.lose();
+  }
   if(lang==='ja') setStatus(`ゲーム終了 — ${msg}  (黒:${bk} 白:${wh})`);
   else setStatus(`Game over — ${msg}  (B:${bk} W:${wh})`);
   draw(); updateResignBtn();
@@ -486,7 +556,8 @@ function endGame() {
 function doResign() {
   if (gameOver) return;
   if (!confirm(T('resignMsg'))) return;
-  stopTimer(); gameOver = true;
+  stopTimer();
+  gameOver = true;
   const loser = myColor;
   const winner = loser === 1 ? T('whiteLabel') : T('blackLabel');
   setStatus(T('resignWin',{w:winner}));
@@ -494,12 +565,14 @@ function doResign() {
   if (mode === 'online') {
     const mc = lastMoves + 1;
     const winner_code = loser === 1 ? 2 : 1;
+    const {bk,wh} = getScore(board);
     const st = {board, turn, moves: mc, lastMove, winner: winner_code};
     sb(`/rest/v1/rooms?id=eq.${roomId}`, {method:'PATCH', body:JSON.stringify({state:st, updated_at:new Date().toISOString()})}).catch(()=>{});
   }
   if (pollTid) { clearInterval(pollTid); pollTid=null; }
 }
 
+// Canvas interaction
 canvas.addEventListener('click', e => {
   const rect=canvas.getBoundingClientRect(), sc=SZ/rect.width;
   const c=Math.floor((e.clientX-rect.left)*sc/CELL);
@@ -517,6 +590,7 @@ canvas.addEventListener('touchend', e => {
 
 document.getElementById('btn-resign').addEventListener('click', doResign);
 
+// Mode buttons
 document.getElementById('btn-cpu').addEventListener('click',()=>{
   mode='cpu';
   document.getElementById('btn-cpu').classList.add('active');
@@ -539,6 +613,7 @@ document.getElementById('btn-online').addEventListener('click',()=>{
   board=initBoard(); updScore(); draw(); updateResignBtn();
 });
 
+// Online: Create room
 document.getElementById('btn-create').addEventListener('click', async () => {
   const code=genCode(), tok=genTok();
   roomId=code; myRole='host'; myColor=1; lastMoves=0;
@@ -554,6 +629,7 @@ document.getElementById('btn-create').addEventListener('click', async () => {
   } catch(e) { document.getElementById('online-msg').textContent=T('createFail')+e.message; }
 });
 
+// Online: Join room
 document.getElementById('btn-join').addEventListener('click', async () => {
   const code=document.getElementById('code-input').value.trim().toUpperCase();
   if (code.length!==6) { alert(T('enter6')); return; }
@@ -626,6 +702,7 @@ async function sb(path,opts={}) {
   const t=await r.text(); return t?JSON.parse(t):null;
 }
 
+// Ratings
 async function loadRatings(){
   try{const rows=await sb(`/rest/v1/ratings?game=eq.${GAME}&order=created_at.desc&limit=20`);renderR(rows||[]);avgBadge(rows||[]);}catch(e){renderR([]);}
 }
@@ -649,17 +726,35 @@ document.querySelectorAll('.star').forEach(s=>s.addEventListener('click',()=>{se
 document.getElementById('rsub').addEventListener('click',async()=>{if(!sel){alert(lang==='ja'?'星を選んでください':'Please select a star rating');return;}await subRating(sel,document.getElementById('cmt').value.trim());sel=0;document.querySelectorAll('.star').forEach(s=>s.classList.remove('active'));document.getElementById('cmt').value='';document.getElementById('rform').classList.remove('open');});
 document.getElementById('help-toggle').addEventListener('click',()=>document.getElementById('help-panel').classList.toggle('open'));
 
+// Init
 resize();
 window.addEventListener('resize',()=>{resize();draw();});
 applyLang();
 startCpu();
 loadRatings();
 
+// Auto-fill room code from URL hash
 const hash=location.hash.slice(1);
 if(hash.length===6){
   document.getElementById('code-input').value=hash;
   document.getElementById('btn-online').click();
 }
+</script>
+<script>
+(function(){
+  var _started=false;
+  function _startAudio(){
+    if(_started)return;_started=true;
+    SND.startBGM("game");
+    SND.createBtn();
+    document.querySelectorAll("canvas").forEach(function(c){
+      c.addEventListener("mousedown",function(){SND.sfx.move();});
+      c.addEventListener("touchstart",function(){SND.sfx.move();},{passive:true});
+    });
+  }
+  document.addEventListener("click",_startAudio,{once:true});
+  document.addEventListener("keydown",_startAudio,{once:true});
+})();
 </script>
 </body>
 </html>
