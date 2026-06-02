@@ -42,6 +42,7 @@
     .light-color { color: #ffe066; }
     .dark-color  { color: #aa88ff; }
 
+    /* ヘルプ */
     #help-toggle {
       position: fixed; top: 14px; right: 14px;
       background: #1e1e2e; border: 1px solid #444; border-radius: 6px;
@@ -61,6 +62,7 @@
     .hp-sep { border: none; border-top: 1px solid #222; margin: 8px 0; }
     .hp-note { font-size: 0.65rem; color: #444; line-height: 1.7; }
 
+    /* グローバルベスト・リーダーボード */
     #global-section {
       margin-top: 16px; width: 100%; max-width: 580px;
     }
@@ -80,6 +82,7 @@
     .lb-score { color: #ffe066; font-size: 0.82rem; }
     .lb-empty { color: #333; font-size: 0.72rem; text-align: center; padding: 8px 0; }
 
+    /* スコア送信ダイアログ */
     #score-dialog {
       display: none; position: fixed; inset: 0;
       background: rgba(0,0,0,0.75); z-index: 20;
@@ -107,6 +110,7 @@
     #btn-submit-score:hover { opacity: 0.85; }
     #btn-skip-score:hover { color: #888; }
 
+    /* 評価・コメント */
     #rating-section {
       margin-top: 16px; width: 100%; max-width: 580px;
       border-top: 1px solid #222; padding-top: 14px;
@@ -143,6 +147,7 @@
     .back { display: block; margin-top: 14px; margin-bottom: 8px; font-size: 0.75rem; color: #444; text-decoration: none; letter-spacing: 2px; text-align: center; }
     .back:hover { color: #888; }
   </style>
+<script src="sound.js"></script>
 </head>
 <body>
 
@@ -165,6 +170,7 @@
   </div>
 </div>
 
+<!-- グローバルベスト & リーダーボード -->
 <div id="global-section">
   <div id="global-best">🌐 グローバルベスト: <b id="gb-score">---</b></div>
   <div id="leaderboard-wrap">
@@ -173,6 +179,7 @@
   </div>
 </div>
 
+<!-- スコア送信ダイアログ -->
 <div id="score-dialog">
   <div id="score-dialog-inner">
     <h3>GAME OVER</h3>
@@ -184,6 +191,7 @@
   </div>
 </div>
 
+<!-- 評価 -->
 <div id="rating-section">
   <div class="avg-display" id="avg-display"></div>
   <div id="rating-toggle">★ このゲームを評価する</div>
@@ -234,9 +242,13 @@
 </div>
 
 <script>
+// ============================================================
+// Supabase 設定
+// ============================================================
 const SUPABASE_URL  = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SUPABASE_KEY  = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
 const SUPABASE_READY = true;
+// ============================================================
 
 const GAME = 'symbiont';
 const canvas = document.getElementById('c');
@@ -475,8 +487,12 @@ function draw(){
 }
 function loop(){ if(state==='playing') update(); draw(); requestAnimationFrame(loop); }
 
+// ヘルプ
 document.getElementById('help-toggle').addEventListener('click',()=>document.getElementById('help-panel').classList.toggle('open'));
 
+// ============================================================
+// Supabase API
+// ============================================================
 async function sbFetch(path, options={}) {
   const res = await fetch(SUPABASE_URL + path, {
     headers: {
@@ -560,6 +576,7 @@ function updateAvgBadge(list) {
   el.innerHTML = `<span>${'★'.repeat(Math.round(avg))}</span> ${avg} (${list.length}件の評価)`;
 }
 
+// スコアダイアログ
 document.getElementById('btn-submit-score').addEventListener('click', async () => {
   const name = document.getElementById('player-name').value.trim();
   document.getElementById('score-dialog').classList.remove('open');
@@ -569,6 +586,7 @@ document.getElementById('btn-skip-score').addEventListener('click', () => {
   document.getElementById('score-dialog').classList.remove('open');
 });
 
+// 評価フォーム
 let selectedStars = 0;
 document.getElementById('rating-toggle').addEventListener('click',()=>document.getElementById('rating-form').classList.toggle('open'));
 document.querySelectorAll('.star').forEach(s=>{
@@ -593,6 +611,22 @@ loadLeaderboard();
 loadRatings();
 spawnNutrient(); spawnNutrient();
 loop();
+</script>
+<script>
+(function(){
+  var _started=false;
+  function _startAudio(){
+    if(_started)return;_started=true;
+    SND.startBGM("game");
+    SND.createBtn();
+    document.querySelectorAll("canvas").forEach(function(c){
+      c.addEventListener("mousedown",function(){SND.sfx.move();});
+      c.addEventListener("touchstart",function(){SND.sfx.move();},{passive:true});
+    });
+  }
+  document.addEventListener("click",_startAudio,{once:true});
+  document.addEventListener("keydown",_startAudio,{once:true});
+})();
 </script>
 </body>
 </html>
