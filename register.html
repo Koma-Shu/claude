@@ -328,7 +328,8 @@ document.getElementById('reg-btn').addEventListener('click', async () => {
     startResendCountdown(60);
   } catch(e) {
     console.error('Email send error:', e);
-    msg.className = 'msg err'; msg.textContent = T('sendErr');
+    const detail = e && (e.text || e.message || JSON.stringify(e));
+    msg.className = 'msg err'; msg.textContent = T('sendErr') + (detail ? ' [' + detail + ']' : '');
   }
   btn.disabled = false; btn.textContent = T('btnNext');
 });
