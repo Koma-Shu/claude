@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>消しバト</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0d1a;color:#eee;font-family:'Helvetica Neue',Arial,sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;user-select:none;padding:12px}
+h1{font-size:2rem;color:#00d4aa;text-shadow:0 0 20px rgba(0,212,170,.5);letter-spacing:.1em}
+h2{font-size:1.2rem;color:#aaa;margin-bottom:4px}
+.screen{display:none;flex-direction:column;align-items:center;gap:14px;
+  padding:20px;max-width:520px;width:100%}
+.screen.active{display:flex}
+.btn{padding:11px 26px;border:none;border-radius:8px;font-size:.95rem;cursor:pointer;
+  font-weight:bold;transition:.15s;letter-spacing:.03em}
+.btn-primary{background:#00d4aa;color:#000}
+.btn-primary:hover{background:#00f0c0}
+.btn-primary:disabled{background:#2a5a52;color:#5a8a82;cursor:default}
+.btn-secondary{background:#1e1e30;color:#bbb;border:1px solid #334}
+.btn-secondary:hover{background:#2a2a42;color:#fff}
+.btn-danger{background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b}
+.btn-danger:hover{background:#991b1b}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+/* canvas wrap */
+#game-wrap{position:relative;display:inline-block;max-width:100%}
+#canvas{display:block;max-width:100%;height:auto;cursor:crosshair;touch-action:none;border-radius:6px}
+#turn-banner{position:absolute;top:6px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.75);padding:3px 14px;border-radius:12px;
+  font-size:.82rem;white-space:nowrap;pointer-events:none}
+/* lobby */
+.room-code-box{font-size:2.4rem;letter-spacing:.35em;font-weight:bold;
+  color:#ffd700;background:#111;padding:10px 22px;border-radius:8px;font-family:monospace}
+.player-slot{display:flex;align-items:center;gap:10px;padding:7px 14px;
+  border-radius:6px;background:#131320;border:1px solid #222;width:280px}
+.p-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0}
+.p-name{flex:1;font-size:.9rem}
+.p-tag{font-size:.7rem;color:#666;background:#1e1e2e;padding:2px 6px;border-radius:4px}
+input[type=text]{background:#1a1a2e;border:1px solid #334;color:#eee;padding:9px 12px;
+  border-radius:6px;font-size:.95rem;width:140px;text-align:center;letter-spacing:.15em}
+input[type=text]::placeholder{color:#444;letter-spacing:0}
+select{background:#1a1a2e;border:1px solid #334;color:#eee;padding:7px 10px;border-radius:6px;font-size:.9rem}
+label{font-size:.85rem;color:#888}
+.msg-err{font-size:.82rem;color:#f87171;min-height:16px;text-align:center}
+.msg-ok{font-size:.82rem;color:#4ade80;min-height:16px;text-align:center}
+/* result */
+.winner-txt{font-size:1.6rem;font-weight:bold;text-align:center;color:#ffd700}
+.score-tbl{border-collapse:collapse;width:100%;max-width:320px;margin:4px 0}
+.score-tbl th{padding:5px 14px;text-align:center;color:#555;font-size:.8rem;font-weight:normal;border-bottom:1px solid #222}
+.score-tbl td{padding:6px 14px;text-align:center;font-size:.9rem}
+/* lang */
+#lang-btn{position:fixed;top:10px;right:10px;background:#1e1e30;border:1px solid #334;
+  color:#aaa;padding:4px 11px;border-radius:5px;cursor:pointer;font-size:.75rem;z-index:200}
+.sep{color:#334;font-size:.8rem}
+.hint{font-size:.8rem;color:#556;text-align:center}
+</style>
+</head>
+<body>
+<button id="lang-btn">EN</button>
+
+<!-- ── TITLE ── -->
+<div id="scr-title" class="screen active">
+  <h1 data-i="title">消しバト</h1>
+  <p style="color:#556;font-size:.85rem" data-i="subtitle">消しゴムバトルゲーム</p>
+  <div class="row" style="margin-top:8px">
+    <button class="btn btn-primary" onclick="showSetup('cpu')" data-i="vs_cpu">1P vs CPU</button>
+    <button class="btn btn-primary" onclick="showSetup('local')" data-i="local_play">ローカル対戦</button>
+    <button class="btn btn-primary" onclick="showOnlineScreen()" data-i="online_play">オンライン対戦</button>
+  </div>
+  <p class="hint" data-i="title_hint">消しゴムをドラッグして相手を場外へ弾き出せ！</p>
+</div>
+
+<!-- ── SETUP (CPU / Local) ── -->
+<div id="scr-setup" class="screen">
+  <h2 data-i="setup_title">ゲーム設定</h2>
+  <div id="setup-count-row" style="display:none">
+    <label data-i="player_count">プレイヤー数：</label>
+    <select id="sel-count" onchange="NUM_PLAYERS=+this.value">
+      <option value="2">2</option><option value="3">3</option><option value="4">4</option>
+    </select>
+  </div>
+  <div>
+    <label data-i="rounds_label">ラウンド数：</label>
+    <select id="sel-rounds"><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option></select>
+  </div>
+  <div class="row">
+    <button class="btn btn-secondary" onclick="showTitle()" data-i="back">戻る</button>
+    <button class="btn btn-primary" onclick="startLocal()" data-i="start">スタート</button>
+  </div>
+</div>
+
+<!-- ── ONLINE ── -->
+<div id="scr-online" class="screen">
+  <h2 data-i="online_title">オンライン対戦</h2>
+  <!-- Entry: create / join -->
+  <div id="ol-entry">
+    <div style="margin-bottom:10px">
+      <label data-i="your_name">あなたの名前：</label>
+      <input type="text" id="ol-name" maxlength="10" placeholder="Player" value="">
+    </div>
+    <div class="row">
+      <button class="btn btn-primary" onclick="createRoom()" data-i="create_room">部屋を作る</button>
+      <button class="btn btn-secondary" onclick="showJoin()" data-i="join_room">部屋に入る</button>
+    </div>
+  </div>
+  <!-- Join: enter code -->
+  <div id="ol-join" style="display:none;flex-direction:column;align-items:center;gap:10px">
+    <label data-i="enter_code">ルームコードを入力</label>
+    <div class="row">
+      <input type="text" id="join-code" maxlength="4" placeholder="XXXX" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z2-9]/g,'')">
+      <button class="btn btn-primary" onclick="joinRoom()" data-i="join">入室</button>
+    </div>
+  </div>
+  <!-- Lobby -->
+  <div id="ol-lobby" style="display:none;flex-direction:column;align-items:center;gap:12px">
+    <div style="text-align:center">
+      <div style="font-size:.8rem;color:#556;margin-bottom:4px" data-i="room_code_label">ルームコード</div>
+      <div class="room-code-box" id="room-code-disp">----</div>
+    </div>
+    <div id="lobby-list" style="display:flex;flex-direction:column;gap:6px"></div>
+    <div id="ol-host-opts" style="display:none;flex-direction:column;align-items:center;gap:8px">
+      <div><label data-i="rounds_label">ラウンド数：</label>
+      <select id="sel-rounds-ol"><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option></select></div>
+      <button class="btn btn-primary" id="ol-start-btn" onclick="startOnlineGame()" disabled data-i="start_game">ゲーム開始</button>
+    </div>
+  </div>
+  <p class="msg-err" id="ol-msg"></p>
+  <button class="btn btn-secondary" onclick="leaveOnline()" data-i="back">戻る</button>
+</div>
+
+<!-- ── GAME ── -->
+<div id="scr-game" class="screen">
+  <div id="game-wrap">
+    <canvas id="canvas" width="500" height="370"></canvas>
+    <div id="turn-banner"></div>
+  </div>
+  <p id="game-msg" style="min-height:18px;font-size:.85rem;color:#ffd700;text-align:center"></p>
+</div>
+
+<!-- ── RESULT ── -->
+<div id="scr-result" class="screen">
+  <div class="winner-txt" id="result-title"></div>
+  <table class="score-tbl" id="result-tbl"></table>
+  <div class="row" style="margin-top:8px">
+    <button class="btn btn-primary" id="result-next-btn"></button>
+    <button class="btn btn-secondary" onclick="showTitle()" data-i="to_title">タイトルへ</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// i18n
+// ═══════════════════════════════════════════════════
+const LANG={
+ja:{
+  title:'消しバト', subtitle:'消しゴムバトルゲーム',
+  vs_cpu:'1P vs CPU', local_play:'ローカル対戦', online_play:'オンライン対戦',
+  title_hint:'消しゴムをドラッグして相手を場外へ弾き出せ！',
+  setup_title:'ゲーム設定', player_count:'プレイヤー数：', rounds_label:'ラウンド数：',
+  start:'スタート', back:'戻る',
+  online_title:'オンライン対戦', your_name:'あなたの名前：',
+  create_room:'部屋を作る', join_room:'部屋に入る',
+  enter_code:'ルームコードを入力', join:'入室',
+  room_code_label:'ルームコード', start_game:'ゲーム開始', to_title:'タイトルへ',
+  waiting:'他のプレイヤーを待っています…', connecting:'接続中…',
+  connected:'接続しました', disconnected:'切断されました', error:'エラー',
+  your_turn:'あなたのターン ✦ ドラッグで投げる',
+  turn_of:'{0} のターン',
+  round_start:'ラウンド {0} 開始！',
+  round_win:'{0} がラウンド{1}を制した！',
+  game_win:'{0} の優勝！',
+  draw:'引き分け',
+  fell:'{0} 場外！',
+  round_n:'ラウンド{0}',
+  next_round:'次のラウンドへ',
+  play_again:'もう一度',
+  player_n:'P{0}',
+  cpu:'CPU',
+  wins_col:'勝利',
+  host:'ホスト',
+  need_2:'2人以上で開始できます',
+},
+en:{
+  title:'Eraser Battle', subtitle:'Keshi-Bato',
+  vs_cpu:'1P vs CPU', local_play:'Local Play', online_play:'Online Play',
+  title_hint:'Drag your eraser to knock opponents off the field!',
+  setup_title:'Game Setup', player_count:'Players:', rounds_label:'Rounds:',
+  start:'Start', back:'Back',
+  online_title:'Online Play', your_name:'Your Name:',
+  create_room:'Create Room', join_room:'Join Room',
+  enter_code:'Enter Room Code', join:'Join',
+  room_code_label:'Room Code', start_game:'Start Game', to_title:'To Title',
+  waiting:'Waiting for players…', connecting:'Connecting…',
+  connected:'Connected', disconnected:'Disconnected', error:'Error',
+  your_turn:'Your Turn ✦ Drag to throw',
+  turn_of:'{0}\'s Turn',
+  round_start:'Round {0} Start!',
+  round_win:'{0} wins round {1}!',
+  game_win:'{0} wins!',
+  draw:'Draw',
+  fell:'{0} fell off!',
+  round_n:'Round {0}',
+  next_round:'Next Round',
+  play_again:'Play Again',
+  player_n:'P{0}',
+  cpu:'CPU',
+  wins_col:'Wins',
+  host:'HOST',
+  need_2:'Need at least 2 players',
+},
+};
+let lang=localStorage.getItem('lang')||'ja';
+function T(k,...a){
+  let s=(LANG[lang]||LANG.ja)[k]||k;
+  a.forEach((v,i)=>s=s.replace('{'+i+'}',v));
+  return s;
+}
+function applyLang(){
+  document.querySelectorAll('[data-i]').forEach(el=>el.textContent=T(el.dataset.i));
+  document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
+  document.getElementById('ol-name').placeholder=T('player_n',1);
+}
+document.getElementById('lang-btn').addEventListener('click',()=>{
+  lang=lang==='ja'?'en':'ja'; localStorage.setItem('lang',lang); applyLang();
+});
+
+// ═══════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════
+const CW=500, CH=370;
+const FW=420, FH=300;
+const FX=(CW-FW)/2, FY=(CH-FH)/2+8;
+
+const ER_W=44, ER_H=28, ER_R=18;   // visual size, collision radius
+const FRIC=0.935;                    // per-frame velocity multiplier
+const MIN_V=0.30;                    // stop threshold (px/frame)
+const REST=0.68;                     // eraser-eraser restitution
+const MAX_SPD=20;                    // max flick speed
+const MAX_DRAG=80;                   // drag distance for full power
+
+const PC=['#e84040','#3b82f6','#22c55e','#f59e0b'];       // player colors
+const PD=['#7f1d1d','#1e3a8a','#14532d','#78350f'];       // dark variants
+const PL=['#fca5a5','#93c5fd','#86efac','#fde68a'];       // light variants
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let MODE='cpu';          // 'cpu'|'local'|'online'
+let NUM_PLAYERS=2;
+let TOTAL_ROUNDS=3;
+let IS_HOST=false;
+let LOCAL_IDX=0;         // which player index I control (online)
+let playerNames=[];
+let erasers=[];
+let cur=0;               // index of current player
+let phase='aiming';      // 'aiming'|'sliding'|'roundend'|'gameend'
+let roundNum=1;
+let roundWins=[0,0,0,0];
+let lastFellMsg='';
+let animRaf=null;
+// drag
+let drag={active:false,erIdx:-1,sx:0,sy:0,cx:0,cy:0};
+
+// ═══════════════════════════════════════════════════
+// PEER JS  (online)
+// ═══════════════════════════════════════════════════
+let peer=null;
+let hostConn=null;    // guest → host
+let guestConns=[];    // host → guests
+let myPeerId='';
+let lobbySlots=[];    // [{peerId, name, idx}]
+
+function genCode(){
+  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:4},()=>c[Math.floor(Math.random()*c.length)]).join('');
+}
+
+function createRoom(){
+  const myName=(document.getElementById('ol-name').value.trim()||T('player_n',1)).slice(0,10);
+  const code=genCode();
+  myPeerId=`kb-${code}`;
+  IS_HOST=true; LOCAL_IDX=0;
+  lobbySlots=[{peerId:myPeerId,name:myName,idx:0}];
+  playerNames=[myName,'','',''];
+
+  olLobbyShow(code);
+  setOlMsg(T('waiting'));
+
+  peer=new Peer(myPeerId,{debug:0});
+  peer.on('open',()=>{});
+  peer.on('connection',conn=>{
+    conn.on('open',()=>{
+      if(lobbySlots.length>=4){conn.send({type:'full'});conn.close();return;}
+      const idx=lobbySlots.length;
+      const name=`${T('player_n',idx+1)}`;
+      lobbySlots.push({peerId:conn.peer,name,idx,conn});
+      guestConns.push(conn);
+      updateLobbyUI();
+      broadcastLobby();
+      updateOnlineStartBtn();
+    });
+    conn.on('data',d=>hostReceive(conn,d));
+    conn.on('close',()=>{
+      lobbySlots=lobbySlots.filter(s=>s.peerId!==conn.peer);
+      guestConns=guestConns.filter(c=>c!==conn);
+      // re-index
+      lobbySlots.forEach((s,i)=>s.idx=i);
+      updateLobbyUI(); broadcastLobby(); updateOnlineStartBtn();
+    });
+    conn.on('error',()=>{});
+  });
+  peer.on('error',err=>setOlMsg(T('error')+': '+err.type));
+}
+
+function showJoin(){
+  document.getElementById('ol-entry').style.display='none';
+  document.getElementById('ol-join').style.display='flex';
+}
+
+function joinRoom(){
+  const code=(document.getElementById('join-code').value||'').trim().toUpperCase();
+  if(code.length<4){setOlMsg('Code must be 4 chars');return;}
+  const hostId=`kb-${code}`;
+  const myName=(document.getElementById('ol-name').value.trim()||T('player_n',2)).slice(0,10);
+  IS_HOST=false;
+  setOlMsg(T('connecting'));
+  peer=new Peer(undefined,{debug:0});
+  peer.on('open',id=>{
+    myPeerId=id;
+    hostConn=peer.connect(hostId,{reliable:true});
+    hostConn.on('open',()=>{
+      setOlMsg(T('connected'));
+      hostConn.send({type:'hello',name:myName});
+      document.getElementById('ol-join').style.display='none';
+      olLobbyShow(code,false);
+    });
+    hostConn.on('data',d=>guestReceive(d));
+    hostConn.on('close',()=>setOlMsg(T('disconnected')));
+    hostConn.on('error',()=>setOlMsg(T('error')));
+  });
+  peer.on('error',err=>setOlMsg(T('error')+': '+err.type));
+}
+
+function olLobbyShow(code,showHostOpts=true){
+  document.getElementById('ol-entry').style.display='none';
+  document.getElementById('ol-join').style.display='none';
+  const lobby=document.getElementById('ol-lobby');
+  lobby.style.display='flex';
+  lobby.style.flexDirection='column';
+  lobby.style.alignItems='center';
+  lobby.style.gap='12px';
+  document.getElementById('room-code-disp').textContent=code;
+  document.getElementById('ol-host-opts').style.display=showHostOpts?'flex':'none';
+  updateLobbyUI();
+}
+
+function hostReceive(conn,d){
+  if(!IS_HOST) return;
+  if(d.type==='hello'){
+    const s=lobbySlots.find(s=>s.peerId===conn.peer);
+    if(s){s.name=d.name||s.name;}
+    updateLobbyUI(); broadcastLobby();
+  }
+  if(d.type==='flick' && phase==='aiming' && d.pIdx===cur){
+    doFlick(d.angle,d.power,cur);
+  }
+}
+
+function guestReceive(d){
+  if(IS_HOST) return;
+  if(d.type==='full'){setOlMsg('Room full');return;}
+  if(d.type==='lobby'){
+    lobbySlots=d.slots;
+    LOCAL_IDX=lobbySlots.findIndex(s=>s.peerId===myPeerId);
+    playerNames=lobbySlots.map(s=>s.name);
+    updateLobbyUI();
+  }
+  if(d.type==='start'){
+    NUM_PLAYERS=d.n; TOTAL_ROUNDS=d.rounds; playerNames=d.names;
+    roundNum=1; roundWins=[0,0,0,0];
+    initRound(d.state);
+    showScreen('scr-game');
+  }
+  if(d.type==='state') applyNetState(d.g);
+}
+
+function broadcastLobby(){
+  if(!IS_HOST) return;
+  const slots=lobbySlots.map(s=>({peerId:s.peerId,name:s.name,idx:s.idx}));
+  sendToAll({type:'lobby',slots});
+}
+
+function broadcastState(){
+  if(!IS_HOST||MODE!=='online') return;
+  sendToAll({type:'state',g:netState()});
+}
+
+function sendToAll(msg){
+  guestConns.forEach(c=>{try{c.send(msg);}catch(e){}});
+}
+
+function netState(){
+  return {erasers:erasers.map(e=>({...e})),cur,phase,roundNum,roundWins:[...roundWins],lastFellMsg};
+}
+
+function applyNetState(s){
+  erasers=s.erasers.map(e=>({...e}));
+  cur=s.cur; phase=s.phase; roundNum=s.roundNum; roundWins=s.roundWins;
+  lastFellMsg=s.lastFellMsg;
+  if(lastFellMsg) setGameMsg(lastFellMsg);
+  updateTurnBanner();
+  render();
+  if(phase==='roundend'||phase==='gameend') setTimeout(showResult,900);
+}
+
+function startOnlineGame(){
+  if(!IS_HOST||lobbySlots.length<2) return;
+  NUM_PLAYERS=lobbySlots.length;
+  TOTAL_ROUNDS=parseInt(document.getElementById('sel-rounds-ol').value)||3;
+  playerNames=lobbySlots.map((s,i)=>s.name||T('player_n',i+1));
+  roundNum=1; roundWins=[0,0,0,0];
+  const state=buildState();
+  sendToAll({type:'start',n:NUM_PLAYERS,rounds:TOTAL_ROUNDS,names:playerNames,state});
+  initRound(state);
+  showScreen('scr-game');
+}
+
+function updateLobbyUI(){
+  const list=document.getElementById('lobby-list');
+  list.innerHTML=lobbySlots.map((s,i)=>`
+    <div class="player-slot">
+      <div class="p-dot" style="background:${PC[i]}"></div>
+      <span class="p-name">${s.name||T('player_n',i+1)}</span>
+      ${IS_HOST&&s.peerId===myPeerId?`<span class="p-tag">${T('host')}</span>`:''}
+    </div>`).join('');
+}
+
+function updateOnlineStartBtn(){
+  const btn=document.getElementById('ol-start-btn');
+  const ok=IS_HOST&&lobbySlots.length>=2;
+  btn.disabled=!ok;
+  if(!ok) setOlMsg(T('need_2'));
+  else setOlMsg(T('waiting'));
+}
+
+function leaveOnline(){
+  if(peer){peer.destroy();peer=null;}
+  hostConn=null; guestConns=[]; lobbySlots=[];
+  document.getElementById('ol-entry').style.display='flex';
+  document.getElementById('ol-join').style.display='none';
+  document.getElementById('ol-lobby').style.display='none';
+  document.getElementById('ol-entry').style.flexDirection='column';
+  document.getElementById('ol-entry').style.alignItems='center';
+  document.getElementById('ol-entry').style.gap='12px';
+  showScreen('scr-title');
+}
+
+// ═══════════════════════════════════════════════════
+// GAME LOGIC
+// ═══════════════════════════════════════════════════
+function startPositions(){
+  const mx=FX,my=FY,mw=FW,mh=FH;
+  const sets=[
+    [{x:mx+mw*.22,y:my+mh*.5},{x:mx+mw*.78,y:my+mh*.5}],
+    [{x:mx+mw*.22,y:my+mh*.5},{x:mx+mw*.7,y:my+mh*.25},{x:mx+mw*.7,y:my+mh*.75}],
+    [{x:mx+mw*.2,y:my+mh*.25},{x:mx+mw*.8,y:my+mh*.25},
+     {x:mx+mw*.8,y:my+mh*.75},{x:mx+mw*.2,y:my+mh*.75}],
+  ];
+  return sets[NUM_PLAYERS-2]||sets[0];
+}
+
+function buildState(){
+  return startPositions().map((p,i)=>({
+    x:p.x,y:p.y,vx:0,vy:0,angle:0,av:0,alive:true,player:i
+  }));
+}
+
+function initRound(state){
+  erasers=(state||buildState()).map(e=>({...e,vx:0,vy:0,av:0,alive:true}));
+  cur=0; phase='aiming'; drag.active=false; lastFellMsg='';
+  setGameMsg(''); updateTurnBanner(); render();
+}
+
+function isMyTurn(){
+  if(MODE==='cpu') return cur===0;
+  if(MODE==='local') return true;
+  return cur===LOCAL_IDX;
+}
+
+function advanceTurn(){
+  const alive=erasers.filter(e=>e.alive);
+  if(alive.length<=1){endRound(alive[0]?.player??-1);return;}
+  let next=(cur+1)%NUM_PLAYERS, tries=0;
+  while(!erasers[next]?.alive&&tries<NUM_PLAYERS){next=(next+1)%NUM_PLAYERS;tries++;}
+  cur=next; phase='aiming'; updateTurnBanner(); render();
+  if(MODE==='online'&&IS_HOST) broadcastState();
+  if(MODE==='cpu'&&cur>0) setTimeout(cpuTurn,700+Math.random()*400);
+}
+
+function doFlick(angle,power,pIdx){
+  if(phase!=='aiming') return;
+  const e=erasers[pIdx];
+  if(!e?.alive) return;
+  const spd=Math.max(0.1,power)*MAX_SPD;
+  e.vx=Math.cos(angle)*spd; e.vy=Math.sin(angle)*spd;
+  e.av=(Math.random()-.5)*.06*(power*2+1);
+  phase='sliding';
+  if(MODE==='online'&&IS_HOST) broadcastState();
+  runPhysics();
+}
+
+function endRound(winner){
+  cancelPhysics();
+  phase='roundend';
+  if(winner>=0&&winner<NUM_PLAYERS) roundWins[winner]=(roundWins[winner]||0)+1;
+  const msg=winner>=0?T('round_win',playerNames[winner],roundNum):T('draw');
+  setGameMsg(msg);
+  if(MODE==='online'&&IS_HOST) broadcastState();
+  setTimeout(showResult,1000);
+}
+
+function showResult(){
+  const isEnd=roundNum>=TOTAL_ROUNDS;
+  const btn=document.getElementById('result-next-btn');
+  if(isEnd){
+    const maxW=Math.max(...roundWins.slice(0,NUM_PLAYERS));
+    const ws=roundWins.slice(0,NUM_PLAYERS).map((w,i)=>w===maxW?playerNames[i]:null).filter(Boolean);
+    document.getElementById('result-title').textContent=
+      ws.length>1?T('draw'):T('game_win',ws[0]);
+    btn.textContent=T('play_again');
+    btn.onclick=playAgain;
+    phase='gameend';
+  } else {
+    document.getElementById('result-title').textContent=T('round_n',roundNum);
+    btn.textContent=T('next_round');
+    btn.onclick=nextRound;
+  }
+  let html=`<tr><th></th><th>${T('wins_col')}</th></tr>`;
+  for(let i=0;i<NUM_PLAYERS;i++){
+    html+=`<tr><td><span style="color:${PC[i]}">■</span> ${playerNames[i]}</td><td style="font-weight:bold">${roundWins[i]}</td></tr>`;
+  }
+  document.getElementById('result-tbl').innerHTML=html;
+  showScreen('scr-result');
+}
+
+function nextRound(){roundNum++;initRound(null);showScreen('scr-game');}
+function playAgain(){roundNum=1;roundWins=[0,0,0,0];initRound(null);showScreen('scr-game');}
+
+// ═══════════════════════════════════════════════════
+// PHYSICS
+// ═══════════════════════════════════════════════════
+function runPhysics(){
+  cancelPhysics();
+  let broadcastTick=0;
+  function step(){
+    stepPhysics();
+    render();
+    const moving=erasers.some(e=>e.alive&&(Math.abs(e.vx)+Math.abs(e.vy))>MIN_V);
+    if(moving){
+      animRaf=requestAnimationFrame(step);
+      if(MODE==='online'&&IS_HOST&&++broadcastTick%4===0) broadcastState();
+    } else {
+      erasers.forEach(e=>{e.vx=0;e.vy=0;e.av=0;});
+      render();
+      if(MODE==='online'&&IS_HOST) broadcastState();
+      advanceTurn();
+    }
+  }
+  animRaf=requestAnimationFrame(step);
+}
+function cancelPhysics(){if(animRaf){cancelAnimationFrame(animRaf);animRaf=null;}}
+
+function stepPhysics(){
+  for(const e of erasers){
+    if(!e.alive) continue;
+    e.x+=e.vx; e.y+=e.vy;
+    e.angle+=e.av;
+    e.vx*=FRIC; e.vy*=FRIC; e.av*=0.92;
+    if(Math.hypot(e.vx,e.vy)<MIN_V){e.vx=0;e.vy=0;}
+    // off field?
+    if(e.x<FX-ER_R||e.x>FX+FW+ER_R||e.y<FY-ER_R||e.y>FY+FH+ER_R){
+      e.alive=false; e.vx=0; e.vy=0;
+      lastFellMsg=T('fell',playerNames[e.player]);
+      setGameMsg(lastFellMsg);
+    }
+  }
+  // collisions
+  for(let i=0;i<erasers.length;i++){
+    for(let j=i+1;j<erasers.length;j++){
+      if(!erasers[i].alive||!erasers[j].alive) continue;
+      collide(erasers[i],erasers[j]);
+    }
+  }
+}
+
+function collide(a,b){
+  const dx=b.x-a.x, dy=b.y-a.y, dist=Math.hypot(dx,dy);
+  if(dist>=ER_R*2||dist<.01) return;
+  const nx=dx/dist, ny=dy/dist;
+  const ov=ER_R*2-dist;
+  a.x-=nx*ov*.5; a.y-=ny*ov*.5;
+  b.x+=nx*ov*.5; b.y+=ny*ov*.5;
+  const dvx=b.vx-a.vx, dvy=b.vy-a.vy;
+  const vn=dvx*nx+dvy*ny;
+  if(vn>=0) return;
+  const imp=(1+REST)*vn/2;
+  a.vx+=imp*nx; a.vy+=imp*ny;
+  b.vx-=imp*nx; b.vy-=imp*ny;
+  // add a bit of angular spin from collision
+  a.av+=(ny*imp)*.04; b.av-=(ny*imp)*.04;
+}
+
+// ═══════════════════════════════════════════════════
+// CPU AI
+// ═══════════════════════════════════════════════════
+function cpuTurn(){
+  if(phase!=='aiming'||cur===0) return;
+  const me=erasers[cur];
+  if(!me?.alive) return;
+  let target=null, tDist=Infinity;
+  for(const e of erasers){
+    if(!e.alive||e.player===cur) continue;
+    const d=Math.hypot(e.x-me.x,e.y-me.y);
+    if(d<tDist){tDist=d;target=e;}
+  }
+  let angle,power;
+  if(target){
+    // Aim to push target toward nearest edge — add noise
+    const baseAngle=Math.atan2(target.y-me.y,target.x-me.x);
+    angle=baseAngle+(Math.random()-.5)*.38;
+    // Power: strong enough to reach target
+    power=Math.min(1,tDist/(FW*.48)+.2)+(Math.random()-.5)*.22;
+    power=Math.max(.3,Math.min(1,power));
+  } else {
+    angle=Math.random()*Math.PI*2;
+    power=.5+Math.random()*.4;
+  }
+  doFlick(angle,power,cur);
+}
+
+// ═══════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+
+function render(){
+  ctx.clearRect(0,0,CW,CH);
+  drawTable();
+  drawErasers();
+  if(phase==='aiming') drawAim();
+  drawHUD();
+}
+
+function drawTable(){
+  // Desk surface
+  const bg=ctx.createLinearGradient(0,0,0,CH);
+  bg.addColorStop(0,'#c9a96e'); bg.addColorStop(1,'#b08040');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,CW,CH);
+  // Wood grain
+  ctx.save(); ctx.strokeStyle='rgba(0,0,0,.06)'; ctx.lineWidth=1.2;
+  for(let i=0;i<18;i++){
+    const y=i*(CH/17)+Math.sin(i*.9+1)*5;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(CW,y); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Field shadow
+  ctx.shadowColor='rgba(0,0,0,.4)'; ctx.shadowBlur=14; ctx.shadowOffsetX=4; ctx.shadowOffsetY=4;
+  ctx.fillStyle='#1e4d1e'; ctx.fillRect(FX-3,FY-3,FW+6,FH+6);
+  ctx.shadowBlur=0; ctx.shadowOffsetX=0; ctx.shadowOffsetY=0;
+
+  // Felt surface gradient
+  const felt=ctx.createLinearGradient(FX,FY,FX+FW,FY+FH);
+  felt.addColorStop(0,'#2e7d2e'); felt.addColorStop(.5,'#388e38'); felt.addColorStop(1,'#2c7a2c');
+  ctx.fillStyle=felt; ctx.fillRect(FX,FY,FW,FH);
+
+  // Subtle felt texture lines
+  ctx.strokeStyle='rgba(255,255,255,.035)'; ctx.lineWidth=1;
+  for(let x=FX+36;x<FX+FW;x+=36){ctx.beginPath();ctx.moveTo(x,FY);ctx.lineTo(x,FY+FH);ctx.stroke();}
+  for(let y=FY+36;y<FY+FH;y+=36){ctx.beginPath();ctx.moveTo(FX,y);ctx.lineTo(FX+FW,y);ctx.stroke();}
+
+  // Center cross mark
+  ctx.strokeStyle='rgba(255,255,255,.1)'; ctx.lineWidth=1.5;
+  const cx2=FX+FW/2, cy2=FY+FH/2;
+  ctx.beginPath(); ctx.moveTo(cx2-20,cy2); ctx.lineTo(cx2+20,cy2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx2,cy2-20); ctx.lineTo(cx2,cy2+20); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx2,cy2,32,0,Math.PI*2); ctx.stroke();
+
+  // Field border (bright edge)
+  ctx.strokeStyle='rgba(255,255,255,.28)'; ctx.lineWidth=2;
+  ctx.strokeRect(FX,FY,FW,FH);
+  // Danger edge (red tint)
+  ctx.strokeStyle='rgba(255,80,80,.25)'; ctx.lineWidth=5;
+  ctx.strokeRect(FX+2,FY+2,FW-4,FH-4);
+}
+
+function drawErasers(){
+  for(const e of erasers){
+    if(!e.alive) continue;
+    ctx.save();
+    ctx.translate(e.x,e.y);
+    ctx.rotate(e.angle);
+    const hw=ER_W/2, hh=ER_H/2;
+
+    // Shadow
+    ctx.shadowColor='rgba(0,0,0,.5)'; ctx.shadowBlur=7;
+    ctx.shadowOffsetX=3; ctx.shadowOffsetY=3;
+
+    // Body
+    ctx.fillStyle=PC[e.player];
+    ctx.beginPath(); ctx.roundRect(-hw,-hh,ER_W,ER_H,4); ctx.fill();
+    ctx.shadowBlur=0; ctx.shadowOffsetX=0; ctx.shadowOffsetY=0;
+
+    // Bottom thickness strip (3-D feel)
+    ctx.fillStyle=PD[e.player];
+    ctx.beginPath(); ctx.roundRect(-hw+2,hh-5,ER_W-4,5,[0,0,4,4]); ctx.fill();
+
+    // Top highlight
+    const hl=ctx.createLinearGradient(0,-hh,0,-hh+ER_H*.45);
+    hl.addColorStop(0,'rgba(255,255,255,.48)'); hl.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=hl;
+    ctx.beginPath(); ctx.roundRect(-hw,-hh,ER_W,ER_H*.48,[4,4,0,0]); ctx.fill();
+
+    // Horizontal stripe line (eraser brand look)
+    ctx.strokeStyle='rgba(255,255,255,.2)'; ctx.lineWidth=.9;
+    ctx.beginPath(); ctx.moveTo(-hw+5,1.5); ctx.lineTo(hw-5,1.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-hw+5,-1.5); ctx.lineTo(hw-5,-1.5); ctx.stroke();
+
+    // Outline
+    ctx.strokeStyle=PD[e.player]; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.roundRect(-hw,-hh,ER_W,ER_H,4); ctx.stroke();
+
+    // Player label
+    ctx.fillStyle='rgba(0,0,0,.65)';
+    ctx.font='bold 11px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(playerNames[e.player]?.slice(0,4)||T('player_n',e.player+1),0,0);
+
+    // Active glow ring
+    if(e.player===cur&&phase==='aiming'){
+      ctx.strokeStyle=isMyTurn()?'#ffd700':'rgba(255,255,255,.45)';
+      ctx.lineWidth=2;
+      if(isMyTurn()){ctx.shadowColor='#ffd700';ctx.shadowBlur=10;}
+      ctx.setLineDash([5,3]);
+      ctx.beginPath(); ctx.roundRect(-hw-4,-hh-4,ER_W+8,ER_H+8,7); ctx.stroke();
+      ctx.setLineDash([]); ctx.shadowBlur=0;
+    }
+    ctx.restore();
+  }
+}
+
+function drawAim(){
+  if(!drag.active||drag.erIdx<0) return;
+  const e=erasers[drag.erIdx];
+  if(!e?.alive) return;
+  const dx=drag.cx-drag.sx, dy=drag.cy-drag.sy;
+  const dist=Math.hypot(dx,dy);
+  if(dist<4) return;
+  const ang=Math.atan2(dy,dx);
+  const pow=Math.min(dist/MAX_DRAG,1);
+  const launchLen=pow*65+10;
+  const lx=e.x-Math.cos(ang)*launchLen, ly=e.y-Math.sin(ang)*launchLen;
+
+  ctx.save();
+  // Trajectory dashes
+  ctx.strokeStyle=`rgba(255,210,0,${.45+pow*.45})`; ctx.lineWidth=2.5;
+  ctx.setLineDash([6,5]);
+  ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(lx,ly); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Arrow head
+  ctx.save();
+  ctx.translate(lx,ly); ctx.rotate(ang+Math.PI);
+  ctx.fillStyle='rgba(255,210,0,.92)';
+  ctx.beginPath(); ctx.moveTo(0,-6); ctx.lineTo(10,0); ctx.lineTo(0,6);
+  ctx.closePath(); ctx.fill(); ctx.restore();
+
+  // Guide line back to cursor (faint)
+  ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.lineWidth=1; ctx.setLineDash([3,5]);
+  ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(drag.cx,drag.cy); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Power bar
+  const bw=52,bh=6,bx=e.x-bw/2,by=e.y+ER_H/2+9;
+  ctx.fillStyle='rgba(0,0,0,.5)';
+  ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,3); ctx.fill();
+  const pc2=pow<.45?'#4ade80':pow<.75?'#fbbf24':'#f87171';
+  ctx.fillStyle=pc2;
+  ctx.beginPath(); ctx.roundRect(bx,by,bw*pow,bh,3); ctx.fill();
+  ctx.restore();
+}
+
+function drawHUD(){
+  // Score chips
+  const cw=Math.min(72,(CW-20)/NUM_PLAYERS-6), ch=22, gap=5;
+  const total=(cw+gap)*NUM_PLAYERS-gap;
+  let sx=(CW-total)/2;
+  for(let i=0;i<NUM_PLAYERS;i++){
+    const alive=erasers[i]?.alive!==false;
+    ctx.save();
+    ctx.globalAlpha=alive?.97:.38;
+    ctx.fillStyle=PD[i]; ctx.beginPath(); ctx.roundRect(sx,4,cw,ch,4); ctx.fill();
+    ctx.fillStyle=PC[i]; ctx.globalAlpha=(alive?.97:.38)*.55;
+    ctx.beginPath(); ctx.roundRect(sx,4,cw,ch,4); ctx.fill();
+    ctx.globalAlpha=alive?.97:.38;
+    ctx.fillStyle='#fff'; ctx.font=`bold ${Math.min(10,cw*.16)}px Arial`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    const nm=(playerNames[i]||T('player_n',i+1)).slice(0,5);
+    ctx.fillText(`${nm} ★${roundWins[i]}`,sx+cw/2,4+ch/2);
+    ctx.restore();
+    sx+=cw+gap;
+  }
+  // Round
+  ctx.fillStyle='rgba(255,255,255,.5)'; ctx.font='10px Arial';
+  ctx.textAlign='right'; ctx.textBaseline='top';
+  ctx.fillText(`R ${roundNum}/${TOTAL_ROUNDS}`,CW-7,6);
+}
+
+// ═══════════════════════════════════════════════════
+// INPUT
+// ═══════════════════════════════════════════════════
+function cvPos(e){
+  const r=canvas.getBoundingClientRect(), sx=CW/r.width, sy=CH/r.height;
+  const t=e.touches?e.touches[0]:e;
+  return {x:(t.clientX-r.left)*sx,y:(t.clientY-r.top)*sy};
+}
+
+function onDown(e){
+  if(phase!=='aiming'||!isMyTurn()) return;
+  e.preventDefault();
+  const p=cvPos(e);
+  const er=erasers[cur];
+  if(!er?.alive) return;
+  if(Math.hypot(p.x-er.x,p.y-er.y)>ER_R+16) return;
+  drag={active:true,erIdx:cur,sx:p.x,sy:p.y,cx:p.x,cy:p.y};
+  render();
+}
+function onMove(e){
+  if(!drag.active) return;
+  e.preventDefault();
+  const p=cvPos(e);
+  drag.cx=p.x; drag.cy=p.y;
+  render();
+}
+function onUp(e){
+  if(!drag.active) return;
+  e.preventDefault();
+  const dx=drag.cx-drag.sx, dy=drag.cy-drag.sy, dist=Math.hypot(dx,dy);
+  drag.active=false;
+  if(dist<6){render();return;}
+  const angle=Math.atan2(dy,dx)+Math.PI;
+  const power=Math.min(dist/MAX_DRAG,1);
+  if(MODE==='online'&&!IS_HOST){
+    hostConn?.send({type:'flick',angle,power,pIdx:cur});
+  } else {
+    doFlick(angle,power,cur);
+  }
+}
+canvas.addEventListener('mousedown',onDown);
+canvas.addEventListener('mousemove',onMove);
+canvas.addEventListener('mouseup',onUp);
+canvas.addEventListener('touchstart',onDown,{passive:false});
+canvas.addEventListener('touchmove',onMove,{passive:false});
+canvas.addEventListener('touchend',onUp,{passive:false});
+
+// ═══════════════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function showTitle(){
+  if(peer){peer.destroy();peer=null;}
+  cancelPhysics();
+  showScreen('scr-title');
+}
+function showSetup(mode){
+  MODE=mode;
+  document.getElementById('setup-count-row').style.display=mode==='local'?'block':'none';
+  NUM_PLAYERS=mode==='cpu'?2:2;
+  showScreen('scr-setup');
+}
+function startLocal(){
+  TOTAL_ROUNDS=parseInt(document.getElementById('sel-rounds').value)||3;
+  if(MODE==='local') NUM_PLAYERS=parseInt(document.getElementById('sel-count').value)||2;
+  roundNum=1; roundWins=[0,0,0,0];
+  playerNames=Array.from({length:NUM_PLAYERS},(_,i)=>
+    MODE==='cpu'?(i===0?T('player_n',1):T('cpu')):T('player_n',i+1));
+  initRound(null);
+  showScreen('scr-game');
+  if(MODE==='cpu'&&cur>0) setTimeout(cpuTurn,600);
+}
+function showOnlineScreen(){
+  MODE='online';
+  document.getElementById('ol-entry').style.display='flex';
+  document.getElementById('ol-entry').style.flexDirection='column';
+  document.getElementById('ol-entry').style.alignItems='center';
+  document.getElementById('ol-entry').style.gap='12px';
+  document.getElementById('ol-join').style.display='none';
+  document.getElementById('ol-lobby').style.display='none';
+  showScreen('scr-online');
+}
+function setOlMsg(s){document.getElementById('ol-msg').textContent=s;}
+function updateTurnBanner(){
+  const el=document.getElementById('turn-banner');
+  if(phase!=='aiming'){el.textContent='';return;}
+  el.textContent=isMyTurn()?T('your_turn'):T('turn_of',playerNames[cur]);
+  el.style.color=isMyTurn()?'#ffd700':'#aaa';
+}
+function setGameMsg(s){document.getElementById('game-msg').textContent=s;}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+applyLang();
+render();
+</script>
+</body>
+</html>

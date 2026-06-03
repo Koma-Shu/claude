@@ -79,6 +79,7 @@
     .btn-shogi { background: linear-gradient(135deg, #cc88ff, #8844cc); color: #fff; font-weight: bold; }
     .btn-mahjong { background: linear-gradient(135deg, #cc3300, #880000); color: #fff; font-weight: bold; }
     .btn-capbb { background: linear-gradient(135deg, #ff6633, #cc3300); color: #fff; font-weight: bold; }
+    .btn-keshibato { background: linear-gradient(135deg, #e84040, #3b82f6); color: #fff; font-weight: bold; }
     #lang-btn { position:fixed; top:14px; left:14px; background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; z-index:10; }
     #auth-area { position:fixed; top:14px; right:14px; display:flex; gap:8px; z-index:10; }
     .auth-btn { background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; text-decoration:none; display:inline-block; transition:color 0.15s,border-color 0.15s; }
@@ -293,6 +294,32 @@
     </div>
   </div>
 
+  <!-- Keshi-Bato -->
+  <div class="card" data-game="keshibato">
+    <canvas class="preview" id="keshibatoPreview" width="320" height="200"></canvas>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-title" style="color:#e84040">消しバト</div>
+        <div class="avg-badge" id="avg-keshibato"></div>
+      </div>
+      <p class="card-desc" id="desc-keshibato"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span></div>
+      <div class="controls">
+        <div class="controls-title pc-ctrl-title"></div>
+        <div class="controls-grid">
+          <span class="key">ドラッグ</span><span class="ctrl-desc" id="kb-drag">消しゴムを投げる</span>
+          <span class="key">オンライン</span><span class="ctrl-desc" id="kb-online">2〜4人対応</span>
+        </div>
+      </div>
+      <div class="card-tags">
+        <span class="tag">1-4 PLAYERS</span>
+        <span class="tag">ONLINE</span>
+        <span class="tag">ACTION</span>
+      </div>
+      <a href="keshibato.html" class="play-btn btn-keshibato">▶ PLAY</a>
+    </div>
+  </div>
+
   <!-- Mahjong -->
   <div class="card" data-game="mahjong">
     <canvas class="preview" id="mahjongPreview" width="320" height="200"></canvas>
@@ -334,6 +361,7 @@ const ITEXT = {
     descChess: '本格チェス。キャスリング・アンパッサン・ポーン成り完全対応。CPU 対戦＆オンライン 2P。難易度3段階。',
     descShogi: '本格将棋。成り・打ち（持ち駒）完全対応。CPU 対戦＆オンライン 2P。難易度3段階。日英対応。',
     descCapbaseball: 'ペットボトルキャップ野球！タイミングよくクリックしてキャップを打て。9イニング制でCPUと対戦。',
+    descKeshibato: '消しゴムをドラッグして相手を場外へ弾き出せ！1〜4人対応。CPU対戦・ローカル・オンラインに対応。',
     cbClick: 'クリック / タップ',
     cbSwing: 'スイング！',
     descMahjong: '2〜4人打ち麻雀。AI対戦 & フレンドとのオンライン対戦に対応。ツモ和了・ロン和了に対応。',
@@ -366,6 +394,7 @@ const ITEXT = {
     descChess: 'Full-featured Chess with castling, en passant, and pawn promotion. CPU battle & Online 2P. 3 difficulty levels.',
     descShogi: 'Full-featured Shogi with promotion and drops. CPU battle & Online 2P. 3 difficulty levels. Bilingual.',
     descCapbaseball: 'Bottle-cap baseball! Click at the right moment to hit the cap. 9-inning game vs CPU.',
+    descKeshibato: 'Drag your eraser to knock opponents off the table! 1–4 players. CPU, local, and online play.',
     cbClick: 'Click / Tap',
     cbSwing: 'Swing!',
     descMahjong: 'Mahjong for 2-4 players. Play vs AI or online with friends. Supports Tsumo and Ron wins.',
@@ -405,6 +434,9 @@ function applyLang() {
   document.getElementById('desc-chess').textContent = T('descChess');
   document.getElementById('desc-shogi').textContent = T('descShogi');
   document.getElementById('desc-capbaseball').textContent = T('descCapbaseball');
+  document.getElementById('desc-keshibato').textContent = T('descKeshibato');
+  document.getElementById('kb-drag').textContent = lang==='ja'?'消しゴムを投げる':'Throw eraser';
+  document.getElementById('kb-online').textContent = lang==='ja'?'2〜4人オンライン対戦':'2–4 player online';
   document.getElementById('cb-click').textContent = T('cbClick');
   document.getElementById('cb-swing').textContent = T('cbSwing');
   document.getElementById('cb-space').textContent = T('cbSwing');
@@ -467,6 +499,7 @@ const GAME_NAMES = {
   shogi:       {ja:'将棋',           en:'SHOGI'},
   mahjong:     {ja:'麻雀',           en:'MAHJONG'},
   capbaseball: {ja:'キャップ野球',   en:'CAP BASEBALL'},
+  keshibato:   {ja:'消しバト',       en:'ERASER BATTLE'},
 };
 
 const gameStats = {}; // game → {avg, count, plays}
@@ -549,7 +582,7 @@ document.querySelectorAll('.play-btn').forEach(btn => {
 
 // Load ratings from Supabase (single bulk query)
 async function loadAllStats() {
-  const GAMES = ['snake','symbiont','reversi','gomoku','chess','shogi','mahjong','capbaseball'];
+  const GAMES = ['snake','symbiont','reversi','gomoku','chess','shogi','mahjong','capbaseball','keshibato'];
   GAMES.forEach(g => {
     gameStats[g] = { avg: 0, count: 0, plays: parseInt(localStorage.getItem('plays_' + g) || '0') };
   });
@@ -854,6 +887,59 @@ document.addEventListener('keydown', function startAudioKey() {
   ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(0,H-26,W,26);
   ctx.fillStyle='#cc3300';ctx.font='10px Courier New';ctx.textAlign='left';
   ctx.fillText('麻雀 MAHJONG  4人打ち vs AI',10,H-8);
+})();
+
+// --- Keshi-Bato preview ---
+(function(){
+  const c=document.getElementById('keshibatoPreview');
+  if(!c)return;
+  const ctx=c.getContext('2d'),W=c.width,H=c.height;
+  // Desk background
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#c9a96e'); bg.addColorStop(1,'#b08040');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(0,0,0,.06)'; ctx.lineWidth=1.2;
+  for(let i=0;i<12;i++){const y=i*(H/11)+Math.sin(i)*.5;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // Field shadow + felt
+  ctx.shadowColor='rgba(0,0,0,.4)';ctx.shadowBlur=10;ctx.shadowOffsetX=3;ctx.shadowOffsetY=3;
+  ctx.fillStyle='#1e4d1e';ctx.fillRect(20,20,W-40,H-40);
+  ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;
+  const felt=ctx.createLinearGradient(20,20,W-20,H-20);
+  felt.addColorStop(0,'#2e7d2e');felt.addColorStop(1,'#2c7a2c');
+  ctx.fillStyle=felt;ctx.fillRect(20,20,W-40,H-40);
+  ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=2;ctx.strokeRect(20,20,W-40,H-40);
+  ctx.strokeStyle='rgba(255,80,80,.2)';ctx.lineWidth=4;ctx.strokeRect(22,22,W-44,H-44);
+  // Erasers
+  const ers=[
+    {x:70,y:H/2,color:'#e84040',dark:'#7f1d1d',lbl:'P1'},
+    {x:W-70,y:H/2,color:'#3b82f6',dark:'#1e3a8a',lbl:'P2'},
+    {x:W/2,y:50,color:'#22c55e',dark:'#14532d',lbl:'P3'},
+    {x:W/2,y:H-50,color:'#f59e0b',dark:'#78350f',lbl:'P4'},
+  ];
+  ers.forEach(e=>{
+    const ew=40,eh=24,hw=ew/2,hh=eh/2;
+    ctx.save(); ctx.translate(e.x,e.y);
+    ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=6;ctx.shadowOffsetX=2;ctx.shadowOffsetY=2;
+    ctx.fillStyle=e.color;
+    ctx.beginPath();ctx.roundRect(-hw,-hh,ew,eh,4);ctx.fill();
+    ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;
+    ctx.fillStyle=e.dark;ctx.beginPath();ctx.roundRect(-hw+2,hh-4,ew-4,4,[0,0,4,4]);ctx.fill();
+    const hl=ctx.createLinearGradient(0,-hh,0,-hh+eh*.45);
+    hl.addColorStop(0,'rgba(255,255,255,.45)');hl.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=hl;ctx.beginPath();ctx.roundRect(-hw,-hh,ew,eh*.45,[4,4,0,0]);ctx.fill();
+    ctx.strokeStyle=e.dark;ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(-hw,-hh,ew,eh,4);ctx.stroke();
+    ctx.fillStyle='rgba(0,0,0,.65)';ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(e.lbl,0,0); ctx.restore();
+  });
+  // Arrow hint on P1
+  ctx.strokeStyle='rgba(255,210,0,.8)';ctx.lineWidth=2;ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.moveTo(70,H/2);ctx.lineTo(180,H/2+10);ctx.stroke();ctx.setLineDash([]);
+  ctx.save();ctx.translate(180,H/2+10);ctx.rotate(Math.atan2(10,110));
+  ctx.fillStyle='rgba(255,210,0,.9)';ctx.beginPath();ctx.moveTo(0,-5);ctx.lineTo(9,0);ctx.lineTo(0,5);ctx.closePath();ctx.fill();ctx.restore();
+  // Label
+  ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(0,H-26,W,26);
+  ctx.fillStyle='#e84040';ctx.font='10px Courier New';ctx.textAlign='left';
+  ctx.fillText('消しバト  1-4 PLAYERS  ONLINE',10,H-8);
 })();
 </script>
 </body>
