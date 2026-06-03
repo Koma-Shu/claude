@@ -77,6 +77,7 @@
     .btn-gomoku { background: linear-gradient(135deg, #ff8855, #cc3300); color: #fff; font-weight: bold; }
     .btn-chess { background: linear-gradient(135deg, #e8c84a, #aa8800); color: #000; font-weight: bold; }
     .btn-shogi { background: linear-gradient(135deg, #cc88ff, #8844cc); color: #fff; font-weight: bold; }
+    .btn-mahjong { background: linear-gradient(135deg, #cc3300, #880000); color: #fff; font-weight: bold; }
     #lang-btn { position:fixed; top:14px; left:14px; background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; z-index:10; }
     #auth-area { position:fixed; top:14px; right:14px; display:flex; gap:8px; z-index:10; }
     .auth-btn { background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; text-decoration:none; display:inline-block; transition:color 0.15s,border-color 0.15s; }
@@ -263,6 +264,34 @@
     </div>
   </div>
 
+  <!-- Mahjong -->
+  <div class="card" data-game="mahjong">
+    <canvas class="preview" id="mahjongPreview" width="320" height="200"></canvas>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-title" style="color:#cc3300">麻雀</div>
+        <div class="avg-badge" id="avg-mahjong"></div>
+      </div>
+      <p class="card-desc" id="desc-mahjong"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span></div>
+      <div class="controls">
+        <div class="controls-title pc-ctrl-title"></div>
+        <div class="controls-grid">
+          <span style="color:#888;font-size:0.72rem">クリック</span>
+          <span class="ctrl-desc">牌を選択・捨て牌</span>
+          <span style="color:#888;font-size:0.72rem">ボタン</span>
+          <span class="ctrl-desc">ツモ / ロン / パス</span>
+        </div>
+      </div>
+      <div class="card-tags">
+        <span class="tag">1 PLAYER</span>
+        <span class="tag">VS AI</span>
+        <span class="tag">MAHJONG</span>
+      </div>
+      <a href="mahjong.html" class="play-btn btn-mahjong">▶ PLAY</a>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -275,6 +304,7 @@ const ITEXT = {
     descGomoku: 'フリー五目並べ。縦・横・斜めに5つ並べた方の勝ち。CPU 対戦＆オンライン 2P 対応。難易度3段階。',
     descChess: '本格チェス。キャスリング・アンパッサン・ポーン成り完全対応。CPU 対戦＆オンライン 2P。難易度3段階。',
     descShogi: '本格将棋。成り・打ち（持ち駒）完全対応。CPU 対戦＆オンライン 2P。難易度3段階。日英対応。',
+    descMahjong: '4人打ち麻雀。3体の AI と対戦。牌を選んで捨てるだけの簡単操作。ツモ和了・ロン和了に対応。',
     shogiTitle: '将棋',
     mobile: 'スマホ',
     both: '両対応',
@@ -300,6 +330,7 @@ const ITEXT = {
     descGomoku: 'Free-style Gomoku. First to line 5 in a row wins. CPU battle & Online 2P. 3 difficulty levels.',
     descChess: 'Full-featured Chess with castling, en passant, and pawn promotion. CPU battle & Online 2P. 3 difficulty levels.',
     descShogi: 'Full-featured Shogi with promotion and drops. CPU battle & Online 2P. 3 difficulty levels. Bilingual.',
+    descMahjong: '4-player Mahjong vs 3 AI opponents. Simple click-to-discard controls. Supports Tsumo and Ron wins.',
     shogiTitle: 'SHOGI',
     mobile: 'Mobile',
     both: 'Both supported',
@@ -332,6 +363,7 @@ function applyLang() {
   document.getElementById('desc-gomoku').textContent = T('descGomoku');
   document.getElementById('desc-chess').textContent = T('descChess');
   document.getElementById('desc-shogi').textContent = T('descShogi');
+  document.getElementById('desc-mahjong').textContent = T('descMahjong');
   document.getElementById('shogi-title').textContent = T('shogiTitle');
   document.querySelectorAll('.mobile-label').forEach(el => el.textContent = T('mobile'));
   document.querySelectorAll('.both-label').forEach(el => el.textContent = T('both'));
@@ -691,6 +723,46 @@ document.addEventListener('keydown', function startAudioKey() {
   ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(0,H-30,W,30);
   ctx.fillStyle='#44ff99'; ctx.font='11px Courier New'; ctx.textAlign='left';
   ctx.fillText('⬛ 14  ⬜ 10', 12, H-10);
+})();
+
+// --- Mahjong preview ---
+(function(){
+  const c=document.getElementById('mahjongPreview');
+  if(!c)return;
+  const ctx=c.getContext('2d'),W=c.width,H=c.height;
+  ctx.fillStyle='#0a1a0a';ctx.fillRect(0,0,W,H);
+  // Draw a felt table feel
+  ctx.fillStyle='#0d2010';ctx.fillRect(10,10,W-20,H-20);
+  // Draw sample tiles
+  const tiles=[
+    {ch:'一',col:'#cc2200'},{ch:'②',col:'#0044cc'},{ch:'③',col:'#0044cc'},
+    {ch:'中',col:'#cc0000'},{ch:'發',col:'#008800'},{ch:'北',col:'#222222'},
+    {ch:'七',col:'#cc2200'},{ch:'⑤',col:'#0044cc'},{ch:'9',col:'#007700'},
+    {ch:'東',col:'#222222'},{ch:'白',col:'#888888'},{ch:'八',col:'#cc2200'},
+    {ch:'六',col:'#cc2200'},
+  ];
+  const tw=28,th=38,gap=4;
+  const total=tiles.length;
+  const totalW=total*(tw+gap)-gap;
+  const startX=(W-totalW)/2;
+  const y=H/2-th/2+10;
+  tiles.forEach((t,i)=>{
+    const x=startX+i*(tw+gap);
+    // Tile bg
+    const grad=ctx.createLinearGradient(x,y,x+tw,y+th);
+    grad.addColorStop(0,'#fffff4');grad.addColorStop(1,'#e8e8d0');
+    ctx.fillStyle=grad;
+    ctx.beginPath();ctx.roundRect(x,y,tw,th,3);ctx.fill();
+    ctx.strokeStyle='#aaa';ctx.lineWidth=0.8;ctx.stroke();
+    // Tile char
+    ctx.fillStyle=t.col;ctx.font=`bold ${tw*0.58}px serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(t.ch,x+tw/2,y+th/2);
+  });
+  // Player label
+  ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(0,H-26,W,26);
+  ctx.fillStyle='#cc3300';ctx.font='10px Courier New';ctx.textAlign='left';
+  ctx.fillText('麻雀 MAHJONG  4人打ち vs AI',10,H-8);
 })();
 </script>
 </body>
