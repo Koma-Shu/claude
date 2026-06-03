@@ -21,7 +21,7 @@
     #search-wrap{padding:10px 12px;border-bottom:1px solid #1a1a2a;}
     #conv-search{width:100%;background:#0d0d1a;border:1px solid #222;border-radius:4px;padding:6px 8px;color:#eee;font-family:'Courier New',monospace;font-size:0.72rem;outline:none;}
     #conv-search:focus{border-color:#00d4aa;}
-    #conv-list{flex:1;overflow-y:auto;}
+    #dm-list,#group-list{flex:1;overflow-y:auto;}
     .conv-item{padding:12px 14px;cursor:pointer;border-bottom:1px solid #1a1a2a;transition:background 0.1s;display:flex;flex-direction:column;gap:3px;}
     .conv-item:hover{background:#1a1a2a;}
     .conv-item.active{background:#1e2e2e;border-left:2px solid #00d4aa;}
@@ -92,8 +92,8 @@
     <div id="search-wrap">
       <input type="text" id="conv-search" placeholder="Search…">
     </div>
-    <div id="dm-list"></div>
-    <div id="group-list" style="display:none"></div>
+    <div id="dm-list" style="flex:1;overflow-y:auto"></div>
+    <div id="group-list" style="flex:1;overflow-y:auto;display:none"></div>
     <button id="create-group-btn" style="display:none"></button>
   </div>
   <div id="chat-area">
@@ -207,14 +207,10 @@ if(!me){
       sb(`/rest/v1/friends?requester_id=eq.${me.id}&status=eq.accepted&select=addressee_id`),
       sb(`/rest/v1/friends?addressee_id=eq.${me.id}&status=eq.accepted&select=requester_id`)
     ]);
-    const friendIds=[
-      ...(sent||[]).map(r=>r.addressee_id),
-      ...(recv||[]).map(r=>r.requester_id)
-    ];
+    const friendIds=[...(sent||[]).map(r=>r.addressee_id),...(recv||[]).map(r=>r.requester_id)];
     if(friendIds.length>0){
       const ids=friendIds.join(',');
-      const users=await sb(`/rest/v1/users?id=in.(${ids})&select=id,username,full_name`)||[];
-      friends=users;
+      friends=await sb(`/rest/v1/users?id=in.(${ids})&select=id,username,full_name`)||[];
     }else{friends=[];}
     renderDmList();
   }
@@ -229,8 +225,7 @@ if(!me){
   }
 
   async function loadAll(){
-    await Promise.all([loadFriends(), loadGroups()]);
-    // Auto-open from URL param
+    await Promise.all([loadFriends(),loadGroups()]);
     const params=new URLSearchParams(location.search);
     const targetUser=params.get('user');
     if(targetUser){
@@ -267,11 +262,6 @@ if(!me){
       div.addEventListener('click',()=>openGroup(g));
       list.appendChild(div);
     });
-  }
-
-  function renderConvList(){
-    renderDmList();
-    renderGroupList();
   }
 
   function openDm(user){
@@ -381,7 +371,7 @@ if(!me){
     await sb('/rest/v1/group_members',{method:'POST',body:JSON.stringify(members)});
     document.getElementById('group-modal').style.display='none';
     document.getElementById('modal-create').disabled=false;
-    await loadGroups();
+    await loadAll();
     const newGroup=groups.find(g=>g.id===gid);
     if(newGroup)openGroup(newGroup);
   });
