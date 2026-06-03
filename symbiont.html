@@ -6,6 +6,7 @@
   <title>SYMBIONT</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    #lang-btn { position: fixed; top: 14px; left: 14px; background: rgba(0,0,0,0.7); border: 1px solid #444; border-radius: 6px; color: #888; font-family: 'Courier New', monospace; font-size: .72rem; padding: 5px 10px; cursor: pointer; z-index: 100; }
     body {
       background: #111;
       display: flex;
@@ -150,32 +151,28 @@
 <script src="sound.js"></script>
 </head>
 <body>
+<button id="lang-btn">EN</button>
 
 <div id="ui">
-  <span>スコア: <strong id="score">0</strong></span>
+  <span><span id="lbl-score">スコア:</span> <strong id="score">0</strong></span>
   <div id="healthbar-wrap"><div id="healthbar"></div></div>
-  <span>HP: <strong id="hp">100</strong></span>
+  <span><span id="lbl-hp">HP:</span> <strong id="hp">100</strong></span>
 </div>
 <div id="canvas-wrap">
   <canvas id="c"></canvas>
   <div id="overlay">
     <h2>SYMBIONT</h2>
-    <p id="overlay-controls">
-      <span class="light-color">光の生命体</span> → <strong>WASD</strong>（上半分）<br>
-      <span class="dark-color">闇の生命体</span> → <strong>矢印キー</strong>（下半分）<br>
-      2体は糸で繋がれている。離れすぎるとダメージ。<br>
-      栄養を集めて天敵を避けろ。
-    </p>
-    <p class="hint">スペースキー または 画面タップでスタート</p>
+    <p id="overlay-controls"></p>
+    <p class="hint" id="overlay-hint">スペースキー または 画面タップでスタート</p>
   </div>
 </div>
 
 <!-- グローバルベスト & リーダーボード -->
 <div id="global-section">
-  <div id="global-best">🌐 グローバルベスト: <b id="gb-score">---</b></div>
+  <div id="global-best"><span id="lbl-gb">🌐 グローバルベスト:</span> <b id="gb-score">---</b></div>
   <div id="leaderboard-wrap">
     <div id="leaderboard-title">LEADERBOARD — TOP 10</div>
-    <div id="leaderboard-body"><div class="lb-empty">読み込み中...</div></div>
+    <div id="leaderboard-body"><div class="lb-empty" id="lb-loading">読み込み中...</div></div>
   </div>
 </div>
 
@@ -184,7 +181,7 @@
   <div id="score-dialog-inner">
     <h3>GAME OVER</h3>
     <div class="score-val" id="dialog-score">0</div>
-    <p style="font-size:0.75rem;color:#666;margin-bottom:12px">スコアを登録しますか？</p>
+    <p id="dialog-reg-msg" style="font-size:0.75rem;color:#666;margin-bottom:12px">スコアを登録しますか？</p>
     <input id="player-name" type="text" placeholder="プレイヤー名（任意）" maxlength="20">
     <button class="dialog-btn" id="btn-submit-score">登録する</button>
     <button class="dialog-btn" id="btn-skip-score">スキップ</button>
@@ -194,7 +191,7 @@
 <!-- 評価 -->
 <div id="rating-section">
   <div class="avg-display" id="avg-display"></div>
-  <div id="rating-toggle">★ このゲームを評価する</div>
+  <div id="rating-toggle">★ <span id="lbl-rate">このゲームを評価する</span></div>
   <div id="rating-form">
     <div id="star-input">
       <span class="star" data-v="1">★</span>
@@ -205,6 +202,7 @@
     </div>
     <textarea id="comment-input" placeholder="コメントを入力（任意）..."></textarea>
     <button id="submit-rating">送信</button>
+
   </div>
   <div id="ratings-list"></div>
 </div>
@@ -216,24 +214,24 @@
   <div class="hp-title">CONTROLS — PC</div>
   <div class="hp-row">
     <span><span class="hkey">W</span><span class="hkey">A</span><span class="hkey">S</span><span class="hkey">D</span></span>
-    <span style="color:#ffe066;font-size:0.72rem">光の生命体（上）</span>
+    <span id="hp-light" style="color:#ffe066;font-size:0.72rem">光の生命体（上）</span>
   </div>
   <div class="hp-row">
     <span><span class="hkey">↑</span><span class="hkey">↓</span><span class="hkey">←</span><span class="hkey">→</span></span>
-    <span style="color:#aa88ff;font-size:0.72rem">闇の生命体（下）</span>
+    <span id="hp-dark" style="color:#aa88ff;font-size:0.72rem">闇の生命体（下）</span>
   </div>
   <div class="hp-row">
     <span><span class="hkey">Space</span></span>
-    <span style="color:#666;font-size:0.72rem">スタート</span>
+    <span id="hp-space" style="color:#666;font-size:0.72rem">スタート</span>
   </div>
   <hr class="hp-sep">
-  <div class="hp-title">CONTROLS — スマホ</div>
-  <div class="hp-note" style="color:#555">
+  <div class="hp-title" id="hp-mobile-title">CONTROLS — スマホ</div>
+  <div class="hp-note" id="hp-mobile-note" style="color:#555">
     上半分をドラッグ → 光の生命体<br>
     下半分をドラッグ → 闇の生命体
   </div>
   <hr class="hp-sep">
-  <div class="hp-note">
+  <div class="hp-note" id="hp-rules">
     ✨ 光る点を集めるとスコア+10<br>
     △ 赤い三角が天敵。触れるとHP-8<br>
     〜 糸が赤く光ると離れすぎのサイン<br>
@@ -251,6 +249,70 @@ const SUPABASE_READY = true;
 // ============================================================
 
 const GAME = 'symbiont';
+
+// ── i18n ─────────────────────────────────────────────────────
+const LANG={
+  ja:{
+    score:'スコア:',hp:'HP:',gb:'🌐 グローバルベスト:',
+    helpToggle:'? 操作方法',
+    overlayControls:'<span class="light-color">光の生命体</span> → <strong>WASD</strong>（上半分）<br><span class="dark-color">闇の生命体</span> → <strong>矢印キー</strong>（下半分）<br>2体は糸で繋がれている。離れすぎるとダメージ。<br>栄養を集めて天敵を避けろ。',
+    overlayHint:'スペースキー または 画面タップでスタート',
+    hpLight:'光の生命体（上）',hpDark:'闇の生命体（下）',hpSpace:'スタート',
+    hpMobileTitle:'CONTROLS — スマホ',
+    hpMobileNote:'上半分をドラッグ → 光の生命体<br>下半分をドラッグ → 闇の生命体',
+    hpRules:'✨ 光る点を集めるとスコア+10<br>△ 赤い三角が天敵。触れるとHP-8<br>〜 糸が赤く光ると離れすぎのサイン<br>被弾後1秒間は無敵（点滅中）',
+    rateGame:'このゲームを評価する',commentPlaceholder:'コメントを入力（任意）...',
+    submitRating:'送信',noRatings:'まだ評価がありません',loading:'読み込み中...',
+    noScores:'まだ記録がありません',ratingCount:'件の評価',
+    dialogReg:'スコアを登録しますか？',namePlaceholder:'プレイヤー名（任意）',
+    submitScore:'登録する',skip:'スキップ',
+    gameOver:'GAME OVER',tapRestart:'タップしてリスタート',
+  },
+  en:{
+    score:'Score:',hp:'HP:',gb:'🌐 Global Best:',
+    helpToggle:'? Controls',
+    overlayControls:'<span class="light-color">Light Entity</span> → <strong>WASD</strong> (upper half)<br><span class="dark-color">Dark Entity</span> → <strong>Arrow Keys</strong> (lower half)<br>Connected by a thread. Too far apart = damage.<br>Gather nutrients, avoid predators.',
+    overlayHint:'Press Space or Tap to Start',
+    hpLight:'Light Entity (upper)',hpDark:'Dark Entity (lower)',hpSpace:'Start',
+    hpMobileTitle:'CONTROLS — Mobile',
+    hpMobileNote:'Drag upper half → Light Entity<br>Drag lower half → Dark Entity',
+    hpRules:'✨ Collect glowing dots for +10 score<br>△ Red triangles are predators. -8 HP on hit<br>〜 Red thread = too far apart<br>1s invincible after hit (flashing)',
+    rateGame:'Rate this game',commentPlaceholder:'Comment (optional)...',
+    submitRating:'Submit',noRatings:'No ratings yet',loading:'Loading...',
+    noScores:'No scores yet',ratingCount:' ratings',
+    dialogReg:'Register your score?',namePlaceholder:'Player name (optional)',
+    submitScore:'Submit',skip:'Skip',
+    gameOver:'GAME OVER',tapRestart:'Tap to Restart',
+  }
+};
+let lang=localStorage.getItem('lang')||'ja';
+function T(k){return(LANG[lang]||LANG.ja)[k]||k;}
+function applyLang(){
+  document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
+  document.documentElement.lang=lang;
+  document.getElementById('lbl-score').textContent=T('score');
+  document.getElementById('lbl-hp').textContent=T('hp');
+  document.getElementById('lbl-gb').textContent=T('gb');
+  document.getElementById('help-toggle').textContent=T('helpToggle');
+  document.getElementById('overlay-controls').innerHTML=T('overlayControls');
+  document.getElementById('overlay-hint').textContent=T('overlayHint');
+  document.getElementById('hp-light').textContent=T('hpLight');
+  document.getElementById('hp-dark').textContent=T('hpDark');
+  document.getElementById('hp-space').textContent=T('hpSpace');
+  document.getElementById('hp-mobile-title').textContent=T('hpMobileTitle');
+  document.getElementById('hp-mobile-note').innerHTML=T('hpMobileNote');
+  document.getElementById('hp-rules').innerHTML=T('hpRules');
+  document.getElementById('lbl-rate').textContent=T('rateGame');
+  document.getElementById('comment-input').placeholder=T('commentPlaceholder');
+  document.getElementById('submit-rating').textContent=T('submitRating');
+  document.getElementById('player-name').placeholder=T('namePlaceholder');
+  document.getElementById('btn-submit-score').textContent=T('submitScore');
+  document.getElementById('btn-skip-score').textContent=T('skip');
+  document.getElementById('dialog-reg-msg').textContent=T('dialogReg');
+}
+document.getElementById('lang-btn').addEventListener('click',()=>{
+  lang=lang==='ja'?'en':'ja';localStorage.setItem('lang',lang);applyLang();
+});
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 let W, H, MID;
@@ -408,7 +470,7 @@ function updateUI(){
 
 function onGameOver() {
   const ov=document.getElementById('overlay');
-  ov.innerHTML=`<h2 style="color:#ff4444">GAME OVER</h2><p>スコア: <strong>${score}</strong></p><p class="hint">スペースキー または タップでリスタート</p>`;
+  ov.innerHTML=`<h2 style="color:#ff4444">${T('gameOver')}</h2><p>${T('score')} <strong>${score}</strong></p><p class="hint">${T('tapRestart')}</p>`;
   ov.style.display='flex';
   if(score > 0) {
     document.getElementById('dialog-score').textContent = score;
@@ -510,10 +572,10 @@ async function sbFetch(path, options={}) {
 }
 
 async function loadLeaderboard() {
-  if (!SUPABASE_READY) { document.getElementById('leaderboard-body').innerHTML='<div class="lb-empty">未設定</div>'; return; }
+  if (!SUPABASE_READY) { document.getElementById('leaderboard-body').innerHTML='<div class="lb-empty">—</div>'; return; }
   try {
     const rows = await sbFetch(`/rest/v1/scores?game=eq.${GAME}&order=score.desc&limit=10`, { headers:{'Prefer':'return=representation'} });
-    if (!rows || !rows.length) { document.getElementById('leaderboard-body').innerHTML='<div class="lb-empty">まだ記録がありません</div>'; return; }
+    if (!rows || !rows.length) { document.getElementById('leaderboard-body').innerHTML=`<div class="lb-empty">${T('noScores')}</div>`; return; }
     const medals = ['🥇','🥈','🥉'];
     document.getElementById('gb-score').textContent = rows[0].score.toLocaleString();
     document.getElementById('leaderboard-body').innerHTML = rows.map((r,i) =>
@@ -563,7 +625,7 @@ function fmtDate(s) { return s ? new Date(s).toLocaleDateString('ja-JP') : ''; }
 
 function renderRatings(list) {
   const el = document.getElementById('ratings-list');
-  if (!list.length) { el.innerHTML='<p class="no-ratings">まだ評価がありません</p>'; return; }
+  if (!list.length) { el.innerHTML=`<p class="no-ratings">${T('noRatings')}</p>`; return; }
   el.innerHTML = list.map(r =>
     `<div class="rating-item"><span class="rating-stars">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</span><span class="rating-date">${fmtDate(r.created_at||r.date)}</span>${r.comment?`<p class="rating-comment">${escHtml(r.comment)}</p>`:''}</div>`
   ).join('');
@@ -573,7 +635,7 @@ function updateAvgBadge(list) {
   const el = document.getElementById('avg-display');
   if (!list.length) { el.textContent=''; return; }
   const avg = (list.reduce((s,r)=>s+r.stars,0)/list.length).toFixed(1);
-  el.innerHTML = `<span>${'★'.repeat(Math.round(avg))}</span> ${avg} (${list.length}件の評価)`;
+  el.innerHTML = `<span>${'★'.repeat(Math.round(avg))}</span> ${avg} (${list.length}${T('ratingCount')})`;
 }
 
 // スコアダイアログ
@@ -610,6 +672,7 @@ document.getElementById('submit-rating').addEventListener('click', async () => {
 loadLeaderboard();
 loadRatings();
 spawnNutrient(); spawnNutrient();
+applyLang();
 loop();
 </script>
 <script>
