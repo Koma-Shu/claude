@@ -459,12 +459,14 @@ const SUPABASE_KEY = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
 
 // ── Search & Sort ───────────────────────────────────────────────
 const GAME_NAMES = {
-  snake:    {ja:'スネーク',     en:'SNAKE'},
-  symbiont: {ja:'シンビオント', en:'SYMBIONT'},
-  reversi:  {ja:'リバーシ',     en:'REVERSI'},
-  gomoku:   {ja:'五目並べ',     en:'GOMOKU'},
-  chess:    {ja:'チェス',       en:'CHESS'},
-  shogi:    {ja:'将棋',         en:'SHOGI'},
+  snake:       {ja:'スネーク',       en:'SNAKE'},
+  symbiont:    {ja:'シンビオント',   en:'SYMBIONT'},
+  reversi:     {ja:'リバーシ',       en:'REVERSI'},
+  gomoku:      {ja:'五目並べ',       en:'GOMOKU'},
+  chess:       {ja:'チェス',         en:'CHESS'},
+  shogi:       {ja:'将棋',           en:'SHOGI'},
+  mahjong:     {ja:'麻雀',           en:'MAHJONG'},
+  capbaseball: {ja:'キャップ野球',   en:'CAP BASEBALL'},
 };
 
 const gameStats = {}; // game → {avg, count, plays}
@@ -547,7 +549,7 @@ document.querySelectorAll('.play-btn').forEach(btn => {
 
 // Load ratings from Supabase (single bulk query)
 async function loadAllStats() {
-  const GAMES = ['snake','symbiont','reversi','gomoku','chess','shogi'];
+  const GAMES = ['snake','symbiont','reversi','gomoku','chess','shogi','mahjong','capbaseball'];
   GAMES.forEach(g => {
     gameStats[g] = { avg: 0, count: 0, plays: parseInt(localStorage.getItem('plays_' + g) || '0') };
   });
