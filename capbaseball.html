@@ -443,98 +443,94 @@ function drawTimingRing(t){
 }
 
 function drawBottleCap(x,y,r,spinAngle,color,axisAngle){
-  // Edge-on view: cap flies with its side (rim) facing the batter, like a coin thrown sideways.
-  // spinAngle: rotation around horizontal axis — cos(spinAngle) determines how much face shows.
-  // axisAngle: tilt of the spin axis (0=horizontal; breaking balls tilt the axis).
+  // Cap rotates around its horizontal axis — like a coin thrown sideways.
+  // sinAngle drives how much face is showing: 0=edge-on (thin), 1=face-on (full circle).
   const isWhite=color==='#f0f0f0';
-  const faceScale=Math.abs(Math.cos(spinAngle)); // 0=fully edge-on, 1=fully face-on
+  const sinA=Math.abs(Math.sin(spinAngle)); // 0=edge-on, 1=face-on
   const axTilt=axisAngle||0;
-  const wallH=r*0.22; // side-wall height when edge-on
+
+  // Overall shape: ONE ellipse that grows from minH (edge-on) to r (face-on)
+  const minH=r*.12;          // minimum height — thin rim edge
+  const capH=Math.max(minH, r*sinA); // current height of the overall shape
+
+  // Rim strip width on each side (the knurled band)
+  const rimW=r*.22;
+  // Inner face radius
+  const faceR=r-rimW;        // r*0.78
 
   ctx.save();
   ctx.translate(x,y);
-  ctx.rotate(axTilt); // tilt whole cap for breaking ball axis
+  ctx.rotate(axTilt);
 
   // ── Shadow ──
   ctx.shadowColor='rgba(0,0,0,.5)';
   ctx.shadowBlur=r*.5;
-  ctx.shadowOffsetY=wallH*.6;
+  ctx.shadowOffsetY=minH*.7;
 
-  // ── Back face (behind wall, slightly darker, shown when face is visible) ──
-  if(faceScale>0.08){
-    const bfH=r*0.75*faceScale;
-    ctx.beginPath();
-    ctx.ellipse(0,0,r*.75,bfH,0,0,Math.PI*2);
-    ctx.fillStyle=isWhite?'#a8a8a8':darkenHex(color,.35);
-    ctx.fill();
-  }
-  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
-
-  // ── Side wall (knurled rim) — always visible as thin horizontal band ──
-  const rimGrad=ctx.createLinearGradient(0,-wallH,0,wallH);
+  // ── 1. Outer ellipse: the knurled rim band ──
+  // When edge-on this IS the whole cap. When face-on, only the outer ring is rim.
+  // Color: cylindrical shading (dark top/bottom edges, bright center equator)
+  const rimGrad=ctx.createLinearGradient(0,-capH,0,capH);
   if(isWhite){
-    rimGrad.addColorStop(0,'#d8d8d8');
-    rimGrad.addColorStop(.35,'#ffffff');
-    rimGrad.addColorStop(.65,'#e0e0e0');
-    rimGrad.addColorStop(1,'#a8a8a8');
+    rimGrad.addColorStop(0,'#8a8a8a');
+    rimGrad.addColorStop(.28,'#e8e8e8');
+    rimGrad.addColorStop(.5,'#ffffff');
+    rimGrad.addColorStop(.72,'#e0e0e0');
+    rimGrad.addColorStop(1,'#8a8a8a');
   } else {
-    rimGrad.addColorStop(0,lightenHex(color,.12));
-    rimGrad.addColorStop(.35,lightenHex(color,.38));
-    rimGrad.addColorStop(.65,lightenHex(color,.15));
-    rimGrad.addColorStop(1,darkenHex(color,.3));
+    rimGrad.addColorStop(0,darkenHex(color,.4));
+    rimGrad.addColorStop(.28,lightenHex(color,.2));
+    rimGrad.addColorStop(.5,lightenHex(color,.42));
+    rimGrad.addColorStop(.72,lightenHex(color,.1));
+    rimGrad.addColorStop(1,darkenHex(color,.45));
   }
   ctx.beginPath();
-  ctx.roundRect(-r,-wallH,r*2,wallH*2,wallH*.45);
+  ctx.ellipse(0,0,r,capH,0,0,Math.PI*2);
   ctx.fillStyle=rimGrad;
   ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,.15)';
-  ctx.lineWidth=.6;
-  ctx.stroke();
+  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+  ctx.strokeStyle='rgba(0,0,0,.18)'; ctx.lineWidth=.5; ctx.stroke();
 
-  // Knurl vertical lines on the rim
+  // ── 2. Knurl lines clipped to rim ellipse ──
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(0,0,r,capH,0,0,Math.PI*2);
+  ctx.clip();
   const knurls=22;
   for(let i=1;i<knurls;i++){
     const kx=-r+(i/knurls)*r*2;
     ctx.beginPath();
-    ctx.moveTo(kx,-wallH*.8);
-    ctx.lineTo(kx,wallH*.8);
-    ctx.strokeStyle=i%2===0?'rgba(255,255,255,.32)':'rgba(0,0,0,.14)';
-    ctx.lineWidth=.7;
-    ctx.stroke();
+    ctx.moveTo(kx,-capH); ctx.lineTo(kx,capH);
+    ctx.strokeStyle=i%2===0?'rgba(255,255,255,.28)':'rgba(0,0,0,.13)';
+    ctx.lineWidth=.7; ctx.stroke();
   }
+  ctx.restore();
 
-  // ── Front face — ellipse that grows as cap rotates face-on ──
-  if(faceScale>0.04){
-    const fR=r*.78;
-    const fH=fR*faceScale; // face height varies with rotation
-
-    // Face gradient
-    const fg=ctx.createRadialGradient(-fR*.22,-fH*.2,0,0,0,fR);
+  // ── 3. Inner face — only when rotating toward viewer ──
+  // The face is only visible when sinA > rimW/r (i.e. face height > rim width)
+  const faceH=r*sinA-minH; // face height above the base rim
+  if(faceH>2){
+    const fg=ctx.createRadialGradient(-faceR*.2,-faceH*.15,0,0,0,faceR);
     if(isWhite){
       fg.addColorStop(0,'#ffffff'); fg.addColorStop(.6,'#f0f0f0'); fg.addColorStop(1,'#d4d4d4');
     } else {
-      fg.addColorStop(0,lightenHex(color,.32)); fg.addColorStop(.6,color); fg.addColorStop(1,darkenHex(color,.25));
+      fg.addColorStop(0,lightenHex(color,.35)); fg.addColorStop(.6,color); fg.addColorStop(1,darkenHex(color,.22));
     }
     ctx.beginPath();
-    ctx.ellipse(0,0,fR,fH,0,0,Math.PI*2);
-    ctx.fillStyle=fg;
-    ctx.fill();
+    ctx.ellipse(0,0,faceR,Math.max(1,faceH),0,0,Math.PI*2);
+    ctx.fillStyle=fg; ctx.fill();
 
-    // Embossed inner ring
-    ctx.beginPath();
-    ctx.ellipse(0,0,fR*.94,fH*.94,0,0,Math.PI*2);
-    ctx.strokeStyle='rgba(0,0,0,.1)'; ctx.lineWidth=r*.04; ctx.stroke();
-
-    // Center logo
-    ctx.beginPath();
-    ctx.ellipse(0,0,r*.22,r*.22*faceScale,0,0,Math.PI*2);
-    ctx.fillStyle='rgba(0,0,0,.1)'; ctx.fill();
-
-    // Specular highlight
-    if(faceScale>0.2){
+    // Center logo mark
+    if(faceH>r*.2){
       ctx.beginPath();
-      ctx.ellipse(-fR*.26,-fH*.32,fR*.25,fH*.12,-.3,0,Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,.4)'; ctx.fill();
+      ctx.ellipse(0,0,r*.18,Math.max(.5,r*.18*(faceH/r)),0,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,0,0,.1)'; ctx.fill();
+    }
+    // Specular
+    if(faceH>r*.3){
+      ctx.beginPath();
+      ctx.ellipse(-faceR*.24,-faceH*.3,faceR*.22,faceH*.1,-.3,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,255,${.38*sinA})`; ctx.fill();
     }
   }
 
@@ -986,14 +982,17 @@ function cpuPitch(){
 }
 function cpuBat(pZone,pPT){
   const isStr=isStrike(pZone);
-  if(!isStr&&Math.random()<.72) return {sz:-1,st:-1}; // take ball
-  if(!isStr&&Math.random()<.5) return {sz:-1,st:-1};
-  // Swing: pick zone near pitch
+  // CPU takes balls more often
+  if(!isStr&&Math.random()<.82) return {sz:-1,st:-1};
+  if(!isStr&&Math.random()<.6)  return {sz:-1,st:-1};
+  // Zone guess: often off by 1-2, sometimes completely wrong
   const zi=isStr?pZone:4;
-  const off=Math.floor(Math.random()*3)-1;
+  const rnd=Math.random();
+  const off=rnd<.35?0:rnd<.70?Math.floor(Math.random()*3)-1:Math.floor(Math.random()*5)-2;
   const sz=Math.max(0,Math.min(8,zi+off));
-  const st=PERFECT_T+((Math.random()-.5)*.28);
-  return {sz,st:Math.max(.3,Math.min(1,st))};
+  // Timing: wider spread → more misses and fouls
+  const st=PERFECT_T+((Math.random()-.5)*.52);
+  return {sz,st:Math.max(.25,Math.min(1,st))};
 }
 
 // ──────────────────────────────────────────
