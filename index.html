@@ -78,6 +78,7 @@
     .btn-chess { background: linear-gradient(135deg, #e8c84a, #aa8800); color: #000; font-weight: bold; }
     .btn-shogi { background: linear-gradient(135deg, #cc88ff, #8844cc); color: #fff; font-weight: bold; }
     .btn-mahjong { background: linear-gradient(135deg, #cc3300, #880000); color: #fff; font-weight: bold; }
+    .btn-capbb { background: linear-gradient(135deg, #ff6633, #cc3300); color: #fff; font-weight: bold; }
     #lang-btn { position:fixed; top:14px; left:14px; background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; z-index:10; }
     #auth-area { position:fixed; top:14px; right:14px; display:flex; gap:8px; z-index:10; }
     .auth-btn { background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; text-decoration:none; display:inline-block; transition:color 0.15s,border-color 0.15s; }
@@ -264,6 +265,34 @@
     </div>
   </div>
 
+  <!-- Cap Baseball -->
+  <div class="card" data-game="capbaseball">
+    <canvas class="preview" id="capbbPreview" width="320" height="200"></canvas>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-title" style="color:#ff6633">CAP BASEBALL</div>
+        <div class="avg-badge" id="avg-capbaseball"></div>
+      </div>
+      <p class="card-desc" id="desc-capbaseball"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
+      <div class="controls">
+        <div class="controls-title pc-ctrl-title"></div>
+        <div class="controls-grid">
+          <span style="color:#888;font-size:0.72rem" id="cb-click">クリック</span>
+          <span class="ctrl-desc" id="cb-swing">スイング！</span>
+          <span><span class="key">Space</span></span>
+          <span class="ctrl-desc" id="cb-space">スイング！</span>
+        </div>
+      </div>
+      <div class="card-tags">
+        <span class="tag">1 PLAYER</span>
+        <span class="tag">TIMING</span>
+        <span class="tag">BASEBALL</span>
+      </div>
+      <a href="capbaseball.html" class="play-btn btn-capbb">▶ PLAY</a>
+    </div>
+  </div>
+
   <!-- Mahjong -->
   <div class="card" data-game="mahjong">
     <canvas class="preview" id="mahjongPreview" width="320" height="200"></canvas>
@@ -304,6 +333,9 @@ const ITEXT = {
     descGomoku: 'フリー五目並べ。縦・横・斜めに5つ並べた方の勝ち。CPU 対戦＆オンライン 2P 対応。難易度3段階。',
     descChess: '本格チェス。キャスリング・アンパッサン・ポーン成り完全対応。CPU 対戦＆オンライン 2P。難易度3段階。',
     descShogi: '本格将棋。成り・打ち（持ち駒）完全対応。CPU 対戦＆オンライン 2P。難易度3段階。日英対応。',
+    descCapbaseball: 'ペットボトルキャップ野球！タイミングよくクリックしてキャップを打て。9イニング制でCPUと対戦。',
+    cbClick: 'クリック / タップ',
+    cbSwing: 'スイング！',
     descMahjong: '2〜4人打ち麻雀。AI対戦 & フレンドとのオンライン対戦に対応。ツモ和了・ロン和了に対応。',
     mahjongClick: 'クリック',
     mahjongTile: '牌を選択・捨て牌',
@@ -333,6 +365,9 @@ const ITEXT = {
     descGomoku: 'Free-style Gomoku. First to line 5 in a row wins. CPU battle & Online 2P. 3 difficulty levels.',
     descChess: 'Full-featured Chess with castling, en passant, and pawn promotion. CPU battle & Online 2P. 3 difficulty levels.',
     descShogi: 'Full-featured Shogi with promotion and drops. CPU battle & Online 2P. 3 difficulty levels. Bilingual.',
+    descCapbaseball: 'Bottle-cap baseball! Click at the right moment to hit the cap. 9-inning game vs CPU.',
+    cbClick: 'Click / Tap',
+    cbSwing: 'Swing!',
     descMahjong: 'Mahjong for 2-4 players. Play vs AI or online with friends. Supports Tsumo and Ron wins.',
     mahjongClick: 'Click',
     mahjongTile: 'Select &amp; discard tile',
@@ -369,6 +404,10 @@ function applyLang() {
   document.getElementById('desc-gomoku').textContent = T('descGomoku');
   document.getElementById('desc-chess').textContent = T('descChess');
   document.getElementById('desc-shogi').textContent = T('descShogi');
+  document.getElementById('desc-capbaseball').textContent = T('descCapbaseball');
+  document.getElementById('cb-click').textContent = T('cbClick');
+  document.getElementById('cb-swing').textContent = T('cbSwing');
+  document.getElementById('cb-space').textContent = T('cbSwing');
   document.getElementById('desc-mahjong').textContent = T('descMahjong');
   document.getElementById('mj-click').textContent = T('mahjongClick');
   document.getElementById('mj-tile').innerHTML = T('mahjongTile');
@@ -732,6 +771,47 @@ document.addEventListener('keydown', function startAudioKey() {
   ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(0,H-30,W,30);
   ctx.fillStyle='#44ff99'; ctx.font='11px Courier New'; ctx.textAlign='left';
   ctx.fillText('⬛ 14  ⬜ 10', 12, H-10);
+})();
+
+// --- Cap Baseball preview ---
+(function(){
+  const c = document.getElementById('capbbPreview');
+  if (!c) return;
+  const ctx = c.getContext('2d'), W = c.width, H = c.height;
+  // Background
+  const grad = ctx.createRadialGradient(W/2, H*0.6, 20, W/2, H*0.6, 200);
+  grad.addColorStop(0, '#1a2e14');
+  grad.addColorStop(1, '#0d0d1a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+  // Diamond
+  const home = {x:W/2, y:H-36};
+  const first = {x:W/2+72, y:H/2+8};
+  const second = {x:W/2, y:H/2-52};
+  const third = {x:W/2-72, y:H/2+8};
+  ctx.fillStyle = 'rgba(120,80,40,0.3)';
+  ctx.beginPath();
+  ctx.moveTo(home.x,home.y); ctx.lineTo(first.x,first.y);
+  ctx.lineTo(second.x,second.y); ctx.lineTo(third.x,third.y);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1.5;
+  ctx.stroke();
+  // Bases
+  [[home,'#fff',8],[first,'#fff',6],[second,'#fff',6],[third,'#fff',6]].forEach(([p,col,s])=>{
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(Math.PI/4);
+    ctx.fillStyle=col; ctx.globalAlpha=0.85; ctx.fillRect(-s/2,-s/2,s,s); ctx.restore();
+  });
+  // Floating caps
+  [[W/2-10,H/2-10,'#ff6633'],[W/2+30,H/2+20,'#cc3300']].forEach(([x,y,col])=>{
+    ctx.beginPath(); ctx.arc(x,y,10,0,Math.PI*2);
+    ctx.fillStyle=col; ctx.fill();
+    ctx.strokeStyle='#882200'; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+  });
+  // Label
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(0,H-26,W,26);
+  ctx.fillStyle='#ff6633'; ctx.font='10px Courier New'; ctx.textAlign='left';
+  ctx.fillText('CAP BASEBALL  9イニング vs CPU', 10, H-8);
 })();
 
 // --- Mahjong preview ---

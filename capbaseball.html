@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>CAP BASEBALL</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0d0d1a;
+      min-height: 100vh;
+      font-family: 'Courier New', monospace;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+    }
+    #lang-btn {
+      position: fixed; top: 14px; left: 14px;
+      background: #1e1e2e; border: 1px solid #444; border-radius: 6px;
+      color: #888; font-family: 'Courier New', monospace; font-size: 0.72rem;
+      padding: 5px 10px; cursor: pointer; z-index: 100;
+    }
+    #back-btn {
+      position: fixed; top: 14px; right: 14px;
+      background: #1e1e2e; border: 1px solid #444; border-radius: 6px;
+      color: #888; font-family: 'Courier New', monospace; font-size: 0.72rem;
+      padding: 5px 10px; cursor: pointer; z-index: 100; text-decoration: none;
+    }
+    #title-bar {
+      font-size: 1.1rem; letter-spacing: 6px; color: #ff6633;
+      text-shadow: 0 0 16px rgba(255,102,51,0.6);
+      margin-bottom: 8px;
+    }
+    #game-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 520px;
+      padding: 0 12px;
+    }
+    /* Scoreboard */
+    #scoreboard {
+      width: 100%;
+      background: #13131f;
+      border: 1px solid #2a2a3a;
+      border-radius: 10px;
+      padding: 10px 16px;
+      display: grid;
+      grid-template-columns: 80px repeat(9,1fr) 1fr;
+      gap: 2px;
+      font-size: 0.62rem;
+      letter-spacing: 1px;
+    }
+    .sb-cell {
+      text-align: center; padding: 3px 2px;
+      border-radius: 3px;
+    }
+    .sb-label { color: #555; text-align: left; }
+    .sb-inning-hdr { color: #444; }
+    .sb-total { color: #ff6633; font-weight: bold; }
+    .sb-score-you { color: #00d4aa; }
+    .sb-score-cpu { color: #ff6633; }
+    .sb-active { background: rgba(255,102,51,0.15); color: #ff9966; }
+
+    /* Field canvas */
+    #field-canvas {
+      border-radius: 12px;
+      border: 1px solid #222;
+      cursor: crosshair;
+      touch-action: manipulation;
+    }
+
+    /* HUD */
+    #hud {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px;
+    }
+    .hud-group {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .hud-label { font-size: 0.55rem; color: #555; letter-spacing: 2px; }
+    .hud-value { font-size: 1.1rem; color: #eee; letter-spacing: 1px; }
+    .hud-dots { display: flex; gap: 5px; }
+    .dot {
+      width: 11px; height: 11px; border-radius: 50%;
+      border: 1.5px solid #444; background: transparent;
+    }
+    .dot.on { background: #ffd700; border-color: #ffd700; }
+    .dot.strike-on { background: #ff4444; border-color: #ff4444; }
+    .dot.out-on { background: #ff6633; border-color: #ff6633; }
+
+    /* Message overlay */
+    #msg-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 50; gap: 16px;
+    }
+    #msg-overlay.hidden { display: none; }
+    #msg-text {
+      font-size: 1.6rem; letter-spacing: 4px;
+      color: #ff6633; text-shadow: 0 0 20px rgba(255,102,51,0.7);
+      text-align: center;
+    }
+    #msg-sub {
+      font-size: 0.8rem; color: #888; letter-spacing: 2px; text-align: center;
+    }
+    #msg-btn {
+      background: linear-gradient(135deg, #ff6633, #cc3300);
+      border: none; border-radius: 8px; color: #fff;
+      font-family: 'Courier New', monospace; font-size: 0.9rem;
+      letter-spacing: 3px; padding: 12px 32px; cursor: pointer;
+    }
+
+    /* Pitch zone indicator */
+    #zone-bar {
+      width: 100%;
+      height: 22px;
+      background: #13131f;
+      border: 1px solid #222;
+      border-radius: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+    #zone-sweet {
+      position: absolute; top: 0; height: 100%;
+      background: rgba(0, 212, 170, 0.25);
+      border: 1px solid rgba(0,212,170,0.5);
+      border-radius: 4px;
+    }
+    #zone-cursor {
+      position: absolute; top: 0; height: 100%; width: 4px;
+      background: #ff6633;
+      border-radius: 2px;
+      transition: left 0.016s linear;
+    }
+
+    /* Rating */
+    #rating-row {
+      font-size: 0.65rem; color: #555; letter-spacing: 2px;
+    }
+    #rating-row span { color: #ffd700; }
+  </style>
+</head>
+<body>
+<button id="lang-btn">EN</button>
+<a href="index.html" id="back-btn">← ARCADE</a>
+
+<div id="game-wrap">
+  <div id="title-bar">CAP BASEBALL</div>
+
+  <!-- Scoreboard -->
+  <div id="scoreboard"></div>
+
+  <!-- Field -->
+  <canvas id="field-canvas" width="480" height="280"></canvas>
+
+  <!-- Zone bar -->
+  <div id="zone-bar">
+    <div id="zone-sweet"></div>
+    <div id="zone-cursor"></div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-group">
+      <div class="hud-label" id="lbl-inning">イニング</div>
+      <div class="hud-value" id="val-inning">1表</div>
+    </div>
+    <div class="hud-group">
+      <div class="hud-label" id="lbl-balls">ボール</div>
+      <div class="hud-dots" id="ball-dots"></div>
+    </div>
+    <div class="hud-group">
+      <div class="hud-label" id="lbl-strikes">ストライク</div>
+      <div class="hud-dots" id="strike-dots"></div>
+    </div>
+    <div class="hud-group">
+      <div class="hud-label" id="lbl-outs">アウト</div>
+      <div class="hud-dots" id="out-dots"></div>
+    </div>
+  </div>
+
+  <div id="rating-row"></div>
+</div>
+
+<!-- Overlay -->
+<div id="msg-overlay">
+  <div id="msg-text"></div>
+  <div id="msg-sub"></div>
+  <button id="msg-btn"></button>
+</div>
+
+<script>
+// ========== i18n ==========
+const LANG = {
+  ja: {
+    inning: 'イニング',
+    balls: 'ボール',
+    strikes: 'ストライク',
+    outs: 'アウト',
+    topSuffix: '表',
+    botSuffix: '裏',
+    youLabel: 'あなた',
+    cpuLabel: 'CPU',
+    totalLabel: '計',
+    startTitle: 'キャップ野球',
+    startSub: 'タイミングよくクリック（タップ）でバット！',
+    startBtn: 'プレイ開始',
+    hitHR: '🎉 ホームラン！',
+    hit3B: '🔥 3塁打！',
+    hit2B: '⚡ 2塁打！',
+    hit1B: '✅ ヒット！',
+    foul: 'ファール',
+    strike: 'ストライク！',
+    ballCall: 'ボール',
+    out: 'アウト！',
+    inningChangeSub: (t, b) => `${t}表 / ${b}裏`,
+    gameOverTitle: 'ゲーム終了',
+    youWin: 'あなたの勝ち！',
+    cpuWin: 'CPUの勝ち！',
+    draw: '引き分け！',
+    gameOverSub: (y, c) => `あなた ${y} - CPU ${c}`,
+    playAgain: 'もう一度プレイ',
+    pitching: 'ピッチング中...',
+    tapToBat: 'タイミングで バット！',
+    cpuBatting: 'CPU の打席...',
+    halfInningTop: (n) => `${n}回表 — あなたの攻撃`,
+    halfInningBot: (n) => `${n}回裏 — CPUの攻撃`,
+    threeOuts: '3アウト！チェンジ',
+    ratingLabel: 'BEST:',
+  },
+  en: {
+    inning: 'INNING',
+    balls: 'BALLS',
+    strikes: 'STRIKES',
+    outs: 'OUTS',
+    topSuffix: '▲',
+    botSuffix: '▼',
+    youLabel: 'YOU',
+    cpuLabel: 'CPU',
+    totalLabel: 'R',
+    startTitle: 'CAP BASEBALL',
+    startSub: 'Click (or tap) at the right moment to swing!',
+    startBtn: 'PLAY',
+    hitHR: '🎉 HOME RUN!',
+    hit3B: '🔥 TRIPLE!',
+    hit2B: '⚡ DOUBLE!',
+    hit1B: '✅ SINGLE!',
+    foul: 'FOUL',
+    strike: 'STRIKE!',
+    ballCall: 'BALL',
+    out: 'OUT!',
+    inningChangeSub: (t, b) => `Top ${t} / Bot ${b}`,
+    gameOverTitle: 'GAME OVER',
+    youWin: 'YOU WIN!',
+    cpuWin: 'CPU WINS!',
+    draw: 'DRAW!',
+    gameOverSub: (y, c) => `YOU ${y} - CPU ${c}`,
+    playAgain: 'PLAY AGAIN',
+    pitching: 'Pitching...',
+    tapToBat: 'Swing at the right moment!',
+    cpuBatting: 'CPU is batting...',
+    halfInningTop: (n) => `Inning ${n} Top — Your turn`,
+    halfInningBot: (n) => `Inning ${n} Bottom — CPU batting`,
+    threeOuts: '3 Outs! Change sides',
+    ratingLabel: 'BEST:',
+  }
+};
+
+let lang = localStorage.getItem('lang') || 'ja';
+function T(k, ...args) {
+  const v = (LANG[lang] || LANG.ja)[k] || (LANG.ja)[k] || k;
+  return typeof v === 'function' ? v(...args) : v;
+}
+function applyLang() {
+  document.getElementById('lang-btn').textContent = lang === 'ja' ? 'EN' : 'JA';
+  document.getElementById('lbl-inning').textContent = T('inning');
+  document.getElementById('lbl-balls').textContent = T('balls');
+  document.getElementById('lbl-strikes').textContent = T('strikes');
+  document.getElementById('lbl-outs').textContent = T('outs');
+  document.documentElement.lang = lang;
+}
+document.getElementById('lang-btn').addEventListener('click', () => {
+  lang = lang === 'ja' ? 'en' : 'ja';
+  localStorage.setItem('lang', lang);
+  applyLang();
+  renderScoreboard();
+  renderInningLabel();
+});
+
+// ========== Game State ==========
+const INNINGS = 9;
+const BASES = 4; // 0=home, 1=1B, 2=2B, 3=3B
+
+let gamePhase = 'idle'; // idle | pitching | swinging | result | cpu_batting | inning_change | gameover
+let inning = 1;          // 1-9
+let half = 0;            // 0=top(you bat), 1=bottom(cpu bats)
+let outs = 0;
+let balls = 0;
+let strikes = 0;
+let runners = [false, false, false]; // bases 1,2,3
+let scores = { you: Array(INNINGS).fill(null), cpu: Array(INNINGS).fill(null) };
+let inningScore = 0; // runs scored this half-inning
+
+// Zone bar
+let zonePos = 0;        // 0..1 current cursor position
+let zoneDir = 1;
+let zoneSpeed = 0.012;  // fraction per frame
+let sweetStart = 0.35;
+let sweetEnd = 0.65;
+let zoneAnim = null;
+
+// Cap animation
+const canvas = document.getElementById('field-canvas');
+const ctx = canvas.getContext('2d');
+let capAnim = null;
+let capT = 0; // 0..1 travel progress
+let capAngle = 0;
+let swingResult = null; // set when player swings
+let resultTimer = 0;
+let resultMsg = '';
+let resultColor = '#fff';
+
+// Diamond geometry (canvas coords)
+const W = canvas.width, H = canvas.height;
+const HOME = { x: W / 2, y: H - 44 };
+const FIRST = { x: W / 2 + 90, y: H / 2 + 10 };
+const SECOND = { x: W / 2, y: H / 2 - 68 };
+const THIRD = { x: W / 2 - 90, y: H / 2 + 10 };
+const PITCHER = { x: W / 2, y: H / 2 + 30 };
+const BASE_POS = [HOME, FIRST, SECOND, THIRD];
+
+// ========== Scoreboard ==========
+function renderScoreboard() {
+  const sb = document.getElementById('scoreboard');
+  // header row
+  let html = `<div class="sb-cell sb-label">${T('youLabel')}</div>`;
+  for (let i = 1; i <= INNINGS; i++) {
+    const active = (i === inning) ? ' sb-active' : '';
+    html += `<div class="sb-cell sb-inning-hdr${active}">${i}</div>`;
+  }
+  html += `<div class="sb-cell sb-total">${T('totalLabel')}</div>`;
+
+  // YOU row
+  html += `<div class="sb-cell sb-label">${T('youLabel')}</div>`;
+  for (let i = 1; i <= INNINGS; i++) {
+    const v = scores.you[i - 1];
+    const active = (i === inning && half === 0) ? ' sb-active' : '';
+    html += `<div class="sb-cell sb-score-you${active}">${v === null ? '-' : v}</div>`;
+  }
+  const youTotal = scores.you.reduce((s, v) => s + (v || 0), 0);
+  html += `<div class="sb-cell sb-total">${youTotal}</div>`;
+
+  // CPU row
+  html += `<div class="sb-cell sb-label">${T('cpuLabel')}</div>`;
+  for (let i = 1; i <= INNINGS; i++) {
+    const v = scores.cpu[i - 1];
+    const active = (i === inning && half === 1) ? ' sb-active' : '';
+    html += `<div class="sb-cell sb-score-cpu${active}">${v === null ? '-' : v}</div>`;
+  }
+  const cpuTotal = scores.cpu.reduce((s, v) => s + (v || 0), 0);
+  html += `<div class="sb-cell sb-total">${cpuTotal}</div>`;
+
+  sb.innerHTML = html;
+}
+
+// ========== HUD dots ==========
+function renderDots() {
+  const bd = document.getElementById('ball-dots');
+  bd.innerHTML = [0,1,2].map(i => `<div class="dot${i < balls ? ' on' : ''}"></div>`).join('');
+  const sd = document.getElementById('strike-dots');
+  sd.innerHTML = [0,1].map(i => `<div class="dot${i < strikes ? ' strike-on' : ''}"></div>`).join('');
+  const od = document.getElementById('out-dots');
+  od.innerHTML = [0,1,2].map(i => `<div class="dot${i < outs ? ' out-on' : ''}"></div>`).join('');
+}
+
+function renderInningLabel() {
+  const suffix = half === 0 ? T('topSuffix') : T('botSuffix');
+  document.getElementById('val-inning').textContent = `${inning}${suffix}`;
+}
+
+// ========== Field drawing ==========
+function drawField() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grass gradient
+  const grad = ctx.createRadialGradient(W/2, H*0.6, 30, W/2, H*0.6, 260);
+  grad.addColorStop(0, '#1a2e14');
+  grad.addColorStop(1, '#0d0d1a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Infield dirt
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(HOME.x, HOME.y);
+  ctx.lineTo(FIRST.x, FIRST.y);
+  ctx.lineTo(SECOND.x, SECOND.y);
+  ctx.lineTo(THIRD.x, THIRD.y);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(120,80,40,0.35)';
+  ctx.fill();
+  ctx.restore();
+
+  // Baselines
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(HOME.x, HOME.y);
+  ctx.lineTo(FIRST.x, FIRST.y);
+  ctx.lineTo(SECOND.x, SECOND.y);
+  ctx.lineTo(THIRD.x, THIRD.y);
+  ctx.closePath();
+  ctx.stroke();
+
+  // Pitcher's circle
+  ctx.beginPath();
+  ctx.arc(PITCHER.x, PITCHER.y, 14, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(120,80,40,0.5)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Bases
+  [[HOME, '#fff', 10], [FIRST, '#fff', 8], [SECOND, '#fff', 8], [THIRD, '#fff', 8]].forEach(([pos, col, size]) => {
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = col;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(-size/2, -size/2, size, size);
+    ctx.restore();
+  });
+
+  // Runners on bases
+  runners.forEach((occupied, i) => {
+    if (occupied) {
+      const pos = BASE_POS[i + 1];
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y - 18, 7, 0, Math.PI * 2);
+      ctx.fillStyle = '#00d4aa';
+      ctx.shadowColor = '#00d4aa';
+      ctx.shadowBlur = 10;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  });
+
+  // Batter silhouette at home
+  drawBatter(HOME.x - 22, HOME.y);
+
+  // Pitcher silhouette
+  drawPitcher(PITCHER.x, PITCHER.y - 20);
+
+  // Result message on field
+  if (resultMsg && gamePhase === 'result') {
+    ctx.save();
+    ctx.font = 'bold 24px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = resultColor;
+    ctx.shadowColor = resultColor;
+    ctx.shadowBlur = 20;
+    ctx.fillText(resultMsg, W / 2, H / 2 - 10);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  // CPU batting label
+  if (gamePhase === 'cpu_batting') {
+    ctx.save();
+    ctx.font = '14px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff6633';
+    ctx.fillText(T('cpuBatting'), W / 2, 30);
+    ctx.restore();
+  }
+
+  // Tap hint
+  if (gamePhase === 'pitching') {
+    ctx.save();
+    ctx.font = '11px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText(T('tapToBat'), W / 2, 24);
+    ctx.restore();
+  }
+}
+
+function drawBatter(x, y) {
+  ctx.save();
+  ctx.fillStyle = '#00d4aa';
+  // body
+  ctx.beginPath(); ctx.arc(x, y - 22, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.fillRect(x - 4, y - 14, 8, 14);
+  // bat
+  ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x + 4, y - 18); ctx.lineTo(x + 20, y - 32); ctx.stroke();
+  ctx.restore();
+}
+
+function drawPitcher(x, y) {
+  ctx.save();
+  ctx.fillStyle = '#ff6633';
+  ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillRect(x - 3, y + 6, 6, 12);
+  ctx.restore();
+}
+
+function drawCap(t, swung) {
+  if (gamePhase !== 'pitching' && gamePhase !== 'swinging' && !swung) return;
+  // Interpolate from pitcher to home plate
+  const sx = PITCHER.x, sy = PITCHER.y - 10;
+  const ex = HOME.x + 10, ey = HOME.y - 10;
+  // Arc: rises slightly then drops
+  const mx = (sx + ex) / 2, my = Math.min(sy, ey) - 40;
+  const bx = (1 - t) * (1 - t) * sx + 2 * (1 - t) * t * mx + t * t * ex;
+  const by = (1 - t) * (1 - t) * sy + 2 * (1 - t) * t * my + t * t * ey;
+
+  ctx.save();
+  ctx.translate(bx, by);
+  ctx.rotate(capAngle);
+  // Draw cap (circle with tab)
+  ctx.beginPath();
+  ctx.arc(0, 0, 9, 0, Math.PI * 2);
+  ctx.fillStyle = '#ff6633';
+  ctx.fill();
+  ctx.strokeStyle = '#cc3300'; ctx.lineWidth = 1.5;
+  ctx.stroke();
+  // tab
+  ctx.fillStyle = '#cc3300';
+  ctx.fillRect(-3, -11, 6, 4);
+  // button on top
+  ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.4; ctx.fill();
+  ctx.restore();
+}
+
+// ========== Zone bar ==========
+function startZoneAnimation() {
+  const sweet = document.getElementById('zone-sweet');
+  const cursor = document.getElementById('zone-cursor');
+  // Vary sweet zone size based on difficulty (innings)
+  const width = Math.max(0.12, 0.28 - inning * 0.016);
+  sweetStart = 0.5 - width / 2 + (Math.random() - 0.5) * 0.1;
+  sweetEnd = sweetStart + width;
+  sweet.style.left = (sweetStart * 100) + '%';
+  sweet.style.width = ((sweetEnd - sweetStart) * 100) + '%';
+  zonePos = Math.random();
+  zoneDir = Math.random() > 0.5 ? 1 : -1;
+  zoneSpeed = 0.010 + inning * 0.0008 + Math.random() * 0.004;
+
+  function animate() {
+    zonePos += zoneDir * zoneSpeed;
+    if (zonePos >= 1) { zonePos = 1; zoneDir = -1; }
+    if (zonePos <= 0) { zonePos = 0; zoneDir = 1; }
+    cursor.style.left = `calc(${zonePos * 100}% - 2px)`;
+    if (gamePhase === 'pitching') zoneAnim = requestAnimationFrame(animate);
+  }
+  zoneAnim = requestAnimationFrame(animate);
+}
+
+function stopZoneAnimation() {
+  if (zoneAnim) { cancelAnimationFrame(zoneAnim); zoneAnim = null; }
+}
+
+// ========== Cap animation ==========
+function startCapAnimation(onArrive) {
+  capT = 0;
+  capAngle = 0;
+  const speed = 0.022 + inning * 0.001;
+  function animate() {
+    capT += speed;
+    capAngle += 0.18;
+    drawField();
+    drawCap(Math.min(capT, 1), false);
+    if (capT < 1) {
+      capAnim = requestAnimationFrame(animate);
+    } else {
+      capAnim = null;
+      onArrive();
+    }
+  }
+  capAnim = requestAnimationFrame(animate);
+}
+
+function stopCapAnimation() {
+  if (capAnim) { cancelAnimationFrame(capAnim); capAnim = null; }
+}
+
+// ========== Swing result ==========
+function evaluateSwing() {
+  // How far from center of sweet zone?
+  const center = (sweetStart + sweetEnd) / 2;
+  const half_ = (sweetEnd - sweetStart) / 2;
+  const dist = Math.abs(zonePos - center);
+  const ratio = dist / half_; // 0=perfect, <1=in zone, >1=outside
+
+  if (ratio <= 0.25) return 'HR';
+  if (ratio <= 0.55) return '3B';
+  if (ratio <= 0.80) return '2B';
+  if (ratio <= 1.0)  return '1B';
+  if (ratio <= 1.4)  return 'FOUL';
+  return 'STRIKE';
+}
+
+function advanceRunners(bases) {
+  // bases: number of bases advanced
+  let runs = 0;
+  // Advance existing runners
+  const newRunners = [false, false, false];
+  for (let i = 2; i >= 0; i--) {
+    if (runners[i]) {
+      const newBase = i + 1 + bases;
+      if (newBase >= 3) runs++;
+      else newRunners[newBase] = true;
+    }
+  }
+  // Batter reaches base
+  if (bases >= 4) runs++;
+  else if (bases > 0) newRunners[bases - 1] = true;
+  runners = newRunners;
+  return runs;
+}
+
+function applyHit(type) {
+  let runs = 0;
+  if (type === 'HR') {
+    runs = advanceRunners(4);
+    resultMsg = T('hitHR'); resultColor = '#ffd700';
+  } else if (type === '3B') {
+    runs = advanceRunners(3);
+    resultMsg = T('hit3B'); resultColor = '#ff9933';
+  } else if (type === '2B') {
+    runs = advanceRunners(2);
+    resultMsg = T('hit2B'); resultColor = '#00d4aa';
+  } else if (type === '1B') {
+    runs = advanceRunners(1);
+    resultMsg = T('hit1B'); resultColor = '#88ff88';
+  }
+  inningScore += runs;
+  return runs;
+}
+
+// ========== Game logic ==========
+function resetCount() { balls = 0; strikes = 0; }
+function resetInningState() {
+  outs = 0; balls = 0; strikes = 0;
+  runners = [false, false, false];
+  inningScore = 0;
+}
+
+function showResult(msg, sub, delay, cb) {
+  const ov = document.getElementById('msg-overlay');
+  const mt = document.getElementById('msg-text');
+  const ms = document.getElementById('msg-sub');
+  const mb = document.getElementById('msg-btn');
+  mt.textContent = msg;
+  ms.textContent = sub || '';
+  mb.style.display = 'none';
+  ov.classList.remove('hidden');
+  setTimeout(() => {
+    ov.classList.add('hidden');
+    if (cb) cb();
+  }, delay);
+}
+
+function showPersistentOverlay(msg, sub, btnText, cb) {
+  const ov = document.getElementById('msg-overlay');
+  document.getElementById('msg-text').textContent = msg;
+  document.getElementById('msg-sub').textContent = sub || '';
+  const mb = document.getElementById('msg-btn');
+  mb.textContent = btnText;
+  mb.style.display = '';
+  ov.classList.remove('hidden');
+  mb.onclick = () => { ov.classList.add('hidden'); if (cb) cb(); };
+}
+
+// CPU batting simulation: random outcome per pitch
+function cpuAtBat(cb) {
+  gamePhase = 'cpu_batting';
+  drawField();
+
+  const outcomes = ['HR','3B','2B','1B','1B','FOUL','FOUL','STRIKE','STRIKE','STRIKE','BALL','BALL'];
+  let cpuBalls = 0, cpuStrikes = 0;
+
+  function pitch() {
+    setTimeout(() => {
+      if (gamePhase !== 'cpu_batting') return;
+      const r = outcomes[Math.floor(Math.random() * outcomes.length)];
+      if (r === 'HR' || r === '3B' || r === '2B' || r === '1B') {
+        // Hit
+        applyHit(r);
+        renderDots(); renderScoreboard();
+        drawField();
+        resetCount();
+        setTimeout(pitch, 600);
+      } else if (r === 'FOUL') {
+        if (cpuStrikes < 2) cpuStrikes++;
+        renderDots();
+        if (cpuStrikes < 2) setTimeout(pitch, 400);
+        else setTimeout(pitch, 400); // stay at 2 strikes on foul
+      } else if (r === 'STRIKE') {
+        cpuStrikes++;
+        strikes = cpuStrikes;
+        renderDots();
+        if (cpuStrikes >= 3) {
+          outs++; resetCount(); cpuStrikes = 0; cpuBalls = 0;
+          strikes = 0; balls = 0;
+          renderDots();
+          drawField();
+          if (outs >= 3) { cb(); return; }
+          setTimeout(pitch, 500);
+        } else setTimeout(pitch, 400);
+      } else { // BALL
+        cpuBalls++;
+        balls = cpuBalls;
+        renderDots();
+        if (cpuBalls >= 4) {
+          // walk
+          const runs = advanceRunners(1);
+          inningScore += runs;
+          resetCount(); cpuBalls = 0; cpuStrikes = 0;
+          balls = 0; strikes = 0;
+          renderScoreboard(); drawField();
+          setTimeout(pitch, 400);
+        } else setTimeout(pitch, 400);
+      }
+    }, 400);
+  }
+  pitch();
+}
+
+function endHalfInning() {
+  // Record score
+  if (half === 0) {
+    scores.you[inning - 1] = inningScore;
+  } else {
+    scores.cpu[inning - 1] = inningScore;
+  }
+  resetInningState();
+  renderScoreboard(); renderDots();
+
+  // Check for mercy rule or game end
+  if (half === 1) {
+    // End of full inning
+    if (inning >= INNINGS) {
+      endGame();
+      return;
+    }
+    inning++;
+  }
+  half = 1 - half;
+  renderInningLabel();
+
+  const msg = half === 0 ? T('halfInningTop', inning) : T('halfInningBot', inning);
+  showResult(T('threeOuts'), msg, 1800, () => {
+    renderScoreboard();
+    startHalf();
+  });
+}
+
+function endGame() {
+  gamePhase = 'gameover';
+  stopZoneAnimation(); stopCapAnimation();
+  const youTotal = scores.you.reduce((s, v) => s + (v || 0), 0);
+  const cpuTotal = scores.cpu.reduce((s, v) => s + (v || 0), 0);
+  let result;
+  if (youTotal > cpuTotal) result = T('youWin');
+  else if (cpuTotal > youTotal) result = T('cpuWin');
+  else result = T('draw');
+
+  // Save best score
+  const prev = parseInt(localStorage.getItem('capbb_best') || '0', 10);
+  if (youTotal > prev) localStorage.setItem('capbb_best', String(youTotal));
+  renderRating();
+
+  showPersistentOverlay(
+    T('gameOverTitle'),
+    result + '\n' + T('gameOverSub', youTotal, cpuTotal),
+    T('playAgain'),
+    initGame
+  );
+}
+
+function startHalf() {
+  renderInningLabel();
+  renderDots();
+  drawField();
+  if (half === 0) {
+    startYourBatting();
+  } else {
+    cpuAtBat(() => {
+      endHalfInning();
+    });
+  }
+}
+
+function startYourBatting() {
+  gamePhase = 'pitching';
+  balls = 0; strikes = 0;
+  renderDots();
+  startZoneAnimation();
+  startPitch();
+}
+
+function startPitch() {
+  if (gamePhase !== 'pitching') return;
+  // Animate cap from pitcher to home
+  startCapAnimation(() => {
+    if (gamePhase !== 'pitching') return;
+    // Cap arrived without swing — automatic strike or ball?
+    // If in strike zone, it's a called strike; else ball
+    stopZoneAnimation();
+    const center = (sweetStart + sweetEnd) / 2;
+    const half_ = (sweetEnd - sweetStart) / 2;
+    const dist = Math.abs(zonePos - center);
+    if (dist <= half_ * 1.5) {
+      // Called strike
+      resultMsg = T('strike'); resultColor = '#ff4444';
+      strikes++;
+      renderDots();
+      drawField();
+      if (strikes >= 3) {
+        outs++;
+        resetCount();
+        drawField();
+        setTimeout(() => {
+          if (outs >= 3) { endHalfInning(); return; }
+          startZoneAnimation(); startPitch();
+        }, 700);
+      } else {
+        setTimeout(() => { startZoneAnimation(); startPitch(); }, 700);
+      }
+    } else {
+      resultMsg = T('ballCall'); resultColor = '#aaa';
+      balls++;
+      renderDots();
+      drawField();
+      if (balls >= 4) {
+        // Walk
+        const runs = advanceRunners(1);
+        inningScore += runs;
+        resetCount();
+        renderScoreboard(); drawField();
+        setTimeout(() => { startZoneAnimation(); startPitch(); }, 700);
+      } else {
+        setTimeout(() => { startZoneAnimation(); startPitch(); }, 700);
+      }
+    }
+  });
+}
+
+function playerSwing() {
+  if (gamePhase !== 'pitching') return;
+  gamePhase = 'swinging';
+  stopZoneAnimation();
+  stopCapAnimation();
+
+  const type = evaluateSwing();
+  resultMsg = '';
+
+  if (type === 'FOUL') {
+    resultMsg = T('foul'); resultColor = '#ffaa00';
+    if (strikes < 2) strikes++;
+    renderDots(); drawField();
+    gamePhase = 'result';
+    setTimeout(() => {
+      gamePhase = 'pitching';
+      startZoneAnimation(); startPitch();
+    }, 800);
+    return;
+  }
+  if (type === 'STRIKE') {
+    resultMsg = T('strike'); resultColor = '#ff4444';
+    strikes++;
+    renderDots(); drawField();
+    gamePhase = 'result';
+    setTimeout(() => {
+      if (strikes >= 3) {
+        outs++;
+        resetCount(); drawField();
+        if (outs >= 3) { endHalfInning(); return; }
+        gamePhase = 'pitching';
+        startZoneAnimation(); startPitch();
+      } else {
+        gamePhase = 'pitching';
+        startZoneAnimation(); startPitch();
+      }
+    }, 800);
+    return;
+  }
+
+  // Hit!
+  applyHit(type);
+  resetCount();
+  renderScoreboard(); renderDots();
+  drawField();
+  gamePhase = 'result';
+  setTimeout(() => {
+    resultMsg = '';
+    gamePhase = 'pitching';
+    drawField();
+    startZoneAnimation(); startPitch();
+  }, 1200);
+}
+
+// ========== Rating display ==========
+function renderRating() {
+  const best = localStorage.getItem('capbb_best') || '0';
+  document.getElementById('rating-row').innerHTML =
+    `${T('ratingLabel')} <span>${best}</span> pts`;
+}
+
+// ========== Init ==========
+function initGame() {
+  inning = 1; half = 0;
+  scores = { you: Array(INNINGS).fill(null), cpu: Array(INNINGS).fill(null) };
+  resetInningState();
+  applyLang();
+  renderScoreboard();
+  renderInningLabel();
+  renderDots();
+  renderRating();
+  drawField();
+
+  showPersistentOverlay(
+    T('startTitle'),
+    T('startSub'),
+    T('startBtn'),
+    () => {
+      startHalf();
+    }
+  );
+}
+
+// ========== Input ==========
+canvas.addEventListener('click', playerSwing);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); playerSwing(); }, { passive: false });
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); playerSwing(); }
+});
+
+// ========== Start ==========
+// Adjust canvas size for mobile
+function resizeCanvas() {
+  const maxW = Math.min(480, window.innerWidth - 24);
+  const scale = maxW / 480;
+  canvas.style.width = maxW + 'px';
+  canvas.style.height = Math.round(280 * scale) + 'px';
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+initGame();
+</script>
+</body>
+</html>
