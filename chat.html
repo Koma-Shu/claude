@@ -21,7 +21,7 @@
     #search-wrap{padding:10px 12px;border-bottom:1px solid #1a1a2a;}
     #conv-search{width:100%;background:#0d0d1a;border:1px solid #222;border-radius:4px;padding:6px 8px;color:#eee;font-family:'Courier New',monospace;font-size:0.72rem;outline:none;}
     #conv-search:focus{border-color:#00d4aa;}
-    #conv-list{flex:1;overflow-y:auto;}
+    #dm-list,#group-list{flex:1;overflow-y:auto;}
     .conv-item{padding:12px 14px;cursor:pointer;border-bottom:1px solid #1a1a2a;transition:background 0.1s;display:flex;flex-direction:column;gap:3px;}
     .conv-item:hover{background:#1a1a2a;}
     .conv-item.active{background:#1e2e2e;border-left:2px solid #00d4aa;}
@@ -92,8 +92,9 @@
     <div id="search-wrap">
       <input type="text" id="conv-search" placeholder="Search…">
     </div>
-    <div id="conv-list"></div>
-    <button id="create-group-btn" style="display:none" id="cgb"></button>
+    <div id="dm-list" style="flex:1;overflow-y:auto"></div>
+    <div id="group-list" style="flex:1;overflow-y:auto;display:none"></div>
+    <button id="create-group-btn" style="display:none"></button>
   </div>
   <div id="chat-area">
     <div id="chat-header" style="display:none">
@@ -192,32 +193,39 @@ if(!me){
       document.getElementById('no-chat').textContent=T('noChat');
       document.getElementById('messages').innerHTML=`<div class="empty-msg">${T('noChat')}</div>`;
       document.getElementById('create-group-btn').style.display=currentTab==='group'?'':'none';
-      renderConvList();
+      document.getElementById('dm-list').style.display=currentTab==='dm'?'':'none';
+      document.getElementById('group-list').style.display=currentTab==='group'?'':'none';
+      if(currentTab==='dm') loadFriends();
+      else                  loadGroups();
     });
   });
 
-  document.getElementById('conv-search').addEventListener('input',()=>renderConvList());
+  document.getElementById('conv-search').addEventListener('input',()=>{if(currentTab==='dm')renderDmList();else renderGroupList();});
 
-  async function loadAll(){
-    // Load friends
-    const frows=await sb(`/rest/v1/friends?or=(requester_id.eq.${me.id},addressee_id.eq.${me.id})&status=eq.accepted&select=id,requester_id,addressee_id`)||[];
-    const friendIds=frows.map(f=>f.requester_id===me.id?f.addressee_id:f.requester_id);
+  async function loadFriends(){
+    const [sent,recv]=await Promise.all([
+      sb(`/rest/v1/friends?requester_id=eq.${me.id}&status=eq.accepted&select=addressee_id`),
+      sb(`/rest/v1/friends?addressee_id=eq.${me.id}&status=eq.accepted&select=requester_id`)
+    ]);
+    const friendIds=[...(sent||[]).map(r=>r.addressee_id),...(recv||[]).map(r=>r.requester_id)];
     if(friendIds.length>0){
-      const ids=friendIds.map(id=>`id.eq.${id}`).join(',');
-      const users=await sb(`/rest/v1/users?or=(${ids})&select=id,username,full_name`)||[];
-      friends=users;
+      const ids=friendIds.join(',');
+      friends=await sb(`/rest/v1/users?id=in.(${ids})&select=id,username,full_name`)||[];
     }else{friends=[];}
+    renderDmList();
+  }
 
-    // Load groups I'm in
+  async function loadGroups(){
     const gmRows=await sb(`/rest/v1/group_members?user_id=eq.${me.id}&select=group_id`)||[];
     if(gmRows.length>0){
-      const gids=gmRows.map(r=>`id.eq.${r.group_id}`).join(',');
-      groups=await sb(`/rest/v1/group_chats?or=(${gids})&select=id,name,created_by&order=created_at.desc`)||[];
+      const gids=gmRows.map(r=>r.group_id).join(',');
+      groups=await sb(`/rest/v1/group_chats?id=in.(${gids})&select=id,name,created_by&order=created_at.desc`)||[];
     }else{groups=[];}
+    renderGroupList();
+  }
 
-    renderConvList();
-
-    // Auto-open from URL param
+  async function loadAll(){
+    await Promise.all([loadFriends(),loadGroups()]);
     const params=new URLSearchParams(location.search);
     const targetUser=params.get('user');
     if(targetUser){
@@ -226,31 +234,34 @@ if(!me){
     }
   }
 
-  function renderConvList(){
+  function renderDmList(){
     const q=document.getElementById('conv-search').value.toLowerCase();
-    const list=document.getElementById('conv-list');
+    const list=document.getElementById('dm-list');
     list.innerHTML='';
-    if(currentTab==='dm'){
-      const filtered=friends.filter(u=>u.username.toLowerCase().includes(q)||(u.full_name||'').toLowerCase().includes(q));
-      if(filtered.length===0){list.innerHTML=`<div style="padding:14px;color:#333;font-size:0.7rem;text-align:center">${T('noFriends')}</div>`;return;}
-      filtered.forEach(u=>{
-        const div=document.createElement('div');
-        div.className='conv-item'+(selectedConv&&selectedConv.type==='dm'&&selectedConv.user.id===u.id?' active':'');
-        div.innerHTML=`<div class="conv-name">@${esc(u.username)}</div><div class="conv-preview">${esc(u.full_name||'')}</div>`;
-        div.addEventListener('click',()=>openDm(u));
-        list.appendChild(div);
-      });
-    }else{
-      const filtered=groups.filter(g=>g.name.toLowerCase().includes(q));
-      if(filtered.length===0){list.innerHTML=`<div style="padding:14px;color:#333;font-size:0.7rem;text-align:center">${T('noChat')}</div>`;return;}
-      filtered.forEach(g=>{
-        const div=document.createElement('div');
-        div.className='conv-item'+(selectedConv&&selectedConv.type==='group'&&selectedConv.group.id===g.id?' active':'');
-        div.innerHTML=`<div class="conv-name">${esc(g.name)}</div><div class="conv-type-badge">GROUP</div>`;
-        div.addEventListener('click',()=>openGroup(g));
-        list.appendChild(div);
-      });
-    }
+    const filtered=friends.filter(u=>u.username.toLowerCase().includes(q)||(u.full_name||'').toLowerCase().includes(q));
+    if(filtered.length===0){list.innerHTML=`<div style="padding:14px;color:#333;font-size:0.7rem;text-align:center">${T('noFriends')}</div>`;return;}
+    filtered.forEach(u=>{
+      const div=document.createElement('div');
+      div.className='conv-item'+(selectedConv&&selectedConv.type==='dm'&&selectedConv.user.id===u.id?' active':'');
+      div.innerHTML=`<div class="conv-name">@${esc(u.username)}</div><div class="conv-preview">${esc(u.full_name||'')}</div>`;
+      div.addEventListener('click',()=>openDm(u));
+      list.appendChild(div);
+    });
+  }
+
+  function renderGroupList(){
+    const q=document.getElementById('conv-search').value.toLowerCase();
+    const list=document.getElementById('group-list');
+    list.innerHTML='';
+    const filtered=groups.filter(g=>g.name.toLowerCase().includes(q));
+    if(filtered.length===0){list.innerHTML=`<div style="padding:14px;color:#333;font-size:0.7rem;text-align:center">${T('noChat')}</div>`;return;}
+    filtered.forEach(g=>{
+      const div=document.createElement('div');
+      div.className='conv-item'+(selectedConv&&selectedConv.type==='group'&&selectedConv.group.id===g.id?' active':'');
+      div.innerHTML=`<div class="conv-name">${esc(g.name)}</div><div class="conv-type-badge">GROUP</div>`;
+      div.addEventListener('click',()=>openGroup(g));
+      list.appendChild(div);
+    });
   }
 
   function openDm(user){
@@ -259,7 +270,7 @@ if(!me){
     document.getElementById('chat-type-label').textContent=T('dmLabel');
     document.getElementById('chat-header').style.display='flex';
     document.getElementById('input-wrap').style.display='flex';
-    renderConvList();
+    renderDmList();
     loadMessages();
     if(pollTimer)clearInterval(pollTimer);
     pollTimer=setInterval(loadMessages,3000);
@@ -271,7 +282,7 @@ if(!me){
     document.getElementById('chat-type-label').textContent=T('groupLabel');
     document.getElementById('chat-header').style.display='flex';
     document.getElementById('input-wrap').style.display='flex';
-    renderConvList();
+    renderGroupList();
     loadMessages();
     if(pollTimer)clearInterval(pollTimer);
     pollTimer=setInterval(loadMessages,3000);
