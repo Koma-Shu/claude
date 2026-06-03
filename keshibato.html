@@ -51,14 +51,18 @@ label{font-size:.85rem;color:#888}
 .score-tbl{border-collapse:collapse;width:100%;max-width:320px;margin:4px 0}
 .score-tbl th{padding:5px 14px;text-align:center;color:#555;font-size:.8rem;font-weight:normal;border-bottom:1px solid #222}
 .score-tbl td{padding:6px 14px;text-align:center;font-size:.9rem}
-/* lang */
+/* lang / back */
 #lang-btn{position:fixed;top:10px;right:10px;background:#1e1e30;border:1px solid #334;
   color:#aaa;padding:4px 11px;border-radius:5px;cursor:pointer;font-size:.75rem;z-index:200}
+#back-btn{position:fixed;top:10px;left:10px;background:#1e1e30;border:1px solid #334;
+  color:#aaa;padding:4px 11px;border-radius:5px;text-decoration:none;font-size:.75rem;z-index:200}
+#back-btn:hover{background:#2a2a42;color:#fff}
 .sep{color:#334;font-size:.8rem}
 .hint{font-size:.8rem;color:#556;text-align:center}
 </style>
 </head>
 <body>
+<a href="index.html" id="back-btn">← ARCADE</a>
 <button id="lang-btn">EN</button>
 
 <!-- ── TITLE ── -->
@@ -80,6 +84,12 @@ label{font-size:.85rem;color:#888}
     <label data-i="player_count">プレイヤー数：</label>
     <select id="sel-count" onchange="NUM_PLAYERS=+this.value">
       <option value="2">2</option><option value="3">3</option><option value="4">4</option>
+    </select>
+  </div>
+  <div>
+    <label data-i="eraser_count">消しゴム数/人：</label>
+    <select id="sel-erasers">
+      <option value="1">1</option><option value="2">2</option><option value="3">3</option>
     </select>
   </div>
   <div>
@@ -122,6 +132,8 @@ label{font-size:.85rem;color:#888}
     </div>
     <div id="lobby-list" style="display:flex;flex-direction:column;gap:6px"></div>
     <div id="ol-host-opts" style="display:none;flex-direction:column;align-items:center;gap:8px">
+      <div><label data-i="eraser_count">消しゴム数/人：</label>
+      <select id="sel-erasers-ol"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
       <div><label data-i="rounds_label">ラウンド数：</label>
       <select id="sel-rounds-ol"><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option></select></div>
       <button class="btn btn-primary" id="ol-start-btn" onclick="startOnlineGame()" disabled data-i="start_game">ゲーム開始</button>
@@ -160,6 +172,7 @@ ja:{
   vs_cpu:'1P vs CPU', local_play:'ローカル対戦', online_play:'オンライン対戦',
   title_hint:'消しゴムをドラッグして相手を場外へ弾き出せ！',
   setup_title:'ゲーム設定', player_count:'プレイヤー数：', rounds_label:'ラウンド数：',
+  eraser_count:'消しゴム数/人：', eraser_label:'個',
   start:'スタート', back:'戻る',
   online_title:'オンライン対戦', your_name:'あなたの名前：',
   create_room:'部屋を作る', join_room:'部屋に入る',
@@ -182,12 +195,15 @@ ja:{
   wins_col:'勝利',
   host:'ホスト',
   need_2:'2人以上で開始できます',
+  code_short:'コードは4文字で入力してください',
+  room_full:'部屋が満員です',
 },
 en:{
   title:'Eraser Battle', subtitle:'Keshi-Bato',
   vs_cpu:'1P vs CPU', local_play:'Local Play', online_play:'Online Play',
   title_hint:'Drag your eraser to knock opponents off the field!',
   setup_title:'Game Setup', player_count:'Players:', rounds_label:'Rounds:',
+  eraser_count:'Erasers/player:', eraser_label:'',
   start:'Start', back:'Back',
   online_title:'Online Play', your_name:'Your Name:',
   create_room:'Create Room', join_room:'Join Room',
@@ -210,6 +226,8 @@ en:{
   wins_col:'Wins',
   host:'HOST',
   need_2:'Need at least 2 players',
+  code_short:'Code must be 4 characters',
+  room_full:'Room is full',
 },
 };
 let lang=localStorage.getItem('lang')||'ja';
@@ -245,16 +263,24 @@ const PC=['#e84040','#3b82f6','#22c55e','#f59e0b'];       // player colors
 const PD=['#7f1d1d','#1e3a8a','#14532d','#78350f'];       // dark variants
 const PL=['#fca5a5','#93c5fd','#86efac','#fde68a'];       // light variants
 
+// Starting offsets for multiple erasers per player
+const ER_OFFSETS=[
+  [[0,0]],
+  [[-24,0],[24,0]],
+  [[-24,-18],[24,-18],[0,20]],
+];
+
 // ═══════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════
 let MODE='cpu';          // 'cpu'|'local'|'online'
 let NUM_PLAYERS=2;
 let TOTAL_ROUNDS=3;
+let ERASERS_PER=1;       // 1|2|3 erasers per player
 let IS_HOST=false;
 let LOCAL_IDX=0;         // which player index I control (online)
 let playerNames=[];
-let erasers=[];
+let erasers=[];          // [{x,y,vx,vy,angle,av,alive,player}]
 let cur=0;               // index of current player
 let phase='aiming';      // 'aiming'|'sliding'|'roundend'|'gameend'
 let roundNum=1;
@@ -306,7 +332,6 @@ function createRoom(){
     conn.on('close',()=>{
       lobbySlots=lobbySlots.filter(s=>s.peerId!==conn.peer);
       guestConns=guestConns.filter(c=>c!==conn);
-      // re-index
       lobbySlots.forEach((s,i)=>s.idx=i);
       updateLobbyUI(); broadcastLobby(); updateOnlineStartBtn();
     });
@@ -322,7 +347,7 @@ function showJoin(){
 
 function joinRoom(){
   const code=(document.getElementById('join-code').value||'').trim().toUpperCase();
-  if(code.length<4){setOlMsg('Code must be 4 chars');return;}
+  if(code.length<4){setOlMsg(T('code_short'));return;}
   const hostId=`kb-${code}`;
   const myName=(document.getElementById('ol-name').value.trim()||T('player_n',2)).slice(0,10);
   IS_HOST=false;
@@ -364,14 +389,15 @@ function hostReceive(conn,d){
     if(s){s.name=d.name||s.name;}
     updateLobbyUI(); broadcastLobby();
   }
-  if(d.type==='flick' && phase==='aiming' && d.pIdx===cur){
-    doFlick(d.angle,d.power,cur);
+  if(d.type==='flick'&&phase==='aiming'&&d.erIdx!=null){
+    const er=erasers[d.erIdx];
+    if(er?.player===cur) doFlick(d.angle,d.power,d.erIdx);
   }
 }
 
 function guestReceive(d){
   if(IS_HOST) return;
-  if(d.type==='full'){setOlMsg('Room full');return;}
+  if(d.type==='full'){setOlMsg(T('room_full'));return;}
   if(d.type==='lobby'){
     lobbySlots=d.slots;
     LOCAL_IDX=lobbySlots.findIndex(s=>s.peerId===myPeerId);
@@ -380,6 +406,7 @@ function guestReceive(d){
   }
   if(d.type==='start'){
     NUM_PLAYERS=d.n; TOTAL_ROUNDS=d.rounds; playerNames=d.names;
+    ERASERS_PER=d.erasersPerPlayer||1;
     roundNum=1; roundWins=[0,0,0,0];
     initRound(d.state);
     showScreen('scr-game');
@@ -420,10 +447,11 @@ function startOnlineGame(){
   if(!IS_HOST||lobbySlots.length<2) return;
   NUM_PLAYERS=lobbySlots.length;
   TOTAL_ROUNDS=parseInt(document.getElementById('sel-rounds-ol').value)||3;
+  ERASERS_PER=parseInt(document.getElementById('sel-erasers-ol').value)||1;
   playerNames=lobbySlots.map((s,i)=>s.name||T('player_n',i+1));
   roundNum=1; roundWins=[0,0,0,0];
   const state=buildState();
-  sendToAll({type:'start',n:NUM_PLAYERS,rounds:TOTAL_ROUNDS,names:playerNames,state});
+  sendToAll({type:'start',n:NUM_PLAYERS,rounds:TOTAL_ROUNDS,erasersPerPlayer:ERASERS_PER,names:playerNames,state});
   initRound(state);
   showScreen('scr-game');
 }
@@ -473,9 +501,15 @@ function startPositions(){
 }
 
 function buildState(){
-  return startPositions().map((p,i)=>({
-    x:p.x,y:p.y,vx:0,vy:0,angle:0,av:0,alive:true,player:i
-  }));
+  const bases=startPositions();
+  const offsets=ER_OFFSETS[ERASERS_PER-1]||ER_OFFSETS[0];
+  const state=[];
+  bases.forEach((b,pi)=>{
+    offsets.forEach(([ox,oy])=>{
+      state.push({x:b.x+ox,y:b.y+oy,vx:0,vy:0,angle:0,av:0,alive:true,player:pi});
+    });
+  });
+  return state;
 }
 
 function initRound(state){
@@ -484,6 +518,8 @@ function initRound(state){
   setGameMsg(''); updateTurnBanner(); render();
 }
 
+function isPlayerAlive(pi){return erasers.some(e=>e.alive&&e.player===pi);}
+
 function isMyTurn(){
   if(MODE==='cpu') return cur===0;
   if(MODE==='local') return true;
@@ -491,19 +527,19 @@ function isMyTurn(){
 }
 
 function advanceTurn(){
-  const alive=erasers.filter(e=>e.alive);
-  if(alive.length<=1){endRound(alive[0]?.player??-1);return;}
+  const alivePlayers=[...new Set(erasers.filter(e=>e.alive).map(e=>e.player))];
+  if(alivePlayers.length<=1){endRound(alivePlayers[0]??-1);return;}
   let next=(cur+1)%NUM_PLAYERS, tries=0;
-  while(!erasers[next]?.alive&&tries<NUM_PLAYERS){next=(next+1)%NUM_PLAYERS;tries++;}
+  while(!isPlayerAlive(next)&&tries<NUM_PLAYERS){next=(next+1)%NUM_PLAYERS;tries++;}
   cur=next; phase='aiming'; updateTurnBanner(); render();
   if(MODE==='online'&&IS_HOST) broadcastState();
   if(MODE==='cpu'&&cur>0) setTimeout(cpuTurn,700+Math.random()*400);
 }
 
-function doFlick(angle,power,pIdx){
+function doFlick(angle,power,erIdx){
   if(phase!=='aiming') return;
-  const e=erasers[pIdx];
-  if(!e?.alive) return;
+  const e=erasers[erIdx];
+  if(!e?.alive||e.player!==cur) return;
   const spd=Math.max(0.1,power)*MAX_SPD;
   e.vx=Math.cos(angle)*spd; e.vy=Math.sin(angle)*spd;
   e.av=(Math.random()-.5)*.06*(power*2+1);
@@ -580,14 +616,12 @@ function stepPhysics(){
     e.angle+=e.av;
     e.vx*=FRIC; e.vy*=FRIC; e.av*=0.92;
     if(Math.hypot(e.vx,e.vy)<MIN_V){e.vx=0;e.vy=0;}
-    // off field?
     if(e.x<FX-ER_R||e.x>FX+FW+ER_R||e.y<FY-ER_R||e.y>FY+FH+ER_R){
       e.alive=false; e.vx=0; e.vy=0;
       lastFellMsg=T('fell',playerNames[e.player]);
       setGameMsg(lastFellMsg);
     }
   }
-  // collisions
   for(let i=0;i<erasers.length;i++){
     for(let j=i+1;j<erasers.length;j++){
       if(!erasers[i].alive||!erasers[j].alive) continue;
@@ -609,7 +643,6 @@ function collide(a,b){
   const imp=(1+REST)*vn/2;
   a.vx+=imp*nx; a.vy+=imp*ny;
   b.vx-=imp*nx; b.vy-=imp*ny;
-  // add a bit of angular spin from collision
   a.av+=(ny*imp)*.04; b.av-=(ny*imp)*.04;
 }
 
@@ -618,27 +651,29 @@ function collide(a,b){
 // ═══════════════════════════════════════════════════
 function cpuTurn(){
   if(phase!=='aiming'||cur===0) return;
-  const me=erasers[cur];
-  if(!me?.alive) return;
-  let target=null, tDist=Infinity;
-  for(const e of erasers){
-    if(!e.alive||e.player===cur) continue;
-    const d=Math.hypot(e.x-me.x,e.y-me.y);
-    if(d<tDist){tDist=d;target=e;}
+  // Find my best eraser (nearest to any enemy)
+  const myErasers=erasers.map((e,i)=>({...e,i})).filter(e=>e.alive&&e.player===cur);
+  if(!myErasers.length) return;
+  let target=null, tDist=Infinity, bestMyIdx=myErasers[0].i;
+  for(const me of myErasers){
+    for(const e of erasers){
+      if(!e.alive||e.player===cur) continue;
+      const d=Math.hypot(e.x-me.x,e.y-me.y);
+      if(d<tDist){tDist=d;target=e;bestMyIdx=me.i;}
+    }
   }
+  const me=erasers[bestMyIdx];
   let angle,power;
   if(target){
-    // Aim to push target toward nearest edge — add noise
     const baseAngle=Math.atan2(target.y-me.y,target.x-me.x);
     angle=baseAngle+(Math.random()-.5)*.38;
-    // Power: strong enough to reach target
     power=Math.min(1,tDist/(FW*.48)+.2)+(Math.random()-.5)*.22;
     power=Math.max(.3,Math.min(1,power));
   } else {
     angle=Math.random()*Math.PI*2;
     power=.5+Math.random()*.4;
   }
-  doFlick(angle,power,cur);
+  doFlick(angle,power,bestMyIdx);
 }
 
 // ═══════════════════════════════════════════════════
@@ -656,11 +691,9 @@ function render(){
 }
 
 function drawTable(){
-  // Desk surface
   const bg=ctx.createLinearGradient(0,0,0,CH);
   bg.addColorStop(0,'#c9a96e'); bg.addColorStop(1,'#b08040');
   ctx.fillStyle=bg; ctx.fillRect(0,0,CW,CH);
-  // Wood grain
   ctx.save(); ctx.strokeStyle='rgba(0,0,0,.06)'; ctx.lineWidth=1.2;
   for(let i=0;i<18;i++){
     const y=i*(CH/17)+Math.sin(i*.9+1)*5;
@@ -668,32 +701,26 @@ function drawTable(){
   }
   ctx.restore();
 
-  // Field shadow
   ctx.shadowColor='rgba(0,0,0,.4)'; ctx.shadowBlur=14; ctx.shadowOffsetX=4; ctx.shadowOffsetY=4;
   ctx.fillStyle='#1e4d1e'; ctx.fillRect(FX-3,FY-3,FW+6,FH+6);
   ctx.shadowBlur=0; ctx.shadowOffsetX=0; ctx.shadowOffsetY=0;
 
-  // Felt surface gradient
   const felt=ctx.createLinearGradient(FX,FY,FX+FW,FY+FH);
   felt.addColorStop(0,'#2e7d2e'); felt.addColorStop(.5,'#388e38'); felt.addColorStop(1,'#2c7a2c');
   ctx.fillStyle=felt; ctx.fillRect(FX,FY,FW,FH);
 
-  // Subtle felt texture lines
   ctx.strokeStyle='rgba(255,255,255,.035)'; ctx.lineWidth=1;
   for(let x=FX+36;x<FX+FW;x+=36){ctx.beginPath();ctx.moveTo(x,FY);ctx.lineTo(x,FY+FH);ctx.stroke();}
   for(let y=FY+36;y<FY+FH;y+=36){ctx.beginPath();ctx.moveTo(FX,y);ctx.lineTo(FX+FW,y);ctx.stroke();}
 
-  // Center cross mark
   ctx.strokeStyle='rgba(255,255,255,.1)'; ctx.lineWidth=1.5;
   const cx2=FX+FW/2, cy2=FY+FH/2;
   ctx.beginPath(); ctx.moveTo(cx2-20,cy2); ctx.lineTo(cx2+20,cy2); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(cx2,cy2-20); ctx.lineTo(cx2,cy2+20); ctx.stroke();
   ctx.beginPath(); ctx.arc(cx2,cy2,32,0,Math.PI*2); ctx.stroke();
 
-  // Field border (bright edge)
   ctx.strokeStyle='rgba(255,255,255,.28)'; ctx.lineWidth=2;
   ctx.strokeRect(FX,FY,FW,FH);
-  // Danger edge (red tint)
   ctx.strokeStyle='rgba(255,80,80,.25)'; ctx.lineWidth=5;
   ctx.strokeRect(FX+2,FY+2,FW-4,FH-4);
 }
@@ -706,40 +733,33 @@ function drawErasers(){
     ctx.rotate(e.angle);
     const hw=ER_W/2, hh=ER_H/2;
 
-    // Shadow
     ctx.shadowColor='rgba(0,0,0,.5)'; ctx.shadowBlur=7;
     ctx.shadowOffsetX=3; ctx.shadowOffsetY=3;
 
-    // Body
     ctx.fillStyle=PC[e.player];
     ctx.beginPath(); ctx.roundRect(-hw,-hh,ER_W,ER_H,4); ctx.fill();
     ctx.shadowBlur=0; ctx.shadowOffsetX=0; ctx.shadowOffsetY=0;
 
-    // Bottom thickness strip (3-D feel)
     ctx.fillStyle=PD[e.player];
     ctx.beginPath(); ctx.roundRect(-hw+2,hh-5,ER_W-4,5,[0,0,4,4]); ctx.fill();
 
-    // Top highlight
     const hl=ctx.createLinearGradient(0,-hh,0,-hh+ER_H*.45);
     hl.addColorStop(0,'rgba(255,255,255,.48)'); hl.addColorStop(1,'rgba(255,255,255,0)');
     ctx.fillStyle=hl;
     ctx.beginPath(); ctx.roundRect(-hw,-hh,ER_W,ER_H*.48,[4,4,0,0]); ctx.fill();
 
-    // Horizontal stripe line (eraser brand look)
     ctx.strokeStyle='rgba(255,255,255,.2)'; ctx.lineWidth=.9;
     ctx.beginPath(); ctx.moveTo(-hw+5,1.5); ctx.lineTo(hw-5,1.5); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(-hw+5,-1.5); ctx.lineTo(hw-5,-1.5); ctx.stroke();
 
-    // Outline
     ctx.strokeStyle=PD[e.player]; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(-hw,-hh,ER_W,ER_H,4); ctx.stroke();
 
-    // Player label
     ctx.fillStyle='rgba(0,0,0,.65)';
     ctx.font='bold 11px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(playerNames[e.player]?.slice(0,4)||T('player_n',e.player+1),0,0);
 
-    // Active glow ring
+    // Active glow ring for all erasers of current player
     if(e.player===cur&&phase==='aiming'){
       ctx.strokeStyle=isMyTurn()?'#ffd700':'rgba(255,255,255,.45)';
       ctx.lineWidth=2;
@@ -765,25 +785,21 @@ function drawAim(){
   const lx=e.x-Math.cos(ang)*launchLen, ly=e.y-Math.sin(ang)*launchLen;
 
   ctx.save();
-  // Trajectory dashes
   ctx.strokeStyle=`rgba(255,210,0,${.45+pow*.45})`; ctx.lineWidth=2.5;
   ctx.setLineDash([6,5]);
   ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(lx,ly); ctx.stroke();
   ctx.setLineDash([]);
 
-  // Arrow head
   ctx.save();
   ctx.translate(lx,ly); ctx.rotate(ang+Math.PI);
   ctx.fillStyle='rgba(255,210,0,.92)';
   ctx.beginPath(); ctx.moveTo(0,-6); ctx.lineTo(10,0); ctx.lineTo(0,6);
   ctx.closePath(); ctx.fill(); ctx.restore();
 
-  // Guide line back to cursor (faint)
   ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.lineWidth=1; ctx.setLineDash([3,5]);
   ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(drag.cx,drag.cy); ctx.stroke();
   ctx.setLineDash([]);
 
-  // Power bar
   const bw=52,bh=6,bx=e.x-bw/2,by=e.y+ER_H/2+9;
   ctx.fillStyle='rgba(0,0,0,.5)';
   ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,3); ctx.fill();
@@ -794,12 +810,12 @@ function drawAim(){
 }
 
 function drawHUD(){
-  // Score chips
   const cw=Math.min(72,(CW-20)/NUM_PLAYERS-6), ch=22, gap=5;
   const total=(cw+gap)*NUM_PLAYERS-gap;
   let sx=(CW-total)/2;
   for(let i=0;i<NUM_PLAYERS;i++){
-    const alive=erasers[i]?.alive!==false;
+    const aliveCount=erasers.filter(e=>e.alive&&e.player===i).length;
+    const alive=aliveCount>0;
     ctx.save();
     ctx.globalAlpha=alive?.97:.38;
     ctx.fillStyle=PD[i]; ctx.beginPath(); ctx.roundRect(sx,4,cw,ch,4); ctx.fill();
@@ -809,11 +825,11 @@ function drawHUD(){
     ctx.fillStyle='#fff'; ctx.font=`bold ${Math.min(10,cw*.16)}px Arial`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     const nm=(playerNames[i]||T('player_n',i+1)).slice(0,5);
-    ctx.fillText(`${nm} ★${roundWins[i]}`,sx+cw/2,4+ch/2);
+    const cntStr=ERASERS_PER>1?` [${aliveCount}]`:'';
+    ctx.fillText(`${nm} ★${roundWins[i]}${cntStr}`,sx+cw/2,4+ch/2);
     ctx.restore();
     sx+=cw+gap;
   }
-  // Round
   ctx.fillStyle='rgba(255,255,255,.5)'; ctx.font='10px Arial';
   ctx.textAlign='right'; ctx.textBaseline='top';
   ctx.fillText(`R ${roundNum}/${TOTAL_ROUNDS}`,CW-7,6);
@@ -832,10 +848,15 @@ function onDown(e){
   if(phase!=='aiming'||!isMyTurn()) return;
   e.preventDefault();
   const p=cvPos(e);
-  const er=erasers[cur];
-  if(!er?.alive) return;
-  if(Math.hypot(p.x-er.x,p.y-er.y)>ER_R+16) return;
-  drag={active:true,erIdx:cur,sx:p.x,sy:p.y,cx:p.x,cy:p.y};
+  // Find nearest alive eraser belonging to current player
+  let bestIdx=-1, bestDist=Infinity;
+  erasers.forEach((er,i)=>{
+    if(!er.alive||er.player!==cur) return;
+    const d=Math.hypot(p.x-er.x,p.y-er.y);
+    if(d<bestDist){bestDist=d;bestIdx=i;}
+  });
+  if(bestIdx<0||bestDist>ER_R+16) return;
+  drag={active:true,erIdx:bestIdx,sx:p.x,sy:p.y,cx:p.x,cy:p.y};
   render();
 }
 function onMove(e){
@@ -849,14 +870,15 @@ function onUp(e){
   if(!drag.active) return;
   e.preventDefault();
   const dx=drag.cx-drag.sx, dy=drag.cy-drag.sy, dist=Math.hypot(dx,dy);
+  const erIdx=drag.erIdx;
   drag.active=false;
   if(dist<6){render();return;}
   const angle=Math.atan2(dy,dx)+Math.PI;
   const power=Math.min(dist/MAX_DRAG,1);
   if(MODE==='online'&&!IS_HOST){
-    hostConn?.send({type:'flick',angle,power,pIdx:cur});
+    hostConn?.send({type:'flick',angle,power,erIdx});
   } else {
-    doFlick(angle,power,cur);
+    doFlick(angle,power,erIdx);
   }
 }
 canvas.addEventListener('mousedown',onDown);
@@ -886,6 +908,7 @@ function showSetup(mode){
 }
 function startLocal(){
   TOTAL_ROUNDS=parseInt(document.getElementById('sel-rounds').value)||3;
+  ERASERS_PER=parseInt(document.getElementById('sel-erasers').value)||1;
   if(MODE==='local') NUM_PLAYERS=parseInt(document.getElementById('sel-count').value)||2;
   roundNum=1; roundWins=[0,0,0,0];
   playerNames=Array.from({length:NUM_PLAYERS},(_,i)=>
