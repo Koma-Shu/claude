@@ -15,17 +15,12 @@ h1{font-size:1.5rem;letter-spacing:8px;color:#cc3300;text-shadow:0 0 24px rgba(2
 #scores{display:flex;gap:14px;font-size:.68rem;margin-bottom:6px}
 .sc{display:flex;gap:4px}.sc-l{color:#444}.sc-v{color:#aaa}.sc-v.win{color:#ffd700}
 
-/* tiles */
-.tile{display:inline-flex;align-items:center;justify-content:center;width:38px;height:52px;border-radius:4px;background:linear-gradient(150deg,#fffff4,#e8e8d0);border:1px solid #aaa;box-shadow:1px 2px 3px rgba(0,0,0,.5);font-size:.92rem;font-weight:bold;user-select:none;flex-shrink:0;position:relative;transition:transform .1s,box-shadow .1s}
-.tile.man{color:#c00}.tile.pin{color:#009}.tile.sou{color:#070}.tile.honor{color:#222}.tile.haku{color:#aaa;font-size:.65rem}.tile.hatsu{color:#060}.tile.chun{color:#c00}
-.tile.back{background:linear-gradient(150deg,#1a3022,#0d190e);border-color:#2a4030;color:transparent}
-.tile.back::after{content:'';position:absolute;inset:4px;border:1px solid #2a4030;border-radius:2px}
-.tile.sel{transform:translateY(-10px);box-shadow:0 10px 18px rgba(0,212,170,.55),1px 2px 3px rgba(0,0,0,.4);border-color:#00d4aa}
-.tile.pick{cursor:pointer}.tile.pick:hover:not(.sel){transform:translateY(-5px);box-shadow:0 6px 12px rgba(0,212,170,.35)}
-.tile.glow{border-color:#ffd700;box-shadow:0 0 8px rgba(255,215,0,.6)}
-.tile.sm{width:22px;height:30px;font-size:.58rem;border-radius:3px;box-shadow:none}
-.tile.sm.back{width:18px;height:26px}
-.tile.discard-last{border-color:#ffd700!important}
+/* tile wrappers */
+.tw{display:inline-flex;flex-shrink:0;border-radius:4px;cursor:default;transition:transform .1s,filter .1s;position:relative}
+.tw canvas{display:block;border-radius:4px}
+.tw.sel{transform:translateY(-10px);filter:drop-shadow(0 10px 18px rgba(0,212,170,.6))}
+.tw.pick{cursor:pointer}.tw.pick:hover:not(.sel){transform:translateY(-5px);filter:drop-shadow(0 5px 10px rgba(0,212,170,.35))}
+.tw.glow{filter:drop-shadow(0 0 6px rgba(255,215,0,.8))}
 
 /* layout */
 #table{width:100%;max-width:840px;display:flex;flex-direction:column;gap:6px;padding:0 8px 20px}
@@ -36,26 +31,20 @@ h1{font-size:1.5rem;letter-spacing:8px;color:#cc3300;text-shadow:0 0 24px rgba(2
 .drow{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:340px;min-height:28px}
 .dcol{display:flex;flex-direction:column;gap:2px;align-items:center;max-height:160px;overflow:hidden}
 #mid-row{display:flex;gap:8px;align-items:flex-start;justify-content:center}
-
-/* center panel */
-#cpanel{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:140px;max-width:260px}
+#cpanel{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:140px;max-width:240px}
 #round-badge{font-size:.72rem;letter-spacing:3px;color:#555;border:1px solid #1e1e2e;border-radius:5px;padding:3px 10px}
 #wall-badge{font-size:.75rem;color:#00d4aa}
 #cdis{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#09090f;border:1px solid #1a1a2a;border-radius:6px;padding:6px;width:100%}
 .cdi{display:flex;flex-direction:column;align-items:center;gap:2px}
 .cdil{font-size:.48rem;color:#2a2a3a;letter-spacing:1px}
-.cdtiles{display:flex;gap:1px;flex-wrap:wrap;justify-content:center;min-height:28px;width:84px}
-
-/* player area */
+.cdtiles{display:flex;gap:1px;flex-wrap:wrap;justify-content:center;min-height:26px;width:80px}
 #player-area{display:flex;flex-direction:column;align-items:center;gap:5px}
-#player-hand{display:flex;gap:4px;align-items:flex-end;justify-content:center;min-height:56px}
-.draw-sep{width:8px;height:52px;display:inline-flex;align-items:center;justify-content:center}
+#player-hand{display:flex;gap:4px;align-items:flex-end;justify-content:center;min-height:60px}
+.draw-sep{width:8px;height:54px;display:inline-flex;align-items:center;justify-content:center}
 .draw-sep::after{content:'';display:block;width:2px;height:34px;background:#2a2a3a;border-radius:1px}
 #player-dis{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:380px;min-height:28px}
-#player-lbl{font-size:.58rem;letter-spacing:3px;color:#3a3a4a}.player-lbl-active{color:#00d4aa!important}
+#player-lbl{font-size:.58rem;letter-spacing:3px;color:#3a3a4a}
 #tenpai-line{font-size:.6rem;color:#00d4aa;min-height:16px;text-align:center;letter-spacing:1px}
-
-/* action bar */
 #action-bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;min-height:44px;align-items:center}
 .abtn{padding:9px 22px;border-radius:6px;border:none;font-family:'Courier New',monospace;font-size:.8rem;letter-spacing:2px;cursor:pointer;display:none;transition:opacity .15s}
 .abtn.show{display:inline-block}.abtn:hover{opacity:.85}
@@ -83,23 +72,17 @@ h1{font-size:1.5rem;letter-spacing:8px;color:#cc3300;text-shadow:0 0 24px rgba(2
 </div>
 
 <div id="table">
-  <!-- West AI top -->
   <div class="ai-block">
     <div class="ai-lbl" id="lbl-2">西 AI</div>
     <div class="hrow" id="hand-2"></div>
     <div class="drow" id="dis-2"></div>
   </div>
-
-  <!-- Mid row -->
   <div id="mid-row">
-    <!-- North AI left -->
     <div class="ai-block">
       <div class="ai-lbl" id="lbl-3">北 AI</div>
       <div class="hcol" id="hand-3"></div>
       <div class="dcol" id="dis-3"></div>
     </div>
-
-    <!-- Center panel -->
     <div id="cpanel">
       <div id="round-badge">東1局</div>
       <div id="wall-badge">壁牌 <span id="wall-num2">?</span></div>
@@ -110,16 +93,12 @@ h1{font-size:1.5rem;letter-spacing:8px;color:#cc3300;text-shadow:0 0 24px rgba(2
         <div class="cdi"><div class="cdil">東(自分)</div><div class="cdtiles" id="cdis-0"></div></div>
       </div>
     </div>
-
-    <!-- South AI right -->
     <div class="ai-block">
       <div class="ai-lbl" id="lbl-1">南 AI</div>
       <div class="hcol" id="hand-1"></div>
       <div class="dcol" id="dis-1"></div>
     </div>
   </div>
-
-  <!-- Player bottom -->
   <div id="player-area">
     <div id="tenpai-line"></div>
     <div id="action-bar">
@@ -136,44 +115,235 @@ h1{font-size:1.5rem;letter-spacing:8px;color:#cc3300;text-shadow:0 0 24px rgba(2
 </div>
 
 <script>
-// ── Tile helpers ───────────────────────────────────────────────
-const M='m',P='p',S='s',Z='z';
-const MC=['一','二','三','四','五','六','七','八','九'];
-const PC=['①','②','③','④','⑤','⑥','⑦','⑧','⑨'];
-const SC=['1','2','3','4','5','6','7','8','9'];
-const ZC=['東','南','西','北','白','發','中'];
+// ── Canvas tile rendering ──────────────────────────────────────
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
-function tc(t){
-  if(t.s===M)return MC[t.r-1];
-  if(t.s===P)return PC[t.r-1];
-  if(t.s===S)return SC[t.r-1];
-  return ZC[t.r-1];
+function rr(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.arcTo(x+w, y, x+w, y+r, r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx.lineTo(x+r, y+h);
+  ctx.arcTo(x, y+h, x, y+h-r, r);
+  ctx.lineTo(x, y+r);
+  ctx.arcTo(x, y, x+r, y, r);
+  ctx.closePath();
 }
-function cls(t){
-  if(t.s===M)return 'man';
-  if(t.s===P)return 'pin';
-  if(t.s===S)return 'sou';
-  if(t.r===5)return 'haku';
-  if(t.r===6)return 'hatsu';
-  if(t.r===7)return 'chun';
-  return 'honor';
+
+function drawBg(ctx, w, h, sel, glow) {
+  rr(ctx, 1, 1, w-2, h-2, 4);
+  const g = ctx.createLinearGradient(0, 0, w*.4, h);
+  if (sel) { g.addColorStop(0,'#d4fff8'); g.addColorStop(1,'#aaeedd'); }
+  else      { g.addColorStop(0,'#fffef2'); g.addColorStop(1,'#e2e2c4'); }
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = sel ? '#00d4aa' : glow ? '#ffd700' : '#999';
+  ctx.lineWidth = (sel||glow) ? 2 : 1;
+  ctx.stroke();
+  // 3-D edge
+  ctx.fillStyle = 'rgba(0,0,0,.1)';
+  ctx.fillRect(2, h-4, w-3, 2);
+  ctx.fillRect(w-4, 2, 2, h-5);
+}
+
+function drawBack(ctx, w, h) {
+  rr(ctx, 0.5, 0.5, w-1, h-1, 4);
+  ctx.fillStyle = '#162518'; ctx.fill();
+  ctx.strokeStyle = '#2a4030'; ctx.lineWidth = 1; ctx.stroke();
+  // diamond cross-hatch pattern
+  ctx.save(); ctx.clip();
+  ctx.strokeStyle = 'rgba(0,80,20,.35)'; ctx.lineWidth = .8;
+  for (let i = -h; i < w+h; i += 6) {
+    ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i+h,h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i-h,h); ctx.stroke();
+  }
+  ctx.restore();
+  // inner border
+  rr(ctx, 3, 3, w-6, h-6, 2);
+  ctx.strokeStyle = '#2a4030'; ctx.lineWidth = .6; ctx.stroke();
+}
+
+function drawMan(ctx, rank, w, h) {
+  const chars = ['一','二','三','四','五','六','七','八','九'];
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  // number
+  ctx.fillStyle = '#cc2200';
+  ctx.font = `bold ${w*.6}px 'Hiragino Mincho ProN','Yu Mincho',serif`;
+  ctx.fillText(chars[rank-1], w/2, h*.37);
+  // 萬
+  ctx.fillStyle = '#222';
+  ctx.font = `bold ${w*.38}px 'Hiragino Mincho ProN','Yu Mincho',serif`;
+  ctx.fillText('萬', w/2, h*.73);
+}
+
+// Pin circle patterns [xFrac, yFrac]
+const PIN_PAT = {
+  1:[[.5,.5]],
+  2:[[.5,.28],[.5,.72]],
+  3:[[.5,.2],[.3,.65],[.7,.65]],
+  4:[[.3,.27],[.7,.27],[.3,.73],[.7,.73]],
+  5:[[.3,.22],[.7,.22],[.5,.5],[.3,.78],[.7,.78]],
+  6:[[.3,.2],[.7,.2],[.3,.5],[.7,.5],[.3,.8],[.7,.8]],
+  7:[[.25,.17],[.75,.17],[.25,.45],[.75,.45],[.5,.61],[.25,.82],[.75,.82]],
+  8:[[.25,.15],[.5,.15],[.75,.15],[.25,.5],[.75,.5],[.25,.85],[.5,.85],[.75,.85]],
+  9:[[.25,.15],[.5,.15],[.75,.15],[.25,.5],[.5,.5],[.75,.5],[.25,.85],[.5,.85],[.75,.85]],
+};
+
+function drawPin(ctx, rank, w, h) {
+  const rad = w * (rank===1 ? .26 : rank<=2 ? .19 : rank<=4 ? .16 : .14);
+  PIN_PAT[rank].forEach(([px,py]) => {
+    const cx=px*w, cy=py*h;
+    // outer ring
+    const g = ctx.createRadialGradient(cx-rad*.3, cy-rad*.3, 0, cx, cy, rad);
+    g.addColorStop(0,'#66bbff'); g.addColorStop(.5,'#1166cc'); g.addColorStop(1,'#003399');
+    ctx.beginPath(); ctx.arc(cx,cy,rad,0,Math.PI*2);
+    ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = '#002266'; ctx.lineWidth = .7; ctx.stroke();
+    // inner highlight
+    ctx.beginPath(); ctx.arc(cx-rad*.25, cy-rad*.25, rad*.3, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,.65)'; ctx.fill();
+    // outer white ring
+    ctx.beginPath(); ctx.arc(cx, cy, rad*.72, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = rad*.18; ctx.stroke();
+  });
+}
+
+// Sou bamboo layout: array of column heights
+const SOU_CFG = {
+  2:{xs:[.5],        cols:[2]},
+  3:{xs:[.5],        cols:[3]},
+  4:{xs:[.32,.68],   cols:[2,2]},
+  5:{xs:[.32,.68],   cols:[2,3]},
+  6:{xs:[.32,.68],   cols:[3,3]},
+  7:{xs:[.32,.68],   cols:[3,4]},
+  8:{xs:[.32,.68],   cols:[4,4]},
+  9:{xs:[.2,.5,.8],  cols:[3,3,3]},
+};
+
+function drawBamboo(ctx, x, y, bw, bh) {
+  const g = ctx.createLinearGradient(x, 0, x+bw, 0);
+  g.addColorStop(0,'#3a9922'); g.addColorStop(.35,'#77dd44'); g.addColorStop(.75,'#2d8811'); g.addColorStop(1,'#1a5508');
+  rr(ctx, x, y, bw, bh, bw*.3);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = '#145508'; ctx.lineWidth = .7; ctx.stroke();
+  // node ring at mid
+  if (bh > 9) {
+    ctx.save(); rr(ctx, x, y, bw, bh, bw*.3); ctx.clip();
+    ctx.fillStyle = 'rgba(0,60,0,.35)';
+    ctx.fillRect(x, y+bh*.46, bw, bh*.08);
+    // highlight
+    ctx.fillStyle = 'rgba(255,255,255,.18)';
+    ctx.fillRect(x+bw*.15, y+bh*.08, bw*.25, bh*.38);
+    ctx.restore();
+  }
+}
+
+function drawSou1(ctx, w, h) {
+  // single large green circle with a sparrow silhouette inside
+  const cx=w/2, cy=h*.42, r=w*.28;
+  const g = ctx.createRadialGradient(cx-r*.3, cy-r*.3, 0, cx, cy, r);
+  g.addColorStop(0,'#88ee55'); g.addColorStop(.6,'#33aa11'); g.addColorStop(1,'#115500');
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.fillStyle=g; ctx.fill();
+  ctx.strokeStyle='#113300'; ctx.lineWidth=1; ctx.stroke();
+  // highlight
+  ctx.beginPath(); ctx.arc(cx-r*.3,cy-r*.3,r*.28,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,.5)'; ctx.fill();
+  // bamboo stick below
+  const bw=w*.18, bx=cx-bw/2, by=cy+r+h*.03, bh=h-(by+h*.06);
+  drawBamboo(ctx,bx,by,bw,bh);
+  // bird outline on circle
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.ellipse(cx,cy,r*.45,r*.28,-0.3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#225511';
+  ctx.beginPath(); ctx.ellipse(cx-r*.05,cy,r*.35,r*.2,-0.3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+r*.22,cy-r*.05,r*.1,0,Math.PI*2);
+  ctx.fillStyle='#fff'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+r*.25,cy-r*.06,r*.06,0,Math.PI*2);
+  ctx.fillStyle='#000'; ctx.fill();
+  // beak
+  ctx.beginPath();
+  ctx.moveTo(cx+r*.42,cy-.5); ctx.lineTo(cx+r*.58,cy+.5); ctx.lineTo(cx+r*.42,cy+2);
+  ctx.fillStyle='#cc7700'; ctx.fill();
+}
+
+function drawSou(ctx, rank, w, h) {
+  if (rank===1) { drawSou1(ctx,w,h); return; }
+  const cfg=SOU_CFG[rank];
+  const pad=h*.1, totalH=h-pad*2;
+  const bw = w*(cfg.xs.length===1?.22:cfg.xs.length===2?.2:.18);
+  cfg.xs.forEach((xf,ci)=>{
+    const n=cfg.cols[ci];
+    const gap=h*.025;
+    const bh=(totalH-(n-1)*gap)/n;
+    for(let i=0;i<n;i++){
+      drawBamboo(ctx, xf*w-bw/2, pad+i*(bh+gap), bw, bh);
+    }
+  });
+}
+
+function drawHonor(ctx, rank, w, h) {
+  const chars=['東','南','西','北','白','發','中'];
+  const colors=['#111944','#111944','#111944','#111944','#666','#006600','#cc0000'];
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle=colors[rank-1];
+  ctx.font=`bold ${w*.65}px 'Hiragino Mincho ProN','Yu Mincho',serif`;
+  ctx.fillText(chars[rank-1], w/2, h/2+1);
+  if(rank===5){ // 白: draw inner rect border
+    rr(ctx,w*.16,h*.2,w*.68,h*.6,2);
+    ctx.strokeStyle='#888'; ctx.lineWidth=1.2; ctx.stroke();
+  }
+}
+
+function drawFace(ctx, tile, w, h) {
+  if(tile.s==='m') drawMan(ctx,tile.r,w,h);
+  else if(tile.s==='p') drawPin(ctx,tile.r,w,h);
+  else if(tile.s==='s') drawSou(ctx,tile.r,w,h);
+  else drawHonor(ctx,tile.r,w,h);
+}
+
+function makeTileEl(tile, opts={}) {
+  const small=opts.small, xs=opts.xs;
+  const W = xs ? 16 : small ? 24 : 40;
+  const H = xs ? 22 : small ? 34 : 56;
+  const wrap=document.createElement('div');
+  wrap.className='tw'+(opts.sel?' sel':'')+(opts.pick?' pick':'')+(opts.glow?' glow':'');
+  const cv=document.createElement('canvas');
+  cv.width=W*DPR; cv.height=H*DPR;
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+  const ctx=cv.getContext('2d'); ctx.scale(DPR,DPR);
+  drawBg(ctx,W,H,opts.sel,opts.glow);
+  drawFace(ctx,tile,W,H);
+  wrap.appendChild(cv);
+  if(opts.onClick) wrap.addEventListener('click',opts.onClick);
+  return wrap;
+}
+
+function makeBackEl(small, side) {
+  const W=side?16:small?22:38, H=side?22:small?32:54;
+  const wrap=document.createElement('div'); wrap.className='tw';
+  const cv=document.createElement('canvas');
+  cv.width=W*DPR; cv.height=H*DPR;
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+  const ctx=cv.getContext('2d'); ctx.scale(DPR,DPR);
+  drawBack(ctx,W,H);
+  wrap.appendChild(cv); return wrap;
+}
+
+// ── Tile constants ─────────────────────────────────────────────
+const M='m',P='p',S='s',Z='z';
+const ZC=['東','南','西','北','白','發','中'];
+function tc(t){
+  if(t.s===M)return['一','二','三','四','五','六','七','八','九'][t.r-1];
+  if(t.s===P)return['①','②','③','④','⑤','⑥','⑦','⑧','⑨'][t.r-1];
+  if(t.s===S)return t.r+'s';
+  return ZC[t.r-1];
 }
 function same(a,b){return a.s===b.s&&a.r===b.r;}
 function sortH(arr){
   const o={m:0,p:1,s:2,z:3};
   return [...arr].sort((a,b)=>a.s!==b.s?o[a.s]-o[b.s]:a.r-b.r);
-}
-function mkEl(t,small,extra=''){
-  const d=document.createElement('div');
-  d.className=`tile ${cls(t)}${small?' sm':''}${extra?' '+extra:''}`;
-  d.textContent=tc(t);
-  return d;
-}
-function mkBack(small,side){
-  const d=document.createElement('div');
-  if(side) d.className='tile back sm';
-  else d.className=`tile back${small?' sm':''}`;
-  return d;
 }
 
 // ── Deck ──────────────────────────────────────────────────────
@@ -189,127 +359,70 @@ function mkDeck(){
 function canSets(tiles){
   if(!tiles.length)return true;
   const a=sortH(tiles),f=a[0],rest=a.slice(1);
-  // triplet
   let i1=-1,i2=-1;
-  for(let i=0;i<rest.length;i++){
-    if(same(rest[i],f)){if(i1<0)i1=i;else{i2=i;break;}}
-  }
-  if(i1>=0&&i2>=0){
-    const r=rest.filter((_,i)=>i!==i1&&i!==i2);
-    if(canSets(r))return true;
-  }
-  // sequence
+  for(let i=0;i<rest.length;i++){if(same(rest[i],f)){if(i1<0)i1=i;else{i2=i;break;}}}
+  if(i1>=0&&i2>=0){const r=rest.filter((_,i)=>i!==i1&&i!==i2);if(canSets(r))return true;}
   if(f.s!==Z&&f.r<=7){
     const t2={s:f.s,r:f.r+1},t3={s:f.s,r:f.r+2};
     const j2=rest.findIndex(t=>same(t,t2));
-    if(j2>=0){
-      const r1=rest.filter((_,i)=>i!==j2);
-      const j3=r1.findIndex(t=>same(t,t3));
-      if(j3>=0&&canSets(r1.filter((_,i)=>i!==j3)))return true;
-    }
+    if(j2>=0){const r1=rest.filter((_,i)=>i!==j2);const j3=r1.findIndex(t=>same(t,t3));if(j3>=0&&canSets(r1.filter((_,i)=>i!==j3)))return true;}
   }
   return false;
 }
 function isWin(tiles){
   if(tiles.length!==14)return false;
   const a=sortH(tiles);
-  // 7 pairs
-  let ok7=true;
-  for(let i=0;i<14;i+=2)if(!same(a[i],a[i+1])){ok7=false;break;}
+  let ok7=true;for(let i=0;i<14;i+=2)if(!same(a[i],a[i+1])){ok7=false;break;}
   if(ok7)return true;
-  // standard
   const tried=new Set();
   for(let i=0;i<a.length-1;i++){
-    const k=a[i].s+a[i].r;
-    if(tried.has(k))continue;
-    tried.add(k);
-    let j=-1;
-    for(let x=i+1;x<a.length;x++)if(same(a[x],a[i])){j=x;break;}
+    const k=a[i].s+a[i].r;if(tried.has(k))continue;tried.add(k);
+    let j=-1;for(let x=i+1;x<a.length;x++)if(same(a[x],a[i])){j=x;break;}
     if(j<0)continue;
-    const rest=a.filter((_,idx)=>idx!==i&&idx!==j);
-    if(canSets(rest))return true;
+    if(canSets(a.filter((_,idx)=>idx!==i&&idx!==j)))return true;
   }
   return false;
 }
 function getWaits(h13){
-  const waits=[];
-  const tried=new Set();
-  for(const s of[M,P,S])for(let r=1;r<=9;r++){
-    const k=s+r;
-    if(tried.has(k))continue;tried.add(k);
-    if(isWin([...h13,{s,r}]))waits.push({s,r});
-  }
-  for(let r=1;r<=7;r++){
-    const k=Z+r;
-    if(tried.has(k))continue;tried.add(k);
-    if(isWin([...h13,{s:Z,r}]))waits.push({s:Z,r});
-  }
+  const waits=[],tried=new Set();
+  for(const s of[M,P,S])for(let r=1;r<=9;r++){const k=s+r;if(!tried.has(k)){tried.add(k);if(isWin([...h13,{s,r}]))waits.push({s,r});}}
+  for(let r=1;r<=7;r++){const k=Z+r;if(!tried.has(k)){tried.add(k);if(isWin([...h13,{s:Z,r}]))waits.push({s:Z,r});}}
   return waits;
 }
 
-// ── AI discard logic ──────────────────────────────────────────
+// ── AI ────────────────────────────────────────────────────────
 function tScore(t,hand){
-  let sc=0;
-  const oth=hand.filter(x=>x!==t);
+  let sc=0;const oth=hand.filter(x=>x!==t);
   if(oth.some(x=>same(x,t)))sc+=4;
-  if(t.s!==Z){
-    for(let d=-2;d<=2;d++){
-      if(!d)continue;
-      const r=t.r+d;
-      if(r>=1&&r<=9&&oth.some(x=>x.s===t.s&&x.r===r))sc+=2;
-    }
-  }
+  if(t.s!==Z)for(let d=-2;d<=2;d++){if(!d)continue;const r=t.r+d;if(r>=1&&r<=9&&oth.some(x=>x.s===t.s&&x.r===r))sc+=2;}
   return sc;
 }
 function bestDiscard(h14){
   let min=Infinity,best=null;
-  for(const t of h14){
-    const oth=h14.filter(x=>x!==t);
-    const sc=tScore(t,oth);
-    if(sc<min){min=sc;best=t;}
-  }
+  for(const t of h14){const sc=tScore(t,h14.filter(x=>x!==t));if(sc<min){min=sc;best=t;}}
   return best;
 }
 
 // ── Game state ────────────────────────────────────────────────
 const NAMES=['あなた(東)','南AI','西AI','北AI'];
-let G={};
-let selectedTile=null;
+let G={},selTile=null;
 
 function initGame(){
   const wall=mkDeck();
   const hands=[[],[],[],[]];
   for(let p=0;p<4;p++)for(let i=0;i<13;i++)hands[p].push(wall.pop());
-  G={
-    wall,hands,
-    discards:[[],[],[],[]],
-    draw:null,
-    turn:0,
-    phase:'discard',
-    scores:[25000,25000,25000,25000],
-    last:null,
-    over:false,
-  };
-  selectedTile=null;
+  G={wall,hands,discards:[[],[],[],[]],draw:null,turn:0,phase:'discard',scores:[25000,25000,25000,25000],last:null,over:false};
+  selTile=null;
   playerDraw();
 }
 
 function playerDraw(){
   if(G.over)return;
   if(!G.wall.length){endDraw();return;}
-  G.draw=G.wall.pop();
-  G.turn=0;
-  G.phase='discard';
+  G.draw=G.wall.pop();G.turn=0;G.phase='discard';
   const full=[...G.hands[0],G.draw];
-  if(isWin(full)){
-    showBtns(['tsumo']);
-    showMsg('ツモ和了できます！');
-  }else{
-    showBtns([]);
-    const waits=getWaits(G.hands[0]);
-    document.getElementById('tenpai-line').textContent=
-      waits.length?`テンパイ — 待ち: ${waits.map(w=>tc(w)).join(' ')} `:'';
-  }
+  if(isWin(full)){showBtns(['tsumo']);showMsg('ツモ和了できます！');}
+  else{showBtns([]);const w=getWaits(G.hands[0]);document.getElementById('tenpai-line').textContent=w.length?`テンパイ — 待ち: ${w.map(t=>tc(t)).join(' ')}`:''}
   render();
 }
 
@@ -320,28 +433,17 @@ function aiTurn(p){
     if(!G.wall.length){endDraw();return;}
     const drawn=G.wall.pop();
     const full=[...G.hands[p],drawn];
-    // AI tsumo check
     if(isWin(full)){
-      G.over=true;G.phase='over';
-      G.hands[p]=full;
-      const gain=2000;
-      G.scores[p]+=gain*3;
-      for(let i=0;i<4;i++)if(i!==p)G.scores[i]-=gain;
-      showMsg(`${NAMES[p]} がツモ和了！`);
-      showBtns(['ng']);render();return;
+      G.over=true;G.phase='over';G.hands[p]=full;
+      const gain=2000;G.scores[p]+=gain*3;for(let i=0;i<4;i++)if(i!==p)G.scores[i]-=gain;
+      showMsg(`${NAMES[p]} がツモ和了！`);showBtns(['ng']);render();return;
     }
     const disc=bestDiscard(full);
     G.hands[p]=full.filter(t=>t!==disc);
-    G.discards[p].push(disc);
-    G.last={tile:disc,p};
-    render();
-    // player ron check
+    G.discards[p].push(disc);G.last={tile:disc,p};render();
     const waits=getWaits(G.hands[0]);
     if(waits.some(w=>same(w,disc))){
-      G.phase='claim';
-      showMsg(`${NAMES[p]} が ${tc(disc)} を捨てました — ロンできます`);
-      showBtns(['ron','pass']);
-      return;
+      G.phase='claim';showMsg(`${NAMES[p]} が ${tc(disc)} を捨てました — ロンできます`);showBtns(['ron','pass']);return;
     }
     nextTurn(p);
   },800);
@@ -349,172 +451,119 @@ function aiTurn(p){
 
 function nextTurn(curP){
   if(G.over)return;
-  const next=(curP+1)%4;
-  G.turn=next;
-  if(next===0){
-    G.phase='discard';
-    showMsg('あなたのターン');
-    playerDraw();
-  }else{
-    setTimeout(()=>{if(!G.over)aiTurn(next);},400);
-  }
+  const next=(curP+1)%4;G.turn=next;
+  if(next===0){G.phase='discard';showMsg('あなたのターン');playerDraw();}
+  else setTimeout(()=>{if(!G.over)aiTurn(next);},400);
 }
 
-function endDraw(){
-  G.over=true;G.phase='over';
-  showMsg('流局（引き分け）');
-  showBtns(['ng']);render();
-}
+function endDraw(){G.over=true;G.phase='over';showMsg('流局（引き分け）');showBtns(['ng']);render();}
 
-// ── Player actions ────────────────────────────────────────────
 function doDiscard(t){
   if(G.phase!=='discard'||G.turn!==0)return;
-  if(t===G.draw){
-    G.discards[0].push(G.draw);
-    G.last={tile:G.draw,p:0};
-    G.draw=null;
-  }else{
-    const idx=G.hands[0].indexOf(t);
-    if(idx<0)return;
-    G.hands[0].splice(idx,1);
-    G.discards[0].push(t);
-    G.last={tile:t,p:0};
+  if(t===G.draw){G.discards[0].push(G.draw);G.last={tile:G.draw,p:0};G.draw=null;}
+  else{
+    const idx=G.hands[0].indexOf(t);if(idx<0)return;
+    G.hands[0].splice(idx,1);G.discards[0].push(t);G.last={tile:t,p:0};
     if(G.draw){G.hands[0].push(G.draw);G.hands[0]=sortH(G.hands[0]);G.draw=null;}
   }
-  selectedTile=null;
-  document.getElementById('tenpai-line').textContent='';
-  // Check AI ron
+  selTile=null;document.getElementById('tenpai-line').textContent='';
   for(let p=1;p<=3;p++){
     const waits=getWaits(G.hands[p]);
     if(waits.some(w=>same(w,G.last.tile))){
-      G.over=true;G.phase='over';
-      G.hands[p]=[...G.hands[p],G.last.tile];
+      G.over=true;G.phase='over';G.hands[p]=[...G.hands[p],G.last.tile];
       const gain=5800;G.scores[p]+=gain;G.scores[0]-=gain;
-      showMsg(`${NAMES[p]} がロン和了！`);
-      showBtns(['ng']);render();return;
+      showMsg(`${NAMES[p]} がロン和了！`);showBtns(['ng']);render();return;
     }
   }
-  showBtns([]);render();
-  G.turn=1;
-  setTimeout(()=>{if(!G.over)aiTurn(1);},600);
+  showBtns([]);render();G.turn=1;setTimeout(()=>{if(!G.over)aiTurn(1);},600);
 }
 
 function doTsumo(){
-  G.over=true;G.phase='over';
-  G.hands[0]=[...G.hands[0],G.draw];G.draw=null;
-  const gain=2000;G.scores[0]+=gain*3;
-  for(let i=1;i<4;i++)G.scores[i]-=gain;
-  showMsg('ツモ和了！おめでとう🎉');
-  showBtns(['ng']);render();
+  G.over=true;G.phase='over';G.hands[0]=[...G.hands[0],G.draw];G.draw=null;
+  const gain=2000;G.scores[0]+=gain*3;for(let i=1;i<4;i++)G.scores[i]-=gain;
+  showMsg('ツモ和了！おめでとう🎉');showBtns(['ng']);render();
 }
-
 function doRon(){
-  if(!G.last)return;
-  G.over=true;G.phase='over';
-  G.hands[0]=[...G.hands[0],G.last.tile];
+  if(!G.last)return;G.over=true;G.phase='over';G.hands[0]=[...G.hands[0],G.last.tile];
   const gain=5800;G.scores[0]+=gain;G.scores[G.last.p]-=gain;
-  showMsg('ロン和了！おめでとう🎉');
-  showBtns(['ng']);render();
+  showMsg('ロン和了！おめでとう🎉');showBtns(['ng']);render();
 }
-
-function doPass(){
-  G.phase='draw';
-  showBtns([]);
-  showMsg('');
-  nextTurn(G.last.p);
-}
+function doPass(){G.phase='draw';showBtns([]);showMsg('');nextTurn(G.last.p);}
 
 // ── Render ────────────────────────────────────────────────────
 function render(){
-  // Wall
   document.getElementById('wall-num').textContent=G.wall.length;
   document.getElementById('wall-num2').textContent=G.wall.length;
-  // Scores
   for(let p=0;p<4;p++){
     const el=document.getElementById('sc'+p);
     el.textContent=G.scores[p].toLocaleString();
     el.className='sc-v'+(G.over&&G.scores[p]===Math.max(...G.scores)?' win':'');
   }
-  // Turn labels
   for(let p=0;p<4;p++){
-    const ids=[['player-lbl'],['lbl-1'],['lbl-2'],['lbl-3']];
     const id=p===0?'player-lbl':'lbl-'+p;
     const el=document.getElementById(id);
-    if(p===0)el.className='sc-l'+(G.turn===0&&!G.over?' player-lbl-active':'');
-    else el.className='ai-lbl'+(G.turn===p&&!G.over?' active':'');
+    el.className=(p===0?'':'ai-lbl')+(G.turn===p&&!G.over?' active':'');
+    if(p===0)el.style.color=G.turn===0&&!G.over?'#00d4aa':'#3a3a4a';
   }
 
   // Player hand
-  const ph=document.getElementById('player-hand');
-  ph.innerHTML='';
+  const ph=document.getElementById('player-hand');ph.innerHTML='';
   const sorted=sortH(G.hands[0]);
+  const canPick=G.phase==='discard'&&G.turn===0;
   sorted.forEach(t=>{
-    const el=mkEl(t,false,(G.phase==='discard'&&G.turn===0?'pick':'')+(t===selectedTile?' sel':''));
-    if(G.phase==='discard'&&G.turn===0){
-      el.addEventListener('click',()=>{
-        if(selectedTile===t){doDiscard(t);}
-        else{selectedTile=t;render();}
-      });
-    }
+    const el=makeTileEl(t,{sel:t===selTile,pick:canPick,onClick:canPick?()=>{
+      if(selTile===t)doDiscard(t);else{selTile=t;render();}
+    }:null});
     ph.appendChild(el);
   });
   if(G.draw){
     const sep=document.createElement('span');sep.className='draw-sep';ph.appendChild(sep);
-    const el=mkEl(G.draw,false,(G.phase==='discard'&&G.turn===0?'pick':'')+(G.draw===selectedTile?' sel':''));
-    if(G.phase==='discard'&&G.turn===0){
-      el.addEventListener('click',()=>{
-        if(selectedTile===G.draw){doDiscard(G.draw);}
-        else{selectedTile=G.draw;render();}
-      });
-    }
+    const el=makeTileEl(G.draw,{sel:G.draw===selTile,pick:canPick,onClick:canPick?()=>{
+      if(selTile===G.draw)doDiscard(G.draw);else{selTile=G.draw;render();}
+    }:null});
     ph.appendChild(el);
   }
 
-  // AI hands (face down)
-  // West (top) - horizontal
-  const h2=document.getElementById('hand-2');h2.innerHTML='';
-  for(let i=0;i<G.hands[2].length;i++)h2.appendChild(mkBack(true,false));
-  // South (right) - vertical small
-  const h1=document.getElementById('hand-1');h1.innerHTML='';
-  for(let i=0;i<G.hands[1].length+(G.turn===1&&G.draw?0:0);i++)h1.appendChild(mkBack(true,true));
-  // North (left) - vertical small
-  const h3=document.getElementById('hand-3');h3.innerHTML='';
-  for(let i=0;i<G.hands[3].length;i++)h3.appendChild(mkBack(true,true));
+  // Win: show player hand face-up
+  if(G.over&&G.hands[0].length>0){
+    ph.innerHTML='';
+    sortH(G.hands[0]).forEach(t=>ph.appendChild(makeTileEl(t,{})));
+  }
 
-  // Discards (main + center mini)
+  // AI hands (face down)
+  const h2=document.getElementById('hand-2');h2.innerHTML='';
+  for(let i=0;i<G.hands[2].length;i++)h2.appendChild(makeBackEl(true,false));
+  const h1=document.getElementById('hand-1');h1.innerHTML='';
+  for(let i=0;i<G.hands[1].length;i++)h1.appendChild(makeBackEl(true,true));
+  const h3=document.getElementById('hand-3');h3.innerHTML='';
+  for(let i=0;i<G.hands[3].length;i++)h3.appendChild(makeBackEl(true,true));
+
+  // Discards
   for(let p=0;p<4;p++){
     const mainId=p===0?'player-dis':'dis-'+p;
     const mainEl=document.getElementById(mainId);
     if(mainEl){
       mainEl.innerHTML='';
       G.discards[p].forEach((t,i)=>{
-        const el=mkEl(t,true,i===G.discards[p].length-1&&G.last&&G.last.p===p?'discard-last':'');
-        mainEl.appendChild(el);
+        const glow=i===G.discards[p].length-1&&G.last&&G.last.p===p;
+        mainEl.appendChild(makeTileEl(t,{small:true,glow}));
       });
     }
     const cEl=document.getElementById('cdis-'+p);
     if(cEl){
       cEl.innerHTML='';
-      G.discards[p].slice(-8).forEach((t,i,arr)=>{
-        const el=mkEl(t,true,i===arr.length-1&&G.last&&G.last.p===p?'discard-last':'');
-        cEl.appendChild(el);
+      G.discards[p].slice(-6).forEach((t,i,arr)=>{
+        const glow=i===arr.length-1&&G.last&&G.last.p===p;
+        cEl.appendChild(makeTileEl(t,{xs:true,glow}));
       });
     }
-  }
-
-  // Win: show player's winning hand face up
-  if(G.over&&G.phase==='over'){
-    const ph=document.getElementById('player-hand');
-    ph.innerHTML='';
-    sortH(G.hands[0]).forEach(t=>ph.appendChild(mkEl(t)));
   }
 }
 
 function showMsg(m){document.getElementById('msg').textContent=m;}
 function showBtns(ids){
-  ['tsumo','ron','pass','ng'].forEach(id=>{
-    document.getElementById('btn-'+id).className='abtn'+(ids.includes(id)?' show':'');
-  });
+  ['tsumo','ron','pass','ng'].forEach(id=>
+    document.getElementById('btn-'+id).className='abtn'+(ids.includes(id)?' show':''));
 }
 
 // ── Events ────────────────────────────────────────────────────
@@ -522,15 +571,12 @@ document.getElementById('btn-tsumo').addEventListener('click',doTsumo);
 document.getElementById('btn-ron').addEventListener('click',doRon);
 document.getElementById('btn-pass').addEventListener('click',doPass);
 document.getElementById('btn-ng').addEventListener('click',initGame);
-
-// Lang (stub)
 let lang='ja';
 document.getElementById('lang-btn').addEventListener('click',()=>{
   lang=lang==='ja'?'en':'ja';
   document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
 });
 
-// Start
 showMsg('牌をクリックして選択、もう一度クリックで捨て牌');
 initGame();
 </script>
