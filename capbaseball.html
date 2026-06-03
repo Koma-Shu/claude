@@ -443,107 +443,92 @@ function drawTimingRing(t){
 }
 
 function drawBottleCap(x,y,r,spinAngle,color,axisAngle){
-  // Cylinder rotating around its horizontal diameter axis.
-  // sinA=0: edge-on (side wall visible), sinA=1: face-on (disc visible).
+  // True 3-D cylinder projection. Rotation is around the horizontal diameter axis.
+  //
+  // The fix for "circle on top of rectangle":
+  //   wallH = H * cosA  (wall SHRINKS as face rotates toward viewer)
+  //   faceH = faceR * sinA  (face GROWS as it rotates toward viewer)
+  //   outerH = max(wallH, faceH)  → ONE unified ellipse, never two separate shapes
+  //
   const isWhite=color==='#f0f0f0';
   const sinA=Math.abs(Math.sin(spinAngle));
-  const cosA=Math.abs(Math.cos(spinAngle)); // 1=edge-on, 0=face-on
+  const cosA=Math.abs(Math.cos(spinAngle));
   const axTilt=axisAngle||0;
 
-  const H=r*.32;     // half-height of cylinder wall (thicker cap)
-  const rimW=r*.20;  // knurled rim width
-  const faceR=r-rimW;// inner disc radius (r*0.80)
+  const H=r*.30;        // cylinder half-height
+  const rimW=r*.20;     // knurled rim band width
+  const faceR=r-rimW;   // inner disc radius (r*0.80)
+
+  // Correctly foreshortened projections
+  const wallH=H*cosA;          // shrinks to 0 when face-on
+  const faceH=faceR*sinA;      // grows to faceR when face-on
+  const outerH=Math.max(wallH,faceH,r*.055); // always show at least a sliver
 
   ctx.save();
   ctx.translate(x,y);
   ctx.rotate(axTilt);
 
-  // ── Shadow ──
   ctx.shadowColor='rgba(0,0,0,.5)';
   ctx.shadowBlur=r*.5;
-  ctx.shadowOffsetY=H*.4;
+  ctx.shadowOffsetY=outerH*.35;
 
-  // ── 1. Back face (disc facing away from viewer) ──
-  if(sinA>0.05){
-    ctx.beginPath();
-    ctx.ellipse(0,0,faceR,faceR*sinA,0,0,Math.PI*2);
-    ctx.fillStyle=isWhite?'#999':darkenHex(color,.40);
-    ctx.fill();
-  }
-  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
-
-  // ── 2. Cylinder side wall ──
-  // Cylindrical shading: bright equator (facing viewer), dark top/bottom (curving away)
-  const wg=ctx.createLinearGradient(0,-H,0,H);
+  // ── Outer shell: wall + rim band as ONE ellipse ──
+  // Cylindrical shading (dark top/bottom edges = surfaces curving away from viewer,
+  // bright equator = surface facing directly toward viewer).
+  const shG=ctx.createLinearGradient(0,-outerH,0,outerH);
   if(isWhite){
-    wg.addColorStop(0,'#7a7a7a');
-    wg.addColorStop(.22,'#d8d8d8');
-    wg.addColorStop(.5,'#ffffff');
-    wg.addColorStop(.78,'#d4d4d4');
-    wg.addColorStop(1,'#7a7a7a');
+    shG.addColorStop(0,'#606060');
+    shG.addColorStop(.20,'#cccccc');
+    shG.addColorStop(.5,'#ffffff');
+    shG.addColorStop(.80,'#c8c8c8');
+    shG.addColorStop(1,'#606060');
   } else {
-    wg.addColorStop(0,darkenHex(color,.42));
-    wg.addColorStop(.22,lightenHex(color,.14));
-    wg.addColorStop(.5,lightenHex(color,.40));
-    wg.addColorStop(.78,lightenHex(color,.04));
-    wg.addColorStop(1,darkenHex(color,.46));
+    shG.addColorStop(0,darkenHex(color,.46));
+    shG.addColorStop(.20,lightenHex(color,.10));
+    shG.addColorStop(.5,lightenHex(color,.40));
+    shG.addColorStop(.80,lightenHex(color,.04));
+    shG.addColorStop(1,darkenHex(color,.50));
   }
   ctx.beginPath();
-  ctx.roundRect(-r,-H,r*2,H*2,H*.22);
-  ctx.fillStyle=wg; ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,.18)'; ctx.lineWidth=.5; ctx.stroke();
+  ctx.ellipse(0,0,r,outerH,0,0,Math.PI*2);
+  ctx.fillStyle=shG; ctx.fill();
+  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+  ctx.strokeStyle='rgba(0,0,0,.15)'; ctx.lineWidth=.5; ctx.stroke();
 
-  // Knurling clipped to wall
+  // Knurling clipped to the outer ellipse
   ctx.save();
-  ctx.beginPath(); ctx.roundRect(-r,-H,r*2,H*2,H*.22); ctx.clip();
+  ctx.beginPath(); ctx.ellipse(0,0,r,outerH,0,0,Math.PI*2); ctx.clip();
   for(let i=1;i<22;i++){
     const kx=-r+(i/22)*r*2;
-    ctx.beginPath(); ctx.moveTo(kx,-H); ctx.lineTo(kx,H);
+    ctx.beginPath(); ctx.moveTo(kx,-outerH); ctx.lineTo(kx,outerH);
     ctx.strokeStyle=i%2===0?'rgba(255,255,255,.28)':'rgba(0,0,0,.13)';
     ctx.lineWidth=.7; ctx.stroke();
   }
   ctx.restore();
 
-  // ── 3. Bottom circular edge (the rim circle at base of cylinder) ──
-  // Appears as a thin horizontal ellipse giving the cylinder depth
-  const edgeH=Math.max(r*.04, r*.13*cosA);
-  ctx.beginPath();
-  ctx.ellipse(0,H,r,edgeH,0,0,Math.PI*2);
-  ctx.fillStyle=isWhite?'#aaa':darkenHex(color,.32);
-  ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,.10)'; ctx.lineWidth=.3; ctx.stroke();
-
-  // ── 4. Front face (disc rotating toward viewer) ──
-  if(sinA>0.04){
-    const fH=faceR*sinA;
-    const fg=ctx.createRadialGradient(-faceR*.2,-fH*.15,0,0,0,faceR);
+  // ── Inner face disc (only when face rotates toward viewer) ──
+  if(faceH>1.5){
+    const fg=ctx.createRadialGradient(-faceR*.2,-faceH*.15,0,0,0,faceR);
     if(isWhite){
-      fg.addColorStop(0,'#fff'); fg.addColorStop(.65,'#f0f0f0'); fg.addColorStop(1,'#d4d4d4');
+      fg.addColorStop(0,'#ffffff'); fg.addColorStop(.65,'#f0f0f0'); fg.addColorStop(1,'#d8d8d8');
     } else {
-      fg.addColorStop(0,lightenHex(color,.35)); fg.addColorStop(.65,color); fg.addColorStop(1,darkenHex(color,.22));
+      fg.addColorStop(0,lightenHex(color,.35)); fg.addColorStop(.65,color); fg.addColorStop(1,darkenHex(color,.18));
     }
     ctx.beginPath();
-    ctx.ellipse(0,0,faceR,fH,0,0,Math.PI*2);
+    ctx.ellipse(0,0,faceR,faceH,0,0,Math.PI*2);
     ctx.fillStyle=fg; ctx.fill();
 
-    if(sinA>0.28){
-      // Center mark
+    if(sinA>.28){
+      // Center logo mark
       ctx.beginPath();
-      ctx.ellipse(0,0,r*.18,r*.18*sinA,0,0,Math.PI*2);
-      ctx.fillStyle='rgba(0,0,0,.1)'; ctx.fill();
-      // Specular highlight
+      ctx.ellipse(0,0,r*.17,r*.17*sinA,0,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,0,0,.10)'; ctx.fill();
+      // Specular
       ctx.beginPath();
-      ctx.ellipse(-faceR*.25,-fH*.3,faceR*.22,fH*.10,-.3,0,Math.PI*2);
+      ctx.ellipse(-faceR*.25,-faceH*.3,faceR*.22,faceH*.10,-.3,0,Math.PI*2);
       ctx.fillStyle=`rgba(255,255,255,${.38*sinA})`; ctx.fill();
     }
   }
-
-  // ── 5. Top circular edge (drawn last — in front, catches the light) ──
-  ctx.beginPath();
-  ctx.ellipse(0,-H,r,edgeH,0,Math.PI,Math.PI*2); // front half only
-  ctx.fillStyle=isWhite?'#ddd':lightenHex(color,.14);
-  ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,.08)'; ctx.lineWidth=.3; ctx.stroke();
 
   ctx.restore();
 }
