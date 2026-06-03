@@ -193,8 +193,8 @@ if(!me){
       document.getElementById('no-chat').textContent=T('noChat');
       document.getElementById('messages').innerHTML=`<div class="empty-msg">${T('noChat')}</div>`;
       document.getElementById('create-group-btn').style.display=currentTab==='group'?'':'none';
-      document.getElementById('dm-list').style.display=currentTab==='dm'?'':'none';
-      document.getElementById('group-list').style.display=currentTab==='group'?'':'none';
+      document.getElementById('dm-list').style.display=currentTab==='dm'?'block':'none';
+      document.getElementById('group-list').style.display=currentTab==='group'?'block':'none';
       if(currentTab==='dm') loadFriends();
       else                  loadGroups();
     });
