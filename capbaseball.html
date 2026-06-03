@@ -443,20 +443,16 @@ function drawTimingRing(t){
 }
 
 function drawBottleCap(x,y,r,spinAngle,color,axisAngle){
-  // Cap rotates around its horizontal axis — like a coin thrown sideways.
-  // sinAngle drives how much face is showing: 0=edge-on (thin), 1=face-on (full circle).
+  // Cylinder rotating around its horizontal diameter axis.
+  // sinA=0: edge-on (side wall visible), sinA=1: face-on (disc visible).
   const isWhite=color==='#f0f0f0';
-  const sinA=Math.abs(Math.sin(spinAngle)); // 0=edge-on, 1=face-on
+  const sinA=Math.abs(Math.sin(spinAngle));
+  const cosA=Math.abs(Math.cos(spinAngle)); // 1=edge-on, 0=face-on
   const axTilt=axisAngle||0;
 
-  // Overall shape: ONE ellipse that grows from minH (edge-on) to r (face-on)
-  const minH=r*.12;          // minimum height — thin rim edge
-  const capH=Math.max(minH, r*sinA); // current height of the overall shape
-
-  // Rim strip width on each side (the knurled band)
-  const rimW=r*.22;
-  // Inner face radius
-  const faceR=r-rimW;        // r*0.78
+  const H=r*.32;     // half-height of cylinder wall (thicker cap)
+  const rimW=r*.20;  // knurled rim width
+  const faceR=r-rimW;// inner disc radius (r*0.80)
 
   ctx.save();
   ctx.translate(x,y);
@@ -465,74 +461,89 @@ function drawBottleCap(x,y,r,spinAngle,color,axisAngle){
   // ── Shadow ──
   ctx.shadowColor='rgba(0,0,0,.5)';
   ctx.shadowBlur=r*.5;
-  ctx.shadowOffsetY=minH*.7;
+  ctx.shadowOffsetY=H*.4;
 
-  // ── 1. Outer ellipse: the knurled rim band ──
-  // When edge-on this IS the whole cap. When face-on, only the outer ring is rim.
-  // Color: cylindrical shading (dark top/bottom edges, bright center equator)
-  const rimGrad=ctx.createLinearGradient(0,-capH,0,capH);
+  // ── 1. Back face (disc facing away from viewer) ──
+  if(sinA>0.05){
+    ctx.beginPath();
+    ctx.ellipse(0,0,faceR,faceR*sinA,0,0,Math.PI*2);
+    ctx.fillStyle=isWhite?'#999':darkenHex(color,.40);
+    ctx.fill();
+  }
+  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+
+  // ── 2. Cylinder side wall ──
+  // Cylindrical shading: bright equator (facing viewer), dark top/bottom (curving away)
+  const wg=ctx.createLinearGradient(0,-H,0,H);
   if(isWhite){
-    rimGrad.addColorStop(0,'#8a8a8a');
-    rimGrad.addColorStop(.28,'#e8e8e8');
-    rimGrad.addColorStop(.5,'#ffffff');
-    rimGrad.addColorStop(.72,'#e0e0e0');
-    rimGrad.addColorStop(1,'#8a8a8a');
+    wg.addColorStop(0,'#7a7a7a');
+    wg.addColorStop(.22,'#d8d8d8');
+    wg.addColorStop(.5,'#ffffff');
+    wg.addColorStop(.78,'#d4d4d4');
+    wg.addColorStop(1,'#7a7a7a');
   } else {
-    rimGrad.addColorStop(0,darkenHex(color,.4));
-    rimGrad.addColorStop(.28,lightenHex(color,.2));
-    rimGrad.addColorStop(.5,lightenHex(color,.42));
-    rimGrad.addColorStop(.72,lightenHex(color,.1));
-    rimGrad.addColorStop(1,darkenHex(color,.45));
+    wg.addColorStop(0,darkenHex(color,.42));
+    wg.addColorStop(.22,lightenHex(color,.14));
+    wg.addColorStop(.5,lightenHex(color,.40));
+    wg.addColorStop(.78,lightenHex(color,.04));
+    wg.addColorStop(1,darkenHex(color,.46));
   }
   ctx.beginPath();
-  ctx.ellipse(0,0,r,capH,0,0,Math.PI*2);
-  ctx.fillStyle=rimGrad;
-  ctx.fill();
-  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+  ctx.roundRect(-r,-H,r*2,H*2,H*.22);
+  ctx.fillStyle=wg; ctx.fill();
   ctx.strokeStyle='rgba(0,0,0,.18)'; ctx.lineWidth=.5; ctx.stroke();
 
-  // ── 2. Knurl lines clipped to rim ellipse ──
+  // Knurling clipped to wall
   ctx.save();
-  ctx.beginPath();
-  ctx.ellipse(0,0,r,capH,0,0,Math.PI*2);
-  ctx.clip();
-  const knurls=22;
-  for(let i=1;i<knurls;i++){
-    const kx=-r+(i/knurls)*r*2;
-    ctx.beginPath();
-    ctx.moveTo(kx,-capH); ctx.lineTo(kx,capH);
+  ctx.beginPath(); ctx.roundRect(-r,-H,r*2,H*2,H*.22); ctx.clip();
+  for(let i=1;i<22;i++){
+    const kx=-r+(i/22)*r*2;
+    ctx.beginPath(); ctx.moveTo(kx,-H); ctx.lineTo(kx,H);
     ctx.strokeStyle=i%2===0?'rgba(255,255,255,.28)':'rgba(0,0,0,.13)';
     ctx.lineWidth=.7; ctx.stroke();
   }
   ctx.restore();
 
-  // ── 3. Inner face — only when rotating toward viewer ──
-  // The face is only visible when sinA > rimW/r (i.e. face height > rim width)
-  const faceH=r*sinA-minH; // face height above the base rim
-  if(faceH>2){
-    const fg=ctx.createRadialGradient(-faceR*.2,-faceH*.15,0,0,0,faceR);
+  // ── 3. Bottom circular edge (the rim circle at base of cylinder) ──
+  // Appears as a thin horizontal ellipse giving the cylinder depth
+  const edgeH=Math.max(r*.04, r*.13*cosA);
+  ctx.beginPath();
+  ctx.ellipse(0,H,r,edgeH,0,0,Math.PI*2);
+  ctx.fillStyle=isWhite?'#aaa':darkenHex(color,.32);
+  ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,.10)'; ctx.lineWidth=.3; ctx.stroke();
+
+  // ── 4. Front face (disc rotating toward viewer) ──
+  if(sinA>0.04){
+    const fH=faceR*sinA;
+    const fg=ctx.createRadialGradient(-faceR*.2,-fH*.15,0,0,0,faceR);
     if(isWhite){
-      fg.addColorStop(0,'#ffffff'); fg.addColorStop(.6,'#f0f0f0'); fg.addColorStop(1,'#d4d4d4');
+      fg.addColorStop(0,'#fff'); fg.addColorStop(.65,'#f0f0f0'); fg.addColorStop(1,'#d4d4d4');
     } else {
-      fg.addColorStop(0,lightenHex(color,.35)); fg.addColorStop(.6,color); fg.addColorStop(1,darkenHex(color,.22));
+      fg.addColorStop(0,lightenHex(color,.35)); fg.addColorStop(.65,color); fg.addColorStop(1,darkenHex(color,.22));
     }
     ctx.beginPath();
-    ctx.ellipse(0,0,faceR,Math.max(1,faceH),0,0,Math.PI*2);
+    ctx.ellipse(0,0,faceR,fH,0,0,Math.PI*2);
     ctx.fillStyle=fg; ctx.fill();
 
-    // Center logo mark
-    if(faceH>r*.2){
+    if(sinA>0.28){
+      // Center mark
       ctx.beginPath();
-      ctx.ellipse(0,0,r*.18,Math.max(.5,r*.18*(faceH/r)),0,0,Math.PI*2);
+      ctx.ellipse(0,0,r*.18,r*.18*sinA,0,0,Math.PI*2);
       ctx.fillStyle='rgba(0,0,0,.1)'; ctx.fill();
-    }
-    // Specular
-    if(faceH>r*.3){
+      // Specular highlight
       ctx.beginPath();
-      ctx.ellipse(-faceR*.24,-faceH*.3,faceR*.22,faceH*.1,-.3,0,Math.PI*2);
+      ctx.ellipse(-faceR*.25,-fH*.3,faceR*.22,fH*.10,-.3,0,Math.PI*2);
       ctx.fillStyle=`rgba(255,255,255,${.38*sinA})`; ctx.fill();
     }
   }
+
+  // ── 5. Top circular edge (drawn last — in front, catches the light) ──
+  ctx.beginPath();
+  ctx.ellipse(0,-H,r,edgeH,0,Math.PI,Math.PI*2); // front half only
+  ctx.fillStyle=isWhite?'#ddd':lightenHex(color,.14);
+  ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,.08)'; ctx.lineWidth=.3; ctx.stroke();
 
   ctx.restore();
 }
@@ -654,7 +665,8 @@ function startPitchAnim(zone,pt,onArrive){
     } else {
       arrived=true; animRaf=null;
       drawField(actual.x,actual.y,22,true);
-      onArrive(actual.x,actual.y);
+      // Small delay: lets a last-moment click register before we judge "no swing"
+      setTimeout(()=>onArrive(actual.x,actual.y),120);
     }
   }
   animRaf=requestAnimationFrame(step);
@@ -717,9 +729,12 @@ function doSwing(){
 }
 function doTake(){
   if(phase!=='batter_anim'&&phase!=='batter_wait') return;
-  swingT=-2; // special "take" flag
-  cancelAnim();
-  resolve(pitchActualPos.x,pitchActualPos.y);
+  swingT=-2; // deliberate take — let animation finish so batter sees where pitch goes
+  if(phase==='batter_wait'){
+    phase='batter_anim';
+    startPitchAnim(pitchZone,pitchPT,(fx,fy)=>resolve(fx,fy));
+  }
+  // If already animating, just set flag; animation will resolve naturally at end
 }
 document.getElementById('take-btn').addEventListener('click',doTake);
 document.addEventListener('keydown',e=>{
@@ -766,21 +781,20 @@ function evaluate(pZone,sZone,sT){
     return {type:'miss'};
   }
   const tErr=Math.abs(sT-PERFECT_T);
-  // Tighter denominator = timing errors punished more
-  const tScore=Math.min(tErr/.15,1); // 0=perfect, 1=worst (was .24)
+  const tScore=Math.min(tErr/.18,1); // slightly wider hit window than before
   const dist=zoneDist(pZone,sZone);
-  // Same zone hits — tight timing required
+  // Same zone
   if(dist===0&&tScore<.08)  return {type:'HR'};
   if(dist===0&&tScore<.18)  return {type:'3B'};
-  if(dist===0&&tScore<.32)  return {type:'2B'};
-  if(dist===0&&tScore<.52)  return {type:'1B'};
-  if(dist===0&&tScore<.78)  return {type:'foul'};
-  // Adjacent zone (±1) — needs near-perfect timing for any hit
-  if(dist===1&&tScore<.12)  return {type:'2B'};
-  if(dist===1&&tScore<.25)  return {type:'1B'};
-  if(dist===1&&tScore<.55)  return {type:'foul'};
-  // 2 zones away — foul at best with perfect timing
-  if(dist===2&&tScore<.10)  return {type:'foul'};
+  if(dist===0&&tScore<.34)  return {type:'2B'};
+  if(dist===0&&tScore<.55)  return {type:'1B'};
+  if(dist===0&&tScore<.82)  return {type:'foul'};
+  // Adjacent zone (±1)
+  if(dist===1&&tScore<.13)  return {type:'2B'};
+  if(dist===1&&tScore<.28)  return {type:'1B'};
+  if(dist===1&&tScore<.62)  return {type:'foul'};
+  // 2 zones away
+  if(dist===2&&tScore<.12)  return {type:'foul'};
   // Everything else
   return {type:'miss'};
 }
