@@ -192,7 +192,8 @@ if(!me){
       document.getElementById('no-chat').textContent=T('noChat');
       document.getElementById('messages').innerHTML=`<div class="empty-msg">${T('noChat')}</div>`;
       document.getElementById('create-group-btn').style.display=currentTab==='group'?'':'none';
-      renderConvList();
+      renderConvList();   // キャッシュで即描画
+      loadAll();          // 最新データを取得して再描画
     });
   });
 
