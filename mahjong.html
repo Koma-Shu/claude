@@ -11,31 +11,77 @@ body{background:#0d0d1a;min-height:100vh;font-family:'Courier New',monospace;col
 #back-btn{position:fixed;top:14px;right:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:.72rem;padding:5px 10px;cursor:pointer;z-index:10;text-decoration:none}
 h1{font-size:1.5rem;letter-spacing:8px;color:#cc3300;text-shadow:0 0 24px rgba(200,50,0,.5);margin:6px 0 4px}
 
-/* ── Setup screen ─────────────────────────────────────────── */
-#setup{display:flex;flex-direction:column;align-items:center;gap:24px;padding:40px 20px}
-#setup h2{font-size:1rem;letter-spacing:6px;color:#888}
-.np-row{display:flex;gap:14px}
+/* ── Mode select ── */
+#screen-mode{display:flex;flex-direction:column;align-items:center;gap:28px;padding:40px 20px}
+#screen-mode h2{font-size:.9rem;letter-spacing:6px;color:#555}
+.mode-row{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+.mode-btn{width:160px;height:120px;border-radius:12px;border:1px solid #2a2a3a;background:#13131f;color:#666;font-family:'Courier New',monospace;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;transition:all .15s;padding:10px}
+.mode-btn .mode-icon{font-size:2rem}
+.mode-btn .mode-title{font-size:.82rem;letter-spacing:3px;color:#aaa}
+.mode-btn .mode-desc{font-size:.58rem;letter-spacing:2px;color:#444}
+.mode-btn:hover{border-color:#cc3300;background:#1a0800}.mode-btn:hover .mode-title{color:#cc3300}.mode-btn:hover .mode-desc{color:#884422}
+
+/* ── Solo setup ── */
+#screen-solo{display:none;flex-direction:column;align-items:center;gap:24px;padding:40px 20px}
+#screen-solo h2{font-size:1rem;letter-spacing:6px;color:#888}
+.np-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
 .np-btn{width:88px;height:88px;border-radius:10px;border:1px solid #333;background:#13131f;color:#666;font-family:'Courier New',monospace;font-size:1.3rem;letter-spacing:2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:all .15s}
 .np-btn span{font-size:.58rem;letter-spacing:3px;color:#444}
-.np-btn:hover{border-color:#cc3300;color:#cc3300;background:#1a0800}
-.np-btn:hover span{color:#884422}
-.setup-note{font-size:.65rem;color:#333;letter-spacing:1px;text-align:center;max-width:340px;line-height:1.8}
+.np-btn:hover{border-color:#cc3300;color:#cc3300;background:#1a0800}.np-btn:hover span{color:#884422}
+.back-link{background:transparent;border:none;color:#444;font-family:'Courier New',monospace;font-size:.7rem;letter-spacing:2px;cursor:pointer;padding:4px 8px}
+.back-link:hover{color:#888}
 
-/* ── Game screen ─────────────────────────────────────────── */
-#game{display:none;flex-direction:column;align-items:center;width:100%}
+/* ── Online setup ── */
+#screen-online{display:none;flex-direction:column;align-items:center;gap:24px;padding:40px 20px}
+#screen-online h2{font-size:1rem;letter-spacing:6px;color:#888}
+.online-cards{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.online-card{background:#13131f;border:1px solid #2a2a3a;border-radius:10px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:200px}
+.online-card-title{font-size:.75rem;letter-spacing:4px;color:#555}
+.online-sep{font-size:.7rem;color:#2a2a3a;padding-top:30px}
+#room-code-input{background:#0d0d1a;border:1px solid #2a2a3a;border-radius:6px;padding:10px 14px;color:#eee;font-family:'Courier New',monospace;font-size:1.2rem;letter-spacing:8px;width:160px;text-align:center;outline:none;text-transform:uppercase}
+#room-code-input:focus{border-color:#00d4aa}
+#btn-join-room{padding:9px 20px;background:linear-gradient(135deg,#00d4aa,#0088cc);border:none;border-radius:6px;color:#000;font-family:'Courier New',monospace;font-size:.78rem;font-weight:bold;letter-spacing:2px;cursor:pointer}
+#online-err{font-size:.65rem;color:#ff5566;min-height:16px;text-align:center}
+
+/* ── Lobby ── */
+#screen-lobby{display:none;flex-direction:column;align-items:center;gap:20px;padding:40px 20px;width:100%;max-width:500px}
+.lobby-code-box{background:#13131f;border:1px solid #2a2a3a;border-radius:8px;padding:14px 24px;text-align:center}
+.lobby-code-label{font-size:.58rem;letter-spacing:3px;color:#444;margin-bottom:4px}
+.lobby-code-val{font-size:2rem;letter-spacing:12px;color:#00d4aa;font-weight:bold}
+.lobby-code-hint{font-size:.6rem;color:#333;margin-top:4px}
+#lobby-seats{width:100%;display:flex;flex-direction:column;gap:8px}
+.lobby-seat{display:flex;align-items:center;gap:12px;background:#13131f;border:1px solid #1a1a2a;border-radius:8px;padding:12px 16px}
+.seat-badge{font-size:.6rem;letter-spacing:2px;color:#444;min-width:40px}
+.seat-name{font-size:.82rem;color:#ddd}
+.seat-empty{font-size:.75rem;color:#2a2a3a;letter-spacing:2px}
+.seat-you{color:#00d4aa;font-weight:bold}
+#lobby-friends{width:100%}
+#lobby-friends-title{font-size:.6rem;letter-spacing:3px;color:#444;margin-bottom:8px}
+#lobby-friend-list{display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;border:1px solid #1a1a2a;border-radius:6px;padding:4px}
+.lf-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:4px;border-bottom:1px solid #1a1a2a}
+.lf-item:last-child{border-bottom:none}
+.lf-name{font-size:.78rem;color:#ccc}
+.lf-copy-btn{font-size:.6rem;background:#1a1a2a;border:1px solid #2a2a3a;border-radius:4px;color:#666;font-family:'Courier New',monospace;padding:4px 8px;cursor:pointer;letter-spacing:1px}
+.lf-copy-btn:hover{border-color:#00d4aa;color:#00d4aa}
+#lobby-msg{font-size:.72rem;color:#555;letter-spacing:2px;text-align:center;min-height:18px}
+.lobby-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#btn-start-game{padding:12px 32px;background:linear-gradient(135deg,#00d4aa,#0088cc);border:none;border-radius:8px;color:#000;font-family:'Courier New',monospace;font-size:.85rem;font-weight:bold;letter-spacing:3px;cursor:pointer;display:none}
+#btn-start-game:disabled{opacity:.4;cursor:not-allowed}
+#btn-leave{background:transparent;border:1px solid #2a2a3a;border-radius:6px;color:#444;font-family:'Courier New',monospace;font-size:.7rem;letter-spacing:2px;cursor:pointer;padding:8px 16px}
+#btn-leave:hover{border-color:#555;color:#888}
+.lobby-waiting{font-size:.68rem;color:#555;letter-spacing:3px}
+
+/* ── Game screen ── */
+#screen-game{display:none;flex-direction:column;align-items:center;width:100%}
 #topbar{display:flex;gap:18px;font-size:.68rem;color:#555;margin-bottom:6px}
 #wall-num{color:#00d4aa}
-#scores{display:flex;gap:14px;font-size:.68rem;margin-bottom:6px}
+#scores{display:flex;gap:14px;font-size:.68rem;margin-bottom:6px;flex-wrap:wrap;justify-content:center}
 .sc{display:flex;gap:4px}.sc-l{color:#444}.sc-v{color:#aaa}.sc-v.win{color:#ffd700}
-
-/* tile wrappers */
 .tw{display:inline-flex;flex-shrink:0;border-radius:4px;cursor:default;transition:transform .1s,filter .1s;position:relative}
 .tw canvas{display:block;border-radius:4px}
 .tw.sel{transform:translateY(-10px);filter:drop-shadow(0 10px 18px rgba(0,212,170,.6))}
 .tw.pick{cursor:pointer}.tw.pick:hover:not(.sel){transform:translateY(-5px);filter:drop-shadow(0 5px 10px rgba(0,212,170,.35))}
 .tw.glow{filter:drop-shadow(0 0 6px rgba(255,215,0,.8))}
-
-/* layout */
 #table{width:100%;max-width:840px;display:flex;flex-direction:column;gap:6px;padding:0 8px 20px}
 .ai-block{display:flex;flex-direction:column;align-items:center;gap:3px}
 .ai-lbl{font-size:.54rem;letter-spacing:3px;color:#3a3a4a}.ai-lbl.active{color:#00d4aa}
@@ -67,6 +113,7 @@ h1{font-size:1.5rem;letter-spacing:8px;color:#cc3300;text-shadow:0 0 24px rgba(2
 #btn-ng{background:linear-gradient(135deg,#00d4aa,#0088cc);color:#000;font-weight:bold}
 #btn-menu{background:transparent;border:1px solid #333!important;color:#555}
 #msg{text-align:center;font-size:.82rem;letter-spacing:2px;color:#ffd700;min-height:34px;padding:6px 10px}
+#ron-timer{font-size:.7rem;color:#ff5566;min-height:16px;text-align:center}
 </style>
 </head>
 <body>
@@ -74,59 +121,110 @@ h1{font-size:1.5rem;letter-spacing:8px;color:#cc3300;text-shadow:0 0 24px rgba(2
 <a href="index.html" id="back-btn">← HOME</a>
 <h1>麻雀</h1>
 
-<!-- Setup screen -->
-<div id="setup">
+<!-- Mode selection -->
+<div id="screen-mode">
+  <h2>モード選択</h2>
+  <div class="mode-row">
+    <button class="mode-btn" id="btn-mode-solo">
+      <span class="mode-icon">🎯</span>
+      <span class="mode-title">1人プレイ</span>
+      <span class="mode-desc">vs AI</span>
+    </button>
+    <button class="mode-btn" id="btn-mode-online">
+      <span class="mode-icon">👥</span>
+      <span class="mode-title">フレンドと遊ぶ</span>
+      <span class="mode-desc">オンライン対戦</span>
+    </button>
+  </div>
+</div>
+
+<!-- Solo player count -->
+<div id="screen-solo">
   <h2>プレイ人数を選択</h2>
   <div class="np-row">
     <button class="np-btn" data-n="2">2<span>人打ち</span></button>
     <button class="np-btn" data-n="3">3<span>人打ち</span></button>
     <button class="np-btn" data-n="4">4<span>人打ち</span></button>
   </div>
-  <div class="setup-note">あなた + AI 対戦<br>2人打ち: 対面のみ / 3人打ち: 右・対面 / 4人打ち: フル</div>
+  <div class="setup-note" style="font-size:.65rem;color:#333;letter-spacing:1px;text-align:center;max-width:340px;line-height:1.8">あなた + AI 対戦</div>
+  <button class="back-link" id="back-solo">← 戻る</button>
+</div>
+
+<!-- Online setup -->
+<div id="screen-online">
+  <h2>オンライン対戦</h2>
+  <div class="online-cards">
+    <div class="online-card">
+      <div class="online-card-title">ルームを作成</div>
+      <div class="np-row">
+        <button class="np-btn" data-online-n="2">2<span>人打ち</span></button>
+        <button class="np-btn" data-online-n="3">3<span>人打ち</span></button>
+        <button class="np-btn" data-online-n="4">4<span>人打ち</span></button>
+      </div>
+    </div>
+    <div class="online-sep">または</div>
+    <div class="online-card">
+      <div class="online-card-title">ルームに参加</div>
+      <input type="text" id="room-code-input" placeholder="XXXXXX" maxlength="6">
+      <button id="btn-join-room">参加する</button>
+    </div>
+  </div>
+  <div id="online-err"></div>
+  <button class="back-link" id="back-online">← 戻る</button>
+</div>
+
+<!-- Lobby -->
+<div id="screen-lobby">
+  <div class="lobby-code-box">
+    <div class="lobby-code-label">ルームコード</div>
+    <div class="lobby-code-val" id="display-room-code"></div>
+    <div class="lobby-code-hint">フレンドにこのコードを教えてください</div>
+  </div>
+  <div id="lobby-seats"></div>
+  <div id="lobby-friends" style="display:none;width:100%">
+    <div id="lobby-friends-title">フレンドを招待</div>
+    <div id="lobby-friend-list"></div>
+  </div>
+  <div id="lobby-msg"></div>
+  <div class="lobby-btns">
+    <button id="btn-start-game">ゲーム開始</button>
+    <button id="btn-leave">退出</button>
+  </div>
 </div>
 
 <!-- Game screen -->
-<div id="game">
+<div id="screen-game">
   <div id="topbar">
     <span id="round-lbl">東1局</span>
     <span>壁牌: <span id="wall-num">?</span></span>
   </div>
   <div id="scores"></div>
-
   <div id="table">
-    <!-- AI top (position 2 = West/対面) -->
     <div class="ai-block" id="block-2">
-      <div class="ai-lbl" id="lbl-2">対面 AI</div>
+      <div class="ai-lbl" id="lbl-2">対面</div>
       <div class="hrow" id="hand-2"></div>
       <div class="drow" id="dis-2"></div>
     </div>
-
-    <!-- Mid row: left AI | center | right AI -->
     <div id="mid-row">
-      <!-- AI left (position 3 = North/上家) -->
       <div class="ai-block" id="block-3">
-        <div class="ai-lbl" id="lbl-3">上家 AI</div>
+        <div class="ai-lbl" id="lbl-3">上家</div>
         <div class="hcol" id="hand-3"></div>
         <div class="dcol" id="dis-3"></div>
       </div>
-
       <div id="cpanel">
         <div id="round-badge">東1局</div>
         <div id="wall-badge">壁牌 <span id="wall-num2">?</span></div>
         <div id="cdis"></div>
       </div>
-
-      <!-- AI right (position 1 = South/下家) -->
       <div class="ai-block" id="block-1">
-        <div class="ai-lbl" id="lbl-1">下家 AI</div>
+        <div class="ai-lbl" id="lbl-1">下家</div>
         <div class="hcol" id="hand-1"></div>
         <div class="dcol" id="dis-1"></div>
       </div>
     </div>
-
-    <!-- Player (position 0) -->
     <div id="player-area">
       <div id="tenpai-line"></div>
+      <div id="ron-timer"></div>
       <div id="action-bar">
         <button class="abtn" id="btn-tsumo">TSUMO ツモ</button>
         <button class="abtn" id="btn-ron">RON ロン</button>
@@ -143,8 +241,12 @@ h1{font-size:1.5rem;letter-spacing:8px;color:#cc3300;text-shadow:0 0 24px rgba(2
 </div>
 
 <script>
+const SUPABASE_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
+const SUPABASE_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+async function sb(path,opts={}){try{const r=await fetch(SUPABASE_URL+path,{headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':'return=representation',...(opts.headers||{})},...opts});const t=await r.text();return t?JSON.parse(t):null;}catch{return null;}}
+
 // ── Canvas tile rendering ──────────────────────────────────────
-const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const DPR=Math.min(window.devicePixelRatio||1,2);
 function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();}
 function drawBg(ctx,w,h,sel,glow){rr(ctx,1,1,w-2,h-2,4);const g=ctx.createLinearGradient(0,0,w*.4,h);if(sel){g.addColorStop(0,'#d4fff8');g.addColorStop(1,'#aaeedd');}else{g.addColorStop(0,'#fffef2');g.addColorStop(1,'#e2e2c4');}ctx.fillStyle=g;ctx.fill();ctx.strokeStyle=sel?'#00d4aa':glow?'#ffd700':'#999';ctx.lineWidth=(sel||glow)?2:1;ctx.stroke();ctx.fillStyle='rgba(0,0,0,.1)';ctx.fillRect(2,h-4,w-3,2);ctx.fillRect(w-4,2,2,h-5);}
 function drawBack(ctx,w,h){rr(ctx,.5,.5,w-1,h-1,4);ctx.fillStyle='#162518';ctx.fill();ctx.strokeStyle='#2a4030';ctx.lineWidth=1;ctx.stroke();ctx.save();ctx.clip();ctx.strokeStyle='rgba(0,80,20,.35)';ctx.lineWidth=.8;for(let i=-h;i<w+h;i+=6){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i+h,h);ctx.stroke();ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i-h,h);ctx.stroke();}ctx.restore();rr(ctx,3,3,w-6,h-6,2);ctx.strokeStyle='#2a4030';ctx.lineWidth=.6;ctx.stroke();}
@@ -157,106 +259,108 @@ function drawSou1(ctx,w,h){const cx=w/2,cy=h*.42,r=w*.28;const g=ctx.createRadia
 function drawSou(ctx,rank,w,h){if(rank===1){drawSou1(ctx,w,h);return;}const cfg=SOU_CFG[rank];const pad=h*.1,totalH=h-pad*2;const bw=w*(cfg.xs.length===1?.22:cfg.xs.length===2?.2:.18);cfg.xs.forEach((xf,ci)=>{const n=cfg.cols[ci];const gap=h*.025;const bh=(totalH-(n-1)*gap)/n;for(let i=0;i<n;i++)drawBamboo(ctx,xf*w-bw/2,pad+i*(bh+gap),bw,bh);});}
 function drawHonor(ctx,rank,w,h){const chars=['東','南','西','北','白','發','中'];const colors=['#111944','#111944','#111944','#111944','#666','#006600','#cc0000'];ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=colors[rank-1];ctx.font=`bold ${w*.65}px 'Hiragino Mincho ProN','Yu Mincho',serif`;ctx.fillText(chars[rank-1],w/2,h/2+1);if(rank===5){rr(ctx,w*.16,h*.2,w*.68,h*.6,2);ctx.strokeStyle='#888';ctx.lineWidth=1.2;ctx.stroke();}}
 function drawFace(ctx,tile,w,h){if(tile.s==='m')drawMan(ctx,tile.r,w,h);else if(tile.s==='p')drawPin(ctx,tile.r,w,h);else if(tile.s==='s')drawSou(ctx,tile.r,w,h);else drawHonor(ctx,tile.r,w,h);}
-
-function makeTileEl(tile,opts={}){
-  const small=opts.small,xs=opts.xs;
-  const W=xs?16:small?24:40,H=xs?22:small?34:56;
-  const wrap=document.createElement('div');
-  wrap.className='tw'+(opts.sel?' sel':'')+(opts.pick?' pick':'')+(opts.glow?' glow':'');
-  const cv=document.createElement('canvas');cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';
-  const ctx=cv.getContext('2d');ctx.scale(DPR,DPR);drawBg(ctx,W,H,opts.sel,opts.glow);drawFace(ctx,tile,W,H);
-  wrap.appendChild(cv);if(opts.onClick)wrap.addEventListener('click',opts.onClick);return wrap;
-}
+function makeTileEl(tile,opts={}){const small=opts.small,xs=opts.xs;const W=xs?16:small?24:40,H=xs?22:small?34:56;const wrap=document.createElement('div');wrap.className='tw'+(opts.sel?' sel':'')+(opts.pick?' pick':'')+(opts.glow?' glow':'');const cv=document.createElement('canvas');cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';const ctx=cv.getContext('2d');ctx.scale(DPR,DPR);drawBg(ctx,W,H,opts.sel,opts.glow);drawFace(ctx,tile,W,H);wrap.appendChild(cv);if(opts.onClick)wrap.addEventListener('click',opts.onClick);return wrap;}
 function makeBackEl(small,side){const W=side?16:small?22:38,H=side?22:small?32:54;const wrap=document.createElement('div');wrap.className='tw';const cv=document.createElement('canvas');cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';const ctx=cv.getContext('2d');ctx.scale(DPR,DPR);drawBack(ctx,W,H);wrap.appendChild(cv);return wrap;}
 
-// ── Tile constants ─────────────────────────────────────────────
+// ── Tile logic ─────────────────────────────────────────────────
 const M='m',P='p',S='s',Z='z';
 const ZC=['東','南','西','北','白','發','中'];
 function tc(t){if(t.s===M)return['一','二','三','四','五','六','七','八','九'][t.r-1];if(t.s===P)return['①','②','③','④','⑤','⑥','⑦','⑧','⑨'][t.r-1];if(t.s===S)return t.r+'s';return ZC[t.r-1];}
 function same(a,b){return a.s===b.s&&a.r===b.r;}
 function sortH(arr){const o={m:0,p:1,s:2,z:3};return[...arr].sort((a,b)=>a.s!==b.s?o[a.s]-o[b.s]:a.r-b.r);}
-
-// ── Deck ──────────────────────────────────────────────────────
 function mkDeck(){const d=[];for(const s of[M,P,S])for(let r=1;r<=9;r++)for(let i=0;i<4;i++)d.push({s,r});for(let r=1;r<=7;r++)for(let i=0;i<4;i++)d.push({s:Z,r});for(let i=d.length-1;i>0;i--){const j=0|Math.random()*(i+1);[d[i],d[j]]=[d[j],d[i]];}return d;}
-
-// ── Win check ─────────────────────────────────────────────────
 function canSets(tiles){if(!tiles.length)return true;const a=sortH(tiles),f=a[0],rest=a.slice(1);let i1=-1,i2=-1;for(let i=0;i<rest.length;i++){if(same(rest[i],f)){if(i1<0)i1=i;else{i2=i;break;}}}if(i1>=0&&i2>=0){if(canSets(rest.filter((_,i)=>i!==i1&&i!==i2)))return true;}if(f.s!==Z&&f.r<=7){const t2={s:f.s,r:f.r+1},t3={s:f.s,r:f.r+2};const j2=rest.findIndex(t=>same(t,t2));if(j2>=0){const r1=rest.filter((_,i)=>i!==j2);const j3=r1.findIndex(t=>same(t,t3));if(j3>=0&&canSets(r1.filter((_,i)=>i!==j3)))return true;}}return false;}
 function isWin(tiles){if(tiles.length!==14)return false;const a=sortH(tiles);let ok7=true;for(let i=0;i<14;i+=2)if(!same(a[i],a[i+1])){ok7=false;break;}if(ok7)return true;const tried=new Set();for(let i=0;i<a.length-1;i++){const k=a[i].s+a[i].r;if(tried.has(k))continue;tried.add(k);let j=-1;for(let x=i+1;x<a.length;x++)if(same(a[x],a[i])){j=x;break;}if(j<0)continue;if(canSets(a.filter((_,idx)=>idx!==i&&idx!==j)))return true;}return false;}
 function getWaits(h13){const waits=[],tried=new Set();for(const s of[M,P,S])for(let r=1;r<=9;r++){const k=s+r;if(!tried.has(k)){tried.add(k);if(isWin([...h13,{s,r}]))waits.push({s,r});}}for(let r=1;r<=7;r++){const k=Z+r;if(!tried.has(k)){tried.add(k);if(isWin([...h13,{s:Z,r}]))waits.push({s:Z,r});}}return waits;}
-
-// ── AI ────────────────────────────────────────────────────────
 function tScore(t,hand){let sc=0;const oth=hand.filter(x=>x!==t);if(oth.some(x=>same(x,t)))sc+=4;if(t.s!==Z)for(let d=-2;d<=2;d++){if(!d)continue;const r=t.r+d;if(r>=1&&r<=9&&oth.some(x=>x.s===t.s&&x.r===r))sc+=2;}return sc;}
 function bestDiscard(h14){let min=Infinity,best=null;for(const t of h14){const sc=tScore(t,h14.filter(x=>x!==t));if(sc<min){min=sc;best=t;}}return best;}
 
-// ── Layout per player count ────────────────────────────────────
-// positions: 0=bottom(player), 1=right, 2=top, 3=left
-// turn order by numPlayers:
-// 2p: [0,2]   3p: [0,1,2]   4p: [0,1,2,3]
+// ── Turn/seat helpers ──────────────────────────────────────────
 function turnOrder(n){if(n===2)return[0,2];if(n===3)return[0,1,2];return[0,1,2,3];}
+function nextInOrder(curP,n){const o=turnOrder(n);return o[(o.indexOf(curP)+1)%o.length];}
 
-const SEAT_NAMES = {
-  2: {0:'東(あなた)', 2:'西(対面AI)'},
-  3: {0:'東(あなた)', 1:'南AI', 2:'西AI'},
-  4: {0:'東(あなた)', 1:'南AI', 2:'西AI', 3:'北AI'},
+// ── App state ──────────────────────────────────────────────────
+const me=JSON.parse(localStorage.getItem('arcade_user')||'null');
+let numPlayers=2,mySeat=null,isHost=false,roomId=null,roomSeats={};
+let G={},selTile=null,pollTimer=null,lastVersion=-1,acting=false;
+let ronTimerEl=null,ronCountdown=null;
+
+// ── Screen management ─────────────────────────────────────────
+function showScreen(id){
+  ['screen-mode','screen-solo','screen-online','screen-lobby','screen-game'].forEach(s=>{
+    document.getElementById(s).style.display=s===id?'flex':'none';
+  });
+}
+showScreen('screen-mode');
+
+// ── Seat name helpers ─────────────────────────────────────────
+const SOLO_NAMES={
+  2:{0:'東(あなた)',2:'西(対面AI)'},
+  3:{0:'東(あなた)',1:'南AI',2:'西AI'},
+  4:{0:'東(あなた)',1:'南AI',2:'西AI',3:'北AI'},
 };
+const SEAT_LABELS=['東','南','西','北'];
+function seatLabel(seat){return SEAT_LABELS[seat]||'?';}
+function seatName(seat){
+  if(mySeat===null)return SOLO_NAMES[numPlayers][seat]||'AI';
+  if(seat===mySeat)return seatLabel(seat)+'(あなた)';
+  const info=roomSeats[seat];
+  if(info&&info.name)return seatLabel(seat)+' '+info.name;
+  return seatLabel(seat)+' AI';
+}
+function isAISeat(seat){
+  if(mySeat===null)return seat!==0;
+  return !roomSeats[seat];
+}
 
-function applyLayout(n) {
-  // show/hide AI blocks and center dis columns
-  document.getElementById('block-1').style.display = n>=3 ? '' : 'none';
-  document.getElementById('block-3').style.display = n>=4 ? '' : 'none';
-  // center discard grid columns
-  const cdis = document.getElementById('cdis');
-  cdis.style.gridTemplateColumns = n===2 ? '1fr' : n===3 ? '1fr 1fr' : '1fr 1fr';
-  // rebuild cdis cells
-  cdis.innerHTML = '';
-  const order = turnOrder(n).filter(p=>p!==0).reverse(); // AIs in display order
-  const names = SEAT_NAMES[n];
-  const allOrder = turnOrder(n);
-  allOrder.forEach(p=>{
+// ── Display mapping (rotate so mySeat is at bottom) ───────────
+function getDisplaySeats(){
+  const order=turnOrder(numPlayers);
+  if(mySeat===null)return order;
+  const myIdx=order.indexOf(mySeat);
+  return order.map((_,i)=>order[(myIdx+i)%order.length]);
+}
+// Returns {bottom, right?, top, left?} → seat numbers at each position
+function getDisplayMap(){
+  const ds=getDisplaySeats();
+  if(numPlayers===2)return{bottom:ds[0],top:ds[1]};
+  if(numPlayers===3)return{bottom:ds[0],right:ds[1],top:ds[2]};
+  return{bottom:ds[0],right:ds[1],top:ds[2],left:ds[3]};
+}
+
+// ── Layout setup ──────────────────────────────────────────────
+function applyLayout(n){
+  const dm=getDisplayMap();
+  document.getElementById('block-1').style.display=dm.right!==undefined?'':'none';
+  document.getElementById('block-3').style.display=dm.left!==undefined?'':'none';
+  document.getElementById('lbl-2').textContent=seatName(dm.top);
+  if(dm.right!==undefined)document.getElementById('lbl-1').textContent=seatName(dm.right);
+  if(dm.left!==undefined)document.getElementById('lbl-3').textContent=seatName(dm.left);
+  document.getElementById('player-lbl').textContent=seatName(dm.bottom);
+  const cdis=document.getElementById('cdis');
+  cdis.style.gridTemplateColumns=n===2?'1fr':'1fr 1fr';
+  cdis.innerHTML='';
+  turnOrder(n).forEach(p=>{
     const div=document.createElement('div');div.className='cdi';
-    div.innerHTML=`<div class="cdil">${names[p]||'AI'}</div><div class="cdtiles" id="cdis-${p}"></div>`;
+    div.innerHTML=`<div class="cdil">${seatName(p)}</div><div class="cdtiles" id="cdis-${p}"></div>`;
     cdis.appendChild(div);
   });
 }
 
-// ── Game state ─────────────────────────────────────────────────
-let G={}, selTile=null, numPlayers=4;
-
-function initGame(n) {
-  numPlayers = n;
-  document.getElementById('setup').style.display = 'none';
-  document.getElementById('game').style.display = 'flex';
+// ── Solo game ─────────────────────────────────────────────────
+function initSoloGame(n){
+  mySeat=null;isHost=false;roomId=null;roomSeats={};
+  numPlayers=n;
+  showScreen('screen-game');
   applyLayout(n);
-
-  const wall=mkDeck();
-  const hands=[[],[],[],[]];
+  const wall=mkDeck(),hands=[[],[],[],[]];
   const order=turnOrder(n);
-  for(const p of order) for(let i=0;i<13;i++) hands[p].push(wall.pop());
-
+  for(const p of order)for(let i=0;i<13;i++)hands[p].push(wall.pop());
   G={wall,hands,discards:[[],[],[],[]],draw:null,turn:0,phase:'discard',
      scores:Object.fromEntries(order.map(p=>[p,25000])),last:null,over:false};
   selTile=null;
-
-  // scores display
   renderScores();
   playerDraw();
-}
-
-function renderScores(){
-  const sc=document.getElementById('scores');sc.innerHTML='';
-  const names=SEAT_NAMES[numPlayers];
-  const order=turnOrder(numPlayers);
-  order.forEach(p=>{
-    const d=document.createElement('div');d.className='sc';
-    d.innerHTML=`<span class="sc-l">${names[p]}</span><span class="sc-v" id="sc${p}">${(G.scores[p]||25000).toLocaleString()}</span>`;
-    sc.appendChild(d);
-  });
-}
-
-function nextInOrder(curP){
-  const order=turnOrder(numPlayers);
-  const idx=order.indexOf(curP);
-  return order[(idx+1)%order.length];
 }
 
 function playerDraw(){
@@ -280,21 +384,21 @@ function aiTurn(p){
       G.over=true;G.phase='over';G.hands[p]=full;
       const gain=2000;G.scores[p]+=gain*3;
       turnOrder(numPlayers).forEach(i=>{if(i!==p)G.scores[i]-=gain;});
-      showMsg(`${SEAT_NAMES[numPlayers][p]} がツモ和了！`);showBtns(['ng','menu']);render();return;
+      showMsg(`${seatName(p)} がツモ和了！`);showBtns(['ng','menu']);render();return;
     }
     const disc=bestDiscard(full);
     G.hands[p]=full.filter(t=>t!==disc);G.discards[p].push(disc);G.last={tile:disc,p};render();
     const waits=getWaits(G.hands[0]);
     if(waits.some(w=>same(w,disc))){
-      G.phase='claim';showMsg(`${SEAT_NAMES[numPlayers][p]} が ${tc(disc)} を捨てました — ロンできます`);showBtns(['ron','pass']);return;
+      G.phase='claim';showMsg(`${seatName(p)} が ${tc(disc)} を捨てました — ロンできます`);showBtns(['ron','pass']);return;
     }
-    nextTurn(p);
+    nextTurnSolo(p);
   },800);
 }
 
-function nextTurn(curP){
+function nextTurnSolo(curP){
   if(G.over)return;
-  const next=nextInOrder(curP);G.turn=next;
+  const next=nextInOrder(curP,numPlayers);G.turn=next;
   if(next===0){G.phase='discard';showMsg('あなたのターン');playerDraw();}
   else setTimeout(()=>{if(!G.over)aiTurn(next);},400);
 }
@@ -312,58 +416,412 @@ function doDiscard(t){
     if(getWaits(G.hands[p]).some(w=>same(w,G.last.tile))){
       G.over=true;G.phase='over';G.hands[p]=[...G.hands[p],G.last.tile];
       const gain=5800;G.scores[p]+=gain;G.scores[0]-=gain;
-      showMsg(`${SEAT_NAMES[numPlayers][p]} がロン和了！`);showBtns(['ng','menu']);render();return;
+      showMsg(`${seatName(p)} がロン和了！`);showBtns(['ng','menu']);render();return;
     }
   }
-  showBtns([]);render();const next=nextInOrder(0);G.turn=next;setTimeout(()=>{if(!G.over)aiTurn(next);},600);
+  showBtns([]);render();const next=nextInOrder(0,numPlayers);G.turn=next;setTimeout(()=>{if(!G.over)aiTurn(next);},600);
 }
 
 function doTsumo(){G.over=true;G.phase='over';G.hands[0]=[...G.hands[0],G.draw];G.draw=null;const gain=2000;G.scores[0]+=gain*(numPlayers-1);turnOrder(numPlayers).filter(p=>p!==0).forEach(p=>G.scores[p]-=gain);showMsg('ツモ和了！おめでとう🎉');showBtns(['ng','menu']);render();}
 function doRon(){if(!G.last)return;G.over=true;G.phase='over';G.hands[0]=[...G.hands[0],G.last.tile];const gain=5800;G.scores[0]+=gain;G.scores[G.last.p]-=gain;showMsg('ロン和了！おめでとう🎉');showBtns(['ng','menu']);render();}
-function doPass(){G.phase='draw';showBtns([]);showMsg('');nextTurn(G.last.p);}
+function doPass(){G.phase='draw';showBtns([]);showMsg('');nextTurnSolo(G.last.p);}
 
-// ── Render ────────────────────────────────────────────────────
+// ── Online game state (object-based) ──────────────────────────
+function initOnlineGameState(n,seats){
+  const wall=mkDeck(),hands={},discards={},scores={};
+  const order=turnOrder(n);
+  for(const p of order){hands[p]=[];for(let i=0;i<13;i++)hands[p].push(wall.pop());discards[p]=[];scores[p]=25000;}
+  return{version:0,wall,hands,discards,draw:null,turn:order[0],phase:'draw',last:null,scores,over:false,pendingAction:null,ronOffer:null};
+}
+
+// ── Online: Room management ────────────────────────────────────
+async function createRoom(n){
+  if(!me){alert('ログインが必要です。ログイン後にお試しください。');return;}
+  document.getElementById('online-err').textContent='作成中...';
+  const seats={0:{id:me.id,name:me.username||me.full_name||'Player'}};
+  const data=await sb('/rest/v1/mahjong_rooms',{method:'POST',body:JSON.stringify({host_id:me.id,status:'waiting',num_players:n,seats,game_state:{}})});
+  if(!data||!data[0]){document.getElementById('online-err').textContent='ルーム作成に失敗しました';return;}
+  roomId=data[0].id;roomSeats=seats;mySeat=0;isHost=true;numPlayers=n;
+  enterLobby(data[0]);
+}
+
+async function joinRoom(){
+  if(!me){alert('ログインが必要です。ログイン後にお試しください。');return;}
+  const code=document.getElementById('room-code-input').value.trim().toLowerCase();
+  if(code.length<6){document.getElementById('online-err').textContent='6文字のルームコードを入力してください';return;}
+  document.getElementById('online-err').textContent='検索中...';
+  const rooms=await sb(`/rest/v1/mahjong_rooms?id=ilike.${code}%&status=eq.waiting&select=*`);
+  if(!rooms||!rooms.length){document.getElementById('online-err').textContent='ルームが見つかりません';return;}
+  const room=rooms[0];
+  const seats=room.seats||{};
+  const order=turnOrder(room.num_players);
+  const taken=Object.keys(seats).map(Number);
+  const available=order.filter(s=>!taken.includes(s));
+  if(!available.length){document.getElementById('online-err').textContent='ルームが満員です';return;}
+  const mySeatNum=available[0];
+  const newSeats={...seats,[mySeatNum]:{id:me.id,name:me.username||me.full_name||'Player'}};
+  await sb(`/rest/v1/mahjong_rooms?id=eq.${room.id}`,{method:'PATCH',body:JSON.stringify({seats:newSeats})});
+  roomId=room.id;roomSeats=newSeats;mySeat=mySeatNum;isHost=false;numPlayers=room.num_players;
+  enterLobby({...room,seats:newSeats});
+}
+
+function enterLobby(room){
+  showScreen('screen-lobby');
+  const code=roomId.substring(0,6).toUpperCase();
+  document.getElementById('display-room-code').textContent=code;
+  renderLobby(room);
+  startPoll();
+  // Load friends for host invite
+  if(isHost&&me)loadFriendsForLobby();
+}
+
+async function loadFriendsForLobby(){
+  const [sent,recv]=await Promise.all([
+    sb(`/rest/v1/friends?requester_id=eq.${me.id}&status=eq.accepted&select=addressee_id`),
+    sb(`/rest/v1/friends?addressee_id=eq.${me.id}&status=eq.accepted&select=requester_id`)
+  ]);
+  const ids=[...(sent||[]).map(r=>r.addressee_id),...(recv||[]).map(r=>r.requester_id)];
+  if(!ids.length)return;
+  const users=await sb(`/rest/v1/users?id=in.(${ids.join(',')})&select=id,username,full_name`)||[];
+  if(!users.length)return;
+  const code=roomId.substring(0,6).toUpperCase();
+  const fl=document.getElementById('lobby-friend-list');fl.innerHTML='';
+  users.forEach(u=>{
+    const name=u.username||u.full_name||u.email||'?';
+    const div=document.createElement('div');div.className='lf-item';
+    div.innerHTML=`<span class="lf-name">${name}</span><button class="lf-copy-btn" data-code="${code}">コードをコピー</button>`;
+    div.querySelector('.lf-copy-btn').addEventListener('click',function(){
+      navigator.clipboard?.writeText('麻雀ルームコード: '+this.dataset.code+' — mahjong.html').catch(()=>{});
+      this.textContent='コピー済み！';setTimeout(()=>{this.textContent='コードをコピー';},2000);
+    });
+    fl.appendChild(div);
+  });
+  document.getElementById('lobby-friends').style.display='block';
+}
+
+function renderLobby(room){
+  roomSeats=room.seats||{};
+  const order=turnOrder(room.num_players);
+  const seats=document.getElementById('lobby-seats');seats.innerHTML='';
+  order.forEach(p=>{
+    const info=roomSeats[p];
+    const div=document.createElement('div');div.className='lobby-seat';
+    const isMe=info&&me&&info.id===me.id;
+    div.innerHTML=`<span class="seat-badge">${seatLabel(p)}</span>`+
+      (info?`<span class="seat-name ${isMe?'seat-you':''}">${info.name}${isMe?' (あなた)':''}</span>`
+           :`<span class="seat-empty">待機中...</span>`);
+    seats.appendChild(div);
+  });
+  const joined=Object.keys(roomSeats).length;
+  const msg=document.getElementById('lobby-msg');
+  if(isHost){
+    const btn=document.getElementById('btn-start-game');
+    btn.style.display='block';
+    if(joined>=2){btn.disabled=false;msg.textContent=`${joined}/${room.num_players}人 参加済み — ゲーム開始できます`;}
+    else{btn.disabled=true;msg.textContent=`${joined}/${room.num_players}人 参加中 — あと${2-joined}人必要`;}
+  }else{
+    msg.textContent=`${joined}/${room.num_players}人 参加中 — ホストの開始を待っています...`;
+  }
+}
+
+// ── Online: Game start (host) ──────────────────────────────────
+async function startOnlineGame(){
+  if(!isHost)return;
+  const gs=initOnlineGameState(numPlayers,roomSeats);
+  await sb(`/rest/v1/mahjong_rooms?id=eq.${roomId}`,{method:'PATCH',body:JSON.stringify({status:'playing',game_state:gs})});
+}
+
+// ── Online: Poll ──────────────────────────────────────────────
+function startPoll(){stopPoll();pollTimer=setInterval(pollRoom,1500);}
+function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
+
+async function pollRoom(){
+  const data=await sb(`/rest/v1/mahjong_rooms?id=eq.${roomId}&select=*`);
+  if(!data||!data[0])return;
+  const room=data[0];
+  roomSeats=room.seats||{};
+  if(room.status==='waiting'){renderLobby(room);return;}
+  if(room.status==='playing'){
+    const gs=room.game_state;
+    if(!gs||!gs.version)return;
+    if(document.getElementById('screen-lobby').style.display!=='none'){
+      numPlayers=room.num_players;
+      G=gs;lastVersion=gs.version;
+      showScreen('screen-game');
+      applyLayout(numPlayers);
+      renderScores();
+      render();
+      processOnlineTurn();
+      return;
+    }
+    if(gs.version!==lastVersion){
+      lastVersion=gs.version;
+      G=gs;
+      render();
+      if(!G.over)processOnlineTurn();
+    }
+  }
+}
+
+// ── Online: Process current turn ──────────────────────────────
+async function processOnlineTurn(){
+  if(acting||!G||G.over)return;
+  const seat=G.turn;
+
+  // Handle pending action (host reads non-host human actions)
+  if(isHost&&G.pendingAction){
+    acting=true;
+    await applyPendingAction(G.pendingAction);
+    acting=false;
+    return;
+  }
+
+  // Ron offer handling
+  if(G.ronOffer){
+    const deadline=G.ronOffer.deadline;
+    const myOffer=mySeat!==null&&G.ronOffer.seats&&G.ronOffer.seats[mySeat];
+    if(myOffer&&!G.over){
+      const ms=deadline-Date.now();
+      if(ms>0){
+        showBtns(['ron','pass']);
+        showMsg(`${tc(G.last.tile)} — ロンできます`);
+        startRonCountdown(ms,async()=>{
+          // Auto-pass on timeout
+          await onlineAction({type:'pass',seat:mySeat});
+        });
+        return;
+      }
+    }
+    // Host: check if deadline passed, advance
+    if(isHost&&Date.now()>deadline){
+      acting=true;
+      await advanceAfterRonOffer();
+      acting=false;
+    }
+    return;
+  }
+
+  // My turn
+  if(seat===mySeat){
+    if(G.phase==='draw'){
+      if(isHost){
+        // Host draws for themselves
+        acting=true;
+        await hostDraw(seat);
+        acting=false;
+      }
+      // Non-host: host will draw for us, we wait
+    } else if(G.phase==='discard'){
+      // Show discard UI
+      const full=[...G.hands[mySeat],...(G.draw?[G.draw]:[])];
+      if(G.draw&&isWin(full)){showBtns(['tsumo']);}
+      else{showBtns([]);}
+      const waits=getWaits(G.hands[mySeat]);
+      document.getElementById('tenpai-line').textContent=waits.length?`テンパイ — 待ち: ${waits.map(t=>tc(t)).join(' ')}`:'';
+    }
+  } else if(isHost){
+    // Host handles non-my-seat turns
+    if(G.phase==='draw'){
+      acting=true;
+      if(isAISeat(seat)){await hostAITurn(seat);}
+      else{await hostDraw(seat);}  // draw for human, wait for their pendingAction
+      acting=false;
+    }
+  }
+}
+
+async function hostDraw(seat){
+  if(!G.wall.length){await saveGS({...G,over:true,phase:'over',winType:'draw'});return;}
+  const wall=[...G.wall];
+  const drawn=wall.pop();
+  const newHands={...G.hands,[seat]:[...G.hands[seat]]};
+  const newG={...G,wall,draw:drawn,phase:'discard',turn:seat,version:G.version+1,pendingAction:null};
+  if(seat===mySeat){
+    // It's host's own turn, check tsumo
+    const full=[...newG.hands[seat],drawn];
+    if(isWin(full)){showBtns(['tsumo']);showMsg('ツモ和了できます！');}
+    else{showBtns([]);const w=getWaits(newG.hands[seat]);document.getElementById('tenpai-line').textContent=w.length?`テンパイ — 待ち: ${w.map(t=>tc(t)).join(' ')}`:'';}
+  }
+  await saveGS(newG);
+}
+
+async function hostAITurn(seat){
+  if(!G.wall.length){await saveGS({...G,over:true,phase:'over',winType:'draw'});return;}
+  const wall=[...G.wall];
+  const drawn=wall.pop();
+  const full=[...G.hands[seat],drawn];
+  if(isWin(full)){
+    const newScores={...G.scores,[seat]:(G.scores[seat]||25000)+2000*(numPlayers-1)};
+    turnOrder(numPlayers).forEach(p=>{if(p!==seat)newScores[p]=(newScores[p]||25000)-2000;});
+    const newHands={...G.hands,[seat]:full};
+    await saveGS({...G,wall,hands:newHands,scores:newScores,over:true,phase:'over',winType:'tsumo',winner:seat,version:G.version+1,pendingAction:null});
+    return;
+  }
+  const disc=bestDiscard(full);
+  const newHand=full.filter(t=>t!==disc);
+  const newDiscards={...G.discards,[seat]:[...G.discards[seat],disc]};
+  const newHands={...G.hands,[seat]:newHand};
+  const newG={...G,wall,hands:newHands,discards:newDiscards,draw:null,last:{tile:disc,p:seat},phase:'discard_done',version:G.version+1,pendingAction:null};
+  await handleAfterDiscard(newG,seat,disc);
+}
+
+async function applyPendingAction(action){
+  const seat=action.seat;
+  if(action.type==='discard'){
+    const tile=action.tile;
+    const hand=[...G.hands[seat]];
+    const idx=hand.findIndex(t=>same(t,tile));
+    if(idx<0){await saveGS({...G,pendingAction:null,version:G.version+1});return;}
+    hand.splice(idx,1);
+    const newDiscards={...G.discards,[seat]:[...G.discards[seat],tile]};
+    const newHands={...G.hands,[seat]:hand};
+    const newG={...G,hands:newHands,discards:newDiscards,draw:null,last:{tile,p:seat},pendingAction:null};
+    await handleAfterDiscard(newG,seat,tile);
+  } else if(action.type==='tsumo'){
+    const hand=[...G.hands[seat],G.draw];
+    const gain=2000;
+    const newScores={...G.scores,[seat]:(G.scores[seat]||25000)+gain*(numPlayers-1)};
+    turnOrder(numPlayers).forEach(p=>{if(p!==seat)newScores[p]=(newScores[p]||25000)-gain;});
+    await saveGS({...G,hands:{...G.hands,[seat]:hand},scores:newScores,over:true,phase:'over',winType:'tsumo',winner:seat,draw:null,pendingAction:null,version:G.version+1});
+  } else if(action.type==='ron'){
+    const hand=[...G.hands[seat],G.last.tile];
+    const loser=G.last.p;const gain=5800;
+    const newScores={...G.scores,[seat]:(G.scores[seat]||25000)+gain,[loser]:(G.scores[loser]||25000)-gain};
+    await saveGS({...G,hands:{...G.hands,[seat]:hand},scores:newScores,over:true,phase:'over',winType:'ron',winner:seat,pendingAction:null,ronOffer:null,version:G.version+1});
+  } else if(action.type==='pass'){
+    const newOffer=G.ronOffer?{...G.ronOffer,seats:{...G.ronOffer.seats}}:null;
+    if(newOffer)delete newOffer.seats[seat];
+    const anyLeft=newOffer&&Object.keys(newOffer.seats).length>0;
+    if(anyLeft){await saveGS({...G,ronOffer:newOffer,pendingAction:null,version:G.version+1});}
+    else{await advanceAfterRonOffer({...G,ronOffer:null,pendingAction:null});}
+  }
+}
+
+async function handleAfterDiscard(newG,discardSeat,disc){
+  // Check AI ron
+  const order=turnOrder(numPlayers);
+  for(const p of order){
+    if(p===discardSeat)continue;
+    if(isAISeat(p)&&getWaits(newG.hands[p]).some(w=>same(w,disc))){
+      const gain=5800;
+      const newScores={...newG.scores,[p]:(newG.scores[p]||25000)+gain,[discardSeat]:(newG.scores[discardSeat]||25000)-gain};
+      const hand=[...newG.hands[p],disc];
+      await saveGS({...newG,hands:{...newG.hands,[p]:hand},scores:newScores,over:true,phase:'over',winType:'ron',winner:p,version:newG.version+1,pendingAction:null});
+      return;
+    }
+  }
+  // Check human ron offers
+  const ronSeats={};
+  for(const p of order){
+    if(p===discardSeat)continue;
+    if(!isAISeat(p)&&getWaits(newG.hands[p]).some(w=>same(w,disc)))ronSeats[p]=true;
+  }
+  if(Object.keys(ronSeats).length){
+    const ronOffer={seats:ronSeats,deadline:Date.now()+10000};
+    await saveGS({...newG,phase:'ron_offer',ronOffer,version:newG.version+1,pendingAction:null});
+  } else {
+    await advanceAfterRonOffer(newG);
+  }
+}
+
+async function advanceAfterRonOffer(baseG){
+  const g=baseG||G;
+  if(!g.last)return;
+  const next=nextInOrder(g.last.p,numPlayers);
+  await saveGS({...g,turn:next,phase:'draw',ronOffer:null,pendingAction:null,version:g.version+1});
+}
+
+async function saveGS(newG){
+  G=newG;
+  render();
+  await sb(`/rest/v1/mahjong_rooms?id=eq.${roomId}`,{method:'PATCH',body:JSON.stringify({game_state:newG})});
+}
+
+// ── Online: Non-host action submission ────────────────────────
+async function onlineAction(action){
+  if(!roomId)return;
+  const newG={...G,pendingAction:action,version:G.version+1};
+  G=newG;
+  render();
+  showBtns([]);
+  document.getElementById('tenpai-line').textContent='';
+  clearRonCountdown();
+  await sb(`/rest/v1/mahjong_rooms?id=eq.${roomId}`,{method:'PATCH',body:JSON.stringify({game_state:newG})});
+}
+
+function startRonCountdown(ms,onExpire){
+  clearRonCountdown();
+  const el=document.getElementById('ron-timer');
+  let sec=Math.ceil(ms/1000);
+  el.textContent=`ロン受付: ${sec}秒`;
+  ronCountdown=setInterval(()=>{sec--;if(sec<=0){clearRonCountdown();onExpire();}else el.textContent=`ロン受付: ${sec}秒`;},1000);
+}
+function clearRonCountdown(){if(ronCountdown){clearInterval(ronCountdown);ronCountdown=null;}document.getElementById('ron-timer').textContent='';}
+
+// ── Online discard (non-host) ─────────────────────────────────
+function doOnlineDiscard(t){
+  if(!roomId||G.turn!==mySeat||G.phase!=='discard')return;
+  let tile=t,usesDraw=false;
+  if(t===G.draw){usesDraw=true;tile=G.draw;}
+  else{const idx=G.hands[mySeat].findIndex(h=>same(h,t));if(idx<0)return;}
+  selTile=null;
+  if(isHost){
+    // Host: process directly
+    const hand=[...G.hands[mySeat]];
+    if(usesDraw){/* draw was not in hand, just discard */}
+    else{const idx=hand.findIndex(h=>same(h,t));if(idx>=0)hand.splice(idx,1);if(G.draw){hand.push(G.draw);}}
+    const disc=tile;
+    const newDiscards={...G.discards,[mySeat]:[...G.discards[mySeat],disc]};
+    const newG={...G,hands:{...G.hands,[mySeat]:hand},discards:newDiscards,draw:null,last:{tile:disc,p:mySeat},pendingAction:null};
+    handleAfterDiscard(newG,mySeat,disc);
+  } else {
+    onlineAction({type:'discard',seat:mySeat,tile});
+  }
+}
+
+function doOnlineTsumo(){
+  if(!roomId||G.turn!==mySeat||G.phase!=='discard')return;
+  if(isHost){applyPendingAction({type:'tsumo',seat:mySeat});}
+  else{onlineAction({type:'tsumo',seat:mySeat});}
+}
+
+function doOnlineRon(){
+  if(!roomId)return;
+  if(isHost){applyPendingAction({type:'ron',seat:mySeat});}
+  else{clearRonCountdown();onlineAction({type:'ron',seat:mySeat});}
+}
+function doOnlinePass(){
+  if(!roomId)return;
+  clearRonCountdown();
+  if(isHost){applyPendingAction({type:'pass',seat:mySeat});}
+  else{onlineAction({type:'pass',seat:mySeat});}
+}
+
+// ── Render ─────────────────────────────────────────────────────
 function render(){
+  // Online game: use object-indexed G
+  if(mySeat!==null){renderOnline();return;}
+  // Solo game
   document.getElementById('wall-num').textContent=G.wall.length;
   document.getElementById('wall-num2').textContent=G.wall.length;
-
-  // scores
   turnOrder(numPlayers).forEach(p=>{
     const el=document.getElementById('sc'+p);if(!el)return;
     el.textContent=(G.scores[p]||0).toLocaleString();
     el.className='sc-v'+(G.over&&G.scores[p]===Math.max(...turnOrder(numPlayers).map(i=>G.scores[i]))?' win':'');
   });
-
-  // turn labels
   turnOrder(numPlayers).forEach(p=>{
     const id=p===0?'player-lbl':'lbl-'+p;
     const el=document.getElementById(id);if(!el)return;
     const active=G.turn===p&&!G.over;
-    if(p===0){el.style.color=active?'#00d4aa':'#3a3a4a';}
-    else{el.className='ai-lbl'+(active?' active':'');}
+    if(p===0)el.style.color=active?'#00d4aa':'#3a3a4a';
+    else el.className='ai-lbl'+(active?' active':'');
   });
-
-  // player hand
   const ph=document.getElementById('player-hand');ph.innerHTML='';
   const canPick=G.phase==='discard'&&G.turn===0;
-  sortH(G.hands[0]).forEach(t=>{
-    ph.appendChild(makeTileEl(t,{sel:t===selTile,pick:canPick,onClick:canPick?()=>{if(selTile===t)doDiscard(t);else{selTile=t;render();}}:null}));
-  });
-  if(G.draw){
-    const sep=document.createElement('span');sep.className='draw-sep';ph.appendChild(sep);
-    ph.appendChild(makeTileEl(G.draw,{sel:G.draw===selTile,pick:canPick,onClick:canPick?()=>{if(selTile===G.draw)doDiscard(G.draw);else{selTile=G.draw;render();}}:null}));
-  }
+  sortH(G.hands[0]).forEach(t=>{ph.appendChild(makeTileEl(t,{sel:t===selTile,pick:canPick,onClick:canPick?()=>{if(selTile===t)doDiscard(t);else{selTile=t;render();}}:null}));});
+  if(G.draw){const sep=document.createElement('span');sep.className='draw-sep';ph.appendChild(sep);ph.appendChild(makeTileEl(G.draw,{sel:G.draw===selTile,pick:canPick,onClick:canPick?()=>{if(selTile===G.draw)doDiscard(G.draw);else{selTile=G.draw;render();}}:null}));}
   if(G.over&&G.hands[0].length>0){ph.innerHTML='';sortH(G.hands[0]).forEach(t=>ph.appendChild(makeTileEl(t,{})));}
-
-  // AI hands (face down)
-  [1,2,3].forEach(p=>{
-    const side=(p===1||p===3);
-    const hEl=document.getElementById('hand-'+p);if(!hEl)return;
-    hEl.innerHTML='';
-    if(G.hands[p])for(let i=0;i<G.hands[p].length;i++)hEl.appendChild(makeBackEl(true,side));
-  });
-
-  // discards
+  [1,2,3].forEach(p=>{const side=(p===1||p===3);const hEl=document.getElementById('hand-'+p);if(!hEl)return;hEl.innerHTML='';if(G.hands[p])for(let i=0;i<G.hands[p].length;i++)hEl.appendChild(makeBackEl(true,side));});
   turnOrder(numPlayers).forEach(p=>{
     const mainId=p===0?'player-dis':'dis-'+p;
     const mainEl=document.getElementById(mainId);
@@ -373,21 +831,145 @@ function render(){
   });
 }
 
+function renderOnline(){
+  if(!G||!G.hands)return;
+  document.getElementById('wall-num').textContent=(G.wall||[]).length;
+  document.getElementById('wall-num2').textContent=(G.wall||[]).length;
+  const dm=getDisplayMap();
+  // Update labels
+  document.getElementById('lbl-2').textContent=seatName(dm.top);
+  if(dm.right!==undefined)document.getElementById('lbl-1').textContent=seatName(dm.right);
+  if(dm.left!==undefined)document.getElementById('lbl-3').textContent=seatName(dm.left);
+  document.getElementById('player-lbl').textContent=seatName(dm.bottom);
+  // Turn highlights
+  const order=turnOrder(numPlayers);
+  order.forEach(p=>{
+    const active=G.turn===p&&!G.over;
+    if(p===mySeat)document.getElementById('player-lbl').style.color=active?'#00d4aa':'#3a3a4a';
+    else{
+      const slot=p===dm.top?'lbl-2':p===dm.right?'lbl-1':p===dm.left?'lbl-3':null;
+      if(slot){const el=document.getElementById(slot);if(el)el.className='ai-lbl'+(active?' active':'');}
+    }
+  });
+  // Scores
+  renderScores();
+  // My hand (bottom)
+  const bottomSeat=dm.bottom;
+  const ph=document.getElementById('player-hand');ph.innerHTML='';
+  const myHand=G.hands[bottomSeat]||[];
+  const canPick=G.turn===bottomSeat&&G.phase==='discard'&&!G.over;
+  sortH(myHand).forEach(t=>{
+    ph.appendChild(makeTileEl(t,{sel:t===selTile,pick:canPick,onClick:canPick?()=>{
+      if(selTile===t){selTile=null;doOnlineDiscard(t);}
+      else{selTile=t;render();}
+    }:null}));
+  });
+  if(G.draw&&G.turn===bottomSeat){
+    const sep=document.createElement('span');sep.className='draw-sep';ph.appendChild(sep);
+    ph.appendChild(makeTileEl(G.draw,{sel:G.draw===selTile,pick:canPick,onClick:canPick?()=>{
+      if(selTile===G.draw){selTile=null;doOnlineDiscard(G.draw);}
+      else{selTile=G.draw;render();}
+    }:null}));
+  }
+  if(G.over&&myHand.length>0){ph.innerHTML='';sortH(myHand).forEach(t=>ph.appendChild(makeTileEl(t,{})));}
+  // Other seats
+  const slotMap=[[dm.top,'hand-2','dis-2',false],[dm.right,'hand-1','dis-1',true],[dm.left,'hand-3','dis-3',true]];
+  slotMap.forEach(([seat,handId,disId,side])=>{
+    if(seat===undefined)return;
+    const hEl=document.getElementById(handId);
+    if(hEl){hEl.innerHTML='';const h=G.hands[seat]||[];for(let i=0;i<h.length;i++)hEl.appendChild(makeBackEl(true,side));}
+    const dEl=document.getElementById(disId);
+    if(dEl){dEl.innerHTML='';(G.discards[seat]||[]).forEach((t,i,arr)=>{const glow=i===arr.length-1&&G.last&&G.last.p===seat;dEl.appendChild(makeTileEl(t,{small:true,glow}));});}
+  });
+  // My discards
+  const pdEl=document.getElementById('player-dis');
+  if(pdEl){pdEl.innerHTML='';(G.discards[bottomSeat]||[]).forEach((t,i,arr)=>{const glow=i===arr.length-1&&G.last&&G.last.p===bottomSeat;pdEl.appendChild(makeTileEl(t,{small:true,glow}));});}
+  // Center discards
+  order.forEach(p=>{
+    const cEl=document.getElementById('cdis-'+p);
+    if(cEl){cEl.innerHTML='';(G.discards[p]||[]).slice(-6).forEach((t,i,arr)=>{const glow=i===arr.length-1&&G.last&&G.last.p===p;cEl.appendChild(makeTileEl(t,{xs:true,glow}));});}
+  });
+  // Game over message
+  if(G.over){
+    if(G.winType==='tsumo'){showMsg(G.winner===mySeat?'ツモ和了！おめでとう🎉':`${seatName(G.winner)} がツモ和了！`);}
+    else if(G.winType==='ron'){showMsg(G.winner===mySeat?'ロン和了！おめでとう🎉':`${seatName(G.winner)} がロン和了！`);}
+    else if(G.winType==='draw'){showMsg('流局（引き分け）');}
+    showBtns(['ng','menu']);
+  }
+}
+
+function renderScores(){
+  const sc=document.getElementById('scores');sc.innerHTML='';
+  const order=turnOrder(numPlayers);
+  const scores=mySeat!==null?G.scores:G.scores;
+  order.forEach(p=>{
+    const d=document.createElement('div');d.className='sc';
+    const v=(scores&&scores[p])||25000;
+    const maxV=scores?Math.max(...order.map(i=>scores[i])):25000;
+    d.innerHTML=`<span class="sc-l">${seatName(p)}</span><span class="sc-v ${G.over&&v===maxV?'win':''}" id="sc${p}">${v.toLocaleString()}</span>`;
+    sc.appendChild(d);
+  });
+}
+
 function showMsg(m){document.getElementById('msg').textContent=m;}
 function showBtns(ids){['tsumo','ron','pass','ng','menu'].forEach(id=>document.getElementById('btn-'+id).className='abtn'+(ids.includes(id)?' show':''));}
 
-// ── Events ────────────────────────────────────────────────────
-document.querySelectorAll('.np-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>initGame(parseInt(btn.dataset.n)));
+// ── Events ─────────────────────────────────────────────────────
+document.getElementById('btn-mode-solo').addEventListener('click',()=>showScreen('screen-solo'));
+document.getElementById('btn-mode-online').addEventListener('click',()=>{
+  if(!me){alert('オンライン対戦にはログインが必要です。');return;}
+  document.getElementById('online-err').textContent='';
+  showScreen('screen-online');
 });
-document.getElementById('btn-tsumo').addEventListener('click',doTsumo);
-document.getElementById('btn-ron').addEventListener('click',doRon);
-document.getElementById('btn-pass').addEventListener('click',doPass);
-document.getElementById('btn-ng').addEventListener('click',()=>initGame(numPlayers));
+document.getElementById('back-solo').addEventListener('click',()=>showScreen('screen-mode'));
+document.getElementById('back-online').addEventListener('click',()=>showScreen('screen-mode'));
+
+document.querySelectorAll('.np-btn[data-n]').forEach(btn=>{
+  btn.addEventListener('click',()=>initSoloGame(parseInt(btn.dataset.n)));
+});
+document.querySelectorAll('.np-btn[data-online-n]').forEach(btn=>{
+  btn.addEventListener('click',()=>createRoom(parseInt(btn.dataset.onlineN)));
+});
+document.getElementById('btn-join-room').addEventListener('click',joinRoom);
+document.getElementById('room-code-input').addEventListener('keydown',e=>{if(e.key==='Enter')joinRoom();});
+
+document.getElementById('btn-start-game').addEventListener('click',startOnlineGame);
+document.getElementById('btn-leave').addEventListener('click',async()=>{
+  stopPoll();
+  if(roomId){
+    const newSeats={...roomSeats};delete newSeats[mySeat];
+    await sb(`/rest/v1/mahjong_rooms?id=eq.${roomId}`,{method:'PATCH',body:JSON.stringify({seats:newSeats})});
+  }
+  roomId=null;mySeat=null;isHost=false;roomSeats={};
+  showScreen('screen-mode');
+});
+
+// Game action buttons
+document.getElementById('btn-tsumo').addEventListener('click',()=>{
+  if(mySeat!==null)doOnlineTsumo();else doTsumo();
+});
+document.getElementById('btn-ron').addEventListener('click',()=>{
+  if(mySeat!==null)doOnlineRon();else doRon();
+});
+document.getElementById('btn-pass').addEventListener('click',()=>{
+  if(mySeat!==null)doOnlinePass();else doPass();
+});
+document.getElementById('btn-ng').addEventListener('click',()=>{
+  if(mySeat!==null){
+    // Online: go back to lobby state
+    stopPoll();
+    showScreen('screen-mode');
+    roomId=null;mySeat=null;isHost=false;roomSeats={};
+  } else {
+    initSoloGame(numPlayers);
+  }
+});
 document.getElementById('btn-menu').addEventListener('click',()=>{
-  document.getElementById('game').style.display='none';
-  document.getElementById('setup').style.display='flex';
+  stopPoll();
+  if(roomId){roomId=null;mySeat=null;isHost=false;roomSeats={};}
+  showScreen('screen-mode');
 });
+
 let lang='ja';
 document.getElementById('lang-btn').addEventListener('click',()=>{lang=lang==='ja'?'en':'ja';document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';});
 </script>
