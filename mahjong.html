@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>麻雀 | ARCADE</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d0d1a;min-height:100vh;font-family:'Courier New',monospace;color:#eee;display:flex;flex-direction:column;align-items:center;padding-top:52px}
+#lang-btn{position:fixed;top:14px;left:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:.72rem;padding:5px 10px;cursor:pointer;z-index:10}
+#back-btn{position:fixed;top:14px;right:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:.72rem;padding:5px 10px;cursor:pointer;z-index:10;text-decoration:none}
+h1{font-size:1.5rem;letter-spacing:8px;color:#cc3300;text-shadow:0 0 24px rgba(200,50,0,.5);margin:6px 0 4px}
+#topbar{display:flex;gap:18px;font-size:.68rem;color:#555;margin-bottom:6px}
+#wall-num{color:#00d4aa}
+#scores{display:flex;gap:14px;font-size:.68rem;margin-bottom:6px}
+.sc{display:flex;gap:4px}.sc-l{color:#444}.sc-v{color:#aaa}.sc-v.win{color:#ffd700}
+
+/* tiles */
+.tile{display:inline-flex;align-items:center;justify-content:center;width:38px;height:52px;border-radius:4px;background:linear-gradient(150deg,#fffff4,#e8e8d0);border:1px solid #aaa;box-shadow:1px 2px 3px rgba(0,0,0,.5);font-size:.92rem;font-weight:bold;user-select:none;flex-shrink:0;position:relative;transition:transform .1s,box-shadow .1s}
+.tile.man{color:#c00}.tile.pin{color:#009}.tile.sou{color:#070}.tile.honor{color:#222}.tile.haku{color:#aaa;font-size:.65rem}.tile.hatsu{color:#060}.tile.chun{color:#c00}
+.tile.back{background:linear-gradient(150deg,#1a3022,#0d190e);border-color:#2a4030;color:transparent}
+.tile.back::after{content:'';position:absolute;inset:4px;border:1px solid #2a4030;border-radius:2px}
+.tile.sel{transform:translateY(-10px);box-shadow:0 10px 18px rgba(0,212,170,.55),1px 2px 3px rgba(0,0,0,.4);border-color:#00d4aa}
+.tile.pick{cursor:pointer}.tile.pick:hover:not(.sel){transform:translateY(-5px);box-shadow:0 6px 12px rgba(0,212,170,.35)}
+.tile.glow{border-color:#ffd700;box-shadow:0 0 8px rgba(255,215,0,.6)}
+.tile.sm{width:22px;height:30px;font-size:.58rem;border-radius:3px;box-shadow:none}
+.tile.sm.back{width:18px;height:26px}
+.tile.discard-last{border-color:#ffd700!important}
+
+/* layout */
+#table{width:100%;max-width:840px;display:flex;flex-direction:column;gap:6px;padding:0 8px 20px}
+.ai-block{display:flex;flex-direction:column;align-items:center;gap:3px}
+.ai-lbl{font-size:.54rem;letter-spacing:3px;color:#3a3a4a}.ai-lbl.active{color:#00d4aa}
+.hrow{display:flex;gap:3px;justify-content:center;flex-wrap:nowrap}
+.hcol{display:flex;flex-direction:column;gap:2px;align-items:center}
+.drow{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:340px;min-height:28px}
+.dcol{display:flex;flex-direction:column;gap:2px;align-items:center;max-height:160px;overflow:hidden}
+#mid-row{display:flex;gap:8px;align-items:flex-start;justify-content:center}
+
+/* center panel */
+#cpanel{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:140px;max-width:260px}
+#round-badge{font-size:.72rem;letter-spacing:3px;color:#555;border:1px solid #1e1e2e;border-radius:5px;padding:3px 10px}
+#wall-badge{font-size:.75rem;color:#00d4aa}
+#cdis{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#09090f;border:1px solid #1a1a2a;border-radius:6px;padding:6px;width:100%}
+.cdi{display:flex;flex-direction:column;align-items:center;gap:2px}
+.cdil{font-size:.48rem;color:#2a2a3a;letter-spacing:1px}
+.cdtiles{display:flex;gap:1px;flex-wrap:wrap;justify-content:center;min-height:28px;width:84px}
+
+/* player area */
+#player-area{display:flex;flex-direction:column;align-items:center;gap:5px}
+#player-hand{display:flex;gap:4px;align-items:flex-end;justify-content:center;min-height:56px}
+.draw-sep{width:8px;height:52px;display:inline-flex;align-items:center;justify-content:center}
+.draw-sep::after{content:'';display:block;width:2px;height:34px;background:#2a2a3a;border-radius:1px}
+#player-dis{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:380px;min-height:28px}
+#player-lbl{font-size:.58rem;letter-spacing:3px;color:#3a3a4a}.player-lbl-active{color:#00d4aa!important}
+#tenpai-line{font-size:.6rem;color:#00d4aa;min-height:16px;text-align:center;letter-spacing:1px}
+
+/* action bar */
+#action-bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;min-height:44px;align-items:center}
+.abtn{padding:9px 22px;border-radius:6px;border:none;font-family:'Courier New',monospace;font-size:.8rem;letter-spacing:2px;cursor:pointer;display:none;transition:opacity .15s}
+.abtn.show{display:inline-block}.abtn:hover{opacity:.85}
+#btn-tsumo{background:linear-gradient(135deg,#ffcc00,#ff8800);color:#000;font-weight:bold}
+#btn-ron{background:linear-gradient(135deg,#ff4444,#cc0000);color:#fff;font-weight:bold}
+#btn-pass{background:transparent!important;border:1px solid #333!important;color:#555}
+#btn-ng{background:linear-gradient(135deg,#00d4aa,#0088cc);color:#000;font-weight:bold}
+#msg{text-align:center;font-size:.82rem;letter-spacing:2px;color:#ffd700;min-height:34px;padding:6px 10px}
+</style>
+</head>
+<body>
+<button id="lang-btn">EN</button>
+<a href="index.html" id="back-btn">← HOME</a>
+<h1>麻雀</h1>
+<div id="topbar">
+  <span id="round-lbl">東1局</span>
+  <span>壁牌: <span id="wall-num">?</span></span>
+  <span id="honba-lbl">0本場</span>
+</div>
+<div id="scores">
+  <div class="sc"><span class="sc-l">東(あなた)</span><span class="sc-v" id="sc0">25000</span></div>
+  <div class="sc"><span class="sc-l">南AI</span><span class="sc-v" id="sc1">25000</span></div>
+  <div class="sc"><span class="sc-l">西AI</span><span class="sc-v" id="sc2">25000</span></div>
+  <div class="sc"><span class="sc-l">北AI</span><span class="sc-v" id="sc3">25000</span></div>
+</div>
+
+<div id="table">
+  <!-- West AI top -->
+  <div class="ai-block">
+    <div class="ai-lbl" id="lbl-2">西 AI</div>
+    <div class="hrow" id="hand-2"></div>
+    <div class="drow" id="dis-2"></div>
+  </div>
+
+  <!-- Mid row -->
+  <div id="mid-row">
+    <!-- North AI left -->
+    <div class="ai-block">
+      <div class="ai-lbl" id="lbl-3">北 AI</div>
+      <div class="hcol" id="hand-3"></div>
+      <div class="dcol" id="dis-3"></div>
+    </div>
+
+    <!-- Center panel -->
+    <div id="cpanel">
+      <div id="round-badge">東1局</div>
+      <div id="wall-badge">壁牌 <span id="wall-num2">?</span></div>
+      <div id="cdis">
+        <div class="cdi"><div class="cdil">北(上家)</div><div class="cdtiles" id="cdis-3"></div></div>
+        <div class="cdi"><div class="cdil">西(対面)</div><div class="cdtiles" id="cdis-2"></div></div>
+        <div class="cdi"><div class="cdil">南(下家)</div><div class="cdtiles" id="cdis-1"></div></div>
+        <div class="cdi"><div class="cdil">東(自分)</div><div class="cdtiles" id="cdis-0"></div></div>
+      </div>
+    </div>
+
+    <!-- South AI right -->
+    <div class="ai-block">
+      <div class="ai-lbl" id="lbl-1">南 AI</div>
+      <div class="hcol" id="hand-1"></div>
+      <div class="dcol" id="dis-1"></div>
+    </div>
+  </div>
+
+  <!-- Player bottom -->
+  <div id="player-area">
+    <div id="tenpai-line"></div>
+    <div id="action-bar">
+      <button class="abtn" id="btn-tsumo">TSUMO ツモ</button>
+      <button class="abtn" id="btn-ron">RON ロン</button>
+      <button class="abtn" id="btn-pass">PASS</button>
+      <button class="abtn" id="btn-ng">NEW GAME</button>
+    </div>
+    <div id="msg"></div>
+    <div id="player-hand"></div>
+    <div id="player-lbl">東 あなた</div>
+    <div id="player-dis"></div>
+  </div>
+</div>
+
+<script>
+// ── Tile helpers ───────────────────────────────────────────────
+const M='m',P='p',S='s',Z='z';
+const MC=['一','二','三','四','五','六','七','八','九'];
+const PC=['①','②','③','④','⑤','⑥','⑦','⑧','⑨'];
+const SC=['1','2','3','4','5','6','7','8','9'];
+const ZC=['東','南','西','北','白','發','中'];
+
+function tc(t){
+  if(t.s===M)return MC[t.r-1];
+  if(t.s===P)return PC[t.r-1];
+  if(t.s===S)return SC[t.r-1];
+  return ZC[t.r-1];
+}
+function cls(t){
+  if(t.s===M)return 'man';
+  if(t.s===P)return 'pin';
+  if(t.s===S)return 'sou';
+  if(t.r===5)return 'haku';
+  if(t.r===6)return 'hatsu';
+  if(t.r===7)return 'chun';
+  return 'honor';
+}
+function same(a,b){return a.s===b.s&&a.r===b.r;}
+function sortH(arr){
+  const o={m:0,p:1,s:2,z:3};
+  return [...arr].sort((a,b)=>a.s!==b.s?o[a.s]-o[b.s]:a.r-b.r);
+}
+function mkEl(t,small,extra=''){
+  const d=document.createElement('div');
+  d.className=`tile ${cls(t)}${small?' sm':''}${extra?' '+extra:''}`;
+  d.textContent=tc(t);
+  return d;
+}
+function mkBack(small,side){
+  const d=document.createElement('div');
+  if(side) d.className='tile back sm';
+  else d.className=`tile back${small?' sm':''}`;
+  return d;
+}
+
+// ── Deck ──────────────────────────────────────────────────────
+function mkDeck(){
+  const d=[];
+  for(const s of[M,P,S])for(let r=1;r<=9;r++)for(let i=0;i<4;i++)d.push({s,r});
+  for(let r=1;r<=7;r++)for(let i=0;i<4;i++)d.push({s:Z,r});
+  for(let i=d.length-1;i>0;i--){const j=0|Math.random()*(i+1);[d[i],d[j]]=[d[j],d[i]];}
+  return d;
+}
+
+// ── Win check ─────────────────────────────────────────────────
+function canSets(tiles){
+  if(!tiles.length)return true;
+  const a=sortH(tiles),f=a[0],rest=a.slice(1);
+  // triplet
+  let i1=-1,i2=-1;
+  for(let i=0;i<rest.length;i++){
+    if(same(rest[i],f)){if(i1<0)i1=i;else{i2=i;break;}}
+  }
+  if(i1>=0&&i2>=0){
+    const r=rest.filter((_,i)=>i!==i1&&i!==i2);
+    if(canSets(r))return true;
+  }
+  // sequence
+  if(f.s!==Z&&f.r<=7){
+    const t2={s:f.s,r:f.r+1},t3={s:f.s,r:f.r+2};
+    const j2=rest.findIndex(t=>same(t,t2));
+    if(j2>=0){
+      const r1=rest.filter((_,i)=>i!==j2);
+      const j3=r1.findIndex(t=>same(t,t3));
+      if(j3>=0&&canSets(r1.filter((_,i)=>i!==j3)))return true;
+    }
+  }
+  return false;
+}
+function isWin(tiles){
+  if(tiles.length!==14)return false;
+  const a=sortH(tiles);
+  // 7 pairs
+  let ok7=true;
+  for(let i=0;i<14;i+=2)if(!same(a[i],a[i+1])){ok7=false;break;}
+  if(ok7)return true;
+  // standard
+  const tried=new Set();
+  for(let i=0;i<a.length-1;i++){
+    const k=a[i].s+a[i].r;
+    if(tried.has(k))continue;
+    tried.add(k);
+    let j=-1;
+    for(let x=i+1;x<a.length;x++)if(same(a[x],a[i])){j=x;break;}
+    if(j<0)continue;
+    const rest=a.filter((_,idx)=>idx!==i&&idx!==j);
+    if(canSets(rest))return true;
+  }
+  return false;
+}
+function getWaits(h13){
+  const waits=[];
+  const tried=new Set();
+  for(const s of[M,P,S])for(let r=1;r<=9;r++){
+    const k=s+r;
+    if(tried.has(k))continue;tried.add(k);
+    if(isWin([...h13,{s,r}]))waits.push({s,r});
+  }
+  for(let r=1;r<=7;r++){
+    const k=Z+r;
+    if(tried.has(k))continue;tried.add(k);
+    if(isWin([...h13,{s:Z,r}]))waits.push({s:Z,r});
+  }
+  return waits;
+}
+
+// ── AI discard logic ──────────────────────────────────────────
+function tScore(t,hand){
+  let sc=0;
+  const oth=hand.filter(x=>x!==t);
+  if(oth.some(x=>same(x,t)))sc+=4;
+  if(t.s!==Z){
+    for(let d=-2;d<=2;d++){
+      if(!d)continue;
+      const r=t.r+d;
+      if(r>=1&&r<=9&&oth.some(x=>x.s===t.s&&x.r===r))sc+=2;
+    }
+  }
+  return sc;
+}
+function bestDiscard(h14){
+  let min=Infinity,best=null;
+  for(const t of h14){
+    const oth=h14.filter(x=>x!==t);
+    const sc=tScore(t,oth);
+    if(sc<min){min=sc;best=t;}
+  }
+  return best;
+}
+
+// ── Game state ────────────────────────────────────────────────
+const NAMES=['あなた(東)','南AI','西AI','北AI'];
+let G={};
+let selectedTile=null;
+
+function initGame(){
+  const wall=mkDeck();
+  const hands=[[],[],[],[]];
+  for(let p=0;p<4;p++)for(let i=0;i<13;i++)hands[p].push(wall.pop());
+  G={
+    wall,hands,
+    discards:[[],[],[],[]],
+    draw:null,
+    turn:0,
+    phase:'discard',
+    scores:[25000,25000,25000,25000],
+    last:null,
+    over:false,
+  };
+  selectedTile=null;
+  playerDraw();
+}
+
+function playerDraw(){
+  if(G.over)return;
+  if(!G.wall.length){endDraw();return;}
+  G.draw=G.wall.pop();
+  G.turn=0;
+  G.phase='discard';
+  const full=[...G.hands[0],G.draw];
+  if(isWin(full)){
+    showBtns(['tsumo']);
+    showMsg('ツモ和了できます！');
+  }else{
+    showBtns([]);
+    const waits=getWaits(G.hands[0]);
+    document.getElementById('tenpai-line').textContent=
+      waits.length?`テンパイ — 待ち: ${waits.map(w=>tc(w)).join(' ')} `:'';
+  }
+  render();
+}
+
+function aiTurn(p){
+  if(G.over)return;
+  setTimeout(()=>{
+    if(G.over)return;
+    if(!G.wall.length){endDraw();return;}
+    const drawn=G.wall.pop();
+    const full=[...G.hands[p],drawn];
+    // AI tsumo check
+    if(isWin(full)){
+      G.over=true;G.phase='over';
+      G.hands[p]=full;
+      const gain=2000;
+      G.scores[p]+=gain*3;
+      for(let i=0;i<4;i++)if(i!==p)G.scores[i]-=gain;
+      showMsg(`${NAMES[p]} がツモ和了！`);
+      showBtns(['ng']);render();return;
+    }
+    const disc=bestDiscard(full);
+    G.hands[p]=full.filter(t=>t!==disc);
+    G.discards[p].push(disc);
+    G.last={tile:disc,p};
+    render();
+    // player ron check
+    const waits=getWaits(G.hands[0]);
+    if(waits.some(w=>same(w,disc))){
+      G.phase='claim';
+      showMsg(`${NAMES[p]} が ${tc(disc)} を捨てました — ロンできます`);
+      showBtns(['ron','pass']);
+      return;
+    }
+    nextTurn(p);
+  },800);
+}
+
+function nextTurn(curP){
+  if(G.over)return;
+  const next=(curP+1)%4;
+  G.turn=next;
+  if(next===0){
+    G.phase='discard';
+    showMsg('あなたのターン');
+    playerDraw();
+  }else{
+    setTimeout(()=>{if(!G.over)aiTurn(next);},400);
+  }
+}
+
+function endDraw(){
+  G.over=true;G.phase='over';
+  showMsg('流局（引き分け）');
+  showBtns(['ng']);render();
+}
+
+// ── Player actions ────────────────────────────────────────────
+function doDiscard(t){
+  if(G.phase!=='discard'||G.turn!==0)return;
+  if(t===G.draw){
+    G.discards[0].push(G.draw);
+    G.last={tile:G.draw,p:0};
+    G.draw=null;
+  }else{
+    const idx=G.hands[0].indexOf(t);
+    if(idx<0)return;
+    G.hands[0].splice(idx,1);
+    G.discards[0].push(t);
+    G.last={tile:t,p:0};
+    if(G.draw){G.hands[0].push(G.draw);G.hands[0]=sortH(G.hands[0]);G.draw=null;}
+  }
+  selectedTile=null;
+  document.getElementById('tenpai-line').textContent='';
+  // Check AI ron
+  for(let p=1;p<=3;p++){
+    const waits=getWaits(G.hands[p]);
+    if(waits.some(w=>same(w,G.last.tile))){
+      G.over=true;G.phase='over';
+      G.hands[p]=[...G.hands[p],G.last.tile];
+      const gain=5800;G.scores[p]+=gain;G.scores[0]-=gain;
+      showMsg(`${NAMES[p]} がロン和了！`);
+      showBtns(['ng']);render();return;
+    }
+  }
+  showBtns([]);render();
+  G.turn=1;
+  setTimeout(()=>{if(!G.over)aiTurn(1);},600);
+}
+
+function doTsumo(){
+  G.over=true;G.phase='over';
+  G.hands[0]=[...G.hands[0],G.draw];G.draw=null;
+  const gain=2000;G.scores[0]+=gain*3;
+  for(let i=1;i<4;i++)G.scores[i]-=gain;
+  showMsg('ツモ和了！おめでとう🎉');
+  showBtns(['ng']);render();
+}
+
+function doRon(){
+  if(!G.last)return;
+  G.over=true;G.phase='over';
+  G.hands[0]=[...G.hands[0],G.last.tile];
+  const gain=5800;G.scores[0]+=gain;G.scores[G.last.p]-=gain;
+  showMsg('ロン和了！おめでとう🎉');
+  showBtns(['ng']);render();
+}
+
+function doPass(){
+  G.phase='draw';
+  showBtns([]);
+  showMsg('');
+  nextTurn(G.last.p);
+}
+
+// ── Render ────────────────────────────────────────────────────
+function render(){
+  // Wall
+  document.getElementById('wall-num').textContent=G.wall.length;
+  document.getElementById('wall-num2').textContent=G.wall.length;
+  // Scores
+  for(let p=0;p<4;p++){
+    const el=document.getElementById('sc'+p);
+    el.textContent=G.scores[p].toLocaleString();
+    el.className='sc-v'+(G.over&&G.scores[p]===Math.max(...G.scores)?' win':'');
+  }
+  // Turn labels
+  for(let p=0;p<4;p++){
+    const ids=[['player-lbl'],['lbl-1'],['lbl-2'],['lbl-3']];
+    const id=p===0?'player-lbl':'lbl-'+p;
+    const el=document.getElementById(id);
+    if(p===0)el.className='sc-l'+(G.turn===0&&!G.over?' player-lbl-active':'');
+    else el.className='ai-lbl'+(G.turn===p&&!G.over?' active':'');
+  }
+
+  // Player hand
+  const ph=document.getElementById('player-hand');
+  ph.innerHTML='';
+  const sorted=sortH(G.hands[0]);
+  sorted.forEach(t=>{
+    const el=mkEl(t,false,(G.phase==='discard'&&G.turn===0?'pick':'')+(t===selectedTile?' sel':''));
+    if(G.phase==='discard'&&G.turn===0){
+      el.addEventListener('click',()=>{
+        if(selectedTile===t){doDiscard(t);}
+        else{selectedTile=t;render();}
+      });
+    }
+    ph.appendChild(el);
+  });
+  if(G.draw){
+    const sep=document.createElement('span');sep.className='draw-sep';ph.appendChild(sep);
+    const el=mkEl(G.draw,false,(G.phase==='discard'&&G.turn===0?'pick':'')+(G.draw===selectedTile?' sel':''));
+    if(G.phase==='discard'&&G.turn===0){
+      el.addEventListener('click',()=>{
+        if(selectedTile===G.draw){doDiscard(G.draw);}
+        else{selectedTile=G.draw;render();}
+      });
+    }
+    ph.appendChild(el);
+  }
+
+  // AI hands (face down)
+  // West (top) - horizontal
+  const h2=document.getElementById('hand-2');h2.innerHTML='';
+  for(let i=0;i<G.hands[2].length;i++)h2.appendChild(mkBack(true,false));
+  // South (right) - vertical small
+  const h1=document.getElementById('hand-1');h1.innerHTML='';
+  for(let i=0;i<G.hands[1].length+(G.turn===1&&G.draw?0:0);i++)h1.appendChild(mkBack(true,true));
+  // North (left) - vertical small
+  const h3=document.getElementById('hand-3');h3.innerHTML='';
+  for(let i=0;i<G.hands[3].length;i++)h3.appendChild(mkBack(true,true));
+
+  // Discards (main + center mini)
+  for(let p=0;p<4;p++){
+    const mainId=p===0?'player-dis':'dis-'+p;
+    const mainEl=document.getElementById(mainId);
+    if(mainEl){
+      mainEl.innerHTML='';
+      G.discards[p].forEach((t,i)=>{
+        const el=mkEl(t,true,i===G.discards[p].length-1&&G.last&&G.last.p===p?'discard-last':'');
+        mainEl.appendChild(el);
+      });
+    }
+    const cEl=document.getElementById('cdis-'+p);
+    if(cEl){
+      cEl.innerHTML='';
+      G.discards[p].slice(-8).forEach((t,i,arr)=>{
+        const el=mkEl(t,true,i===arr.length-1&&G.last&&G.last.p===p?'discard-last':'');
+        cEl.appendChild(el);
+      });
+    }
+  }
+
+  // Win: show player's winning hand face up
+  if(G.over&&G.phase==='over'){
+    const ph=document.getElementById('player-hand');
+    ph.innerHTML='';
+    sortH(G.hands[0]).forEach(t=>ph.appendChild(mkEl(t)));
+  }
+}
+
+function showMsg(m){document.getElementById('msg').textContent=m;}
+function showBtns(ids){
+  ['tsumo','ron','pass','ng'].forEach(id=>{
+    document.getElementById('btn-'+id).className='abtn'+(ids.includes(id)?' show':'');
+  });
+}
+
+// ── Events ────────────────────────────────────────────────────
+document.getElementById('btn-tsumo').addEventListener('click',doTsumo);
+document.getElementById('btn-ron').addEventListener('click',doRon);
+document.getElementById('btn-pass').addEventListener('click',doPass);
+document.getElementById('btn-ng').addEventListener('click',initGame);
+
+// Lang (stub)
+let lang='ja';
+document.getElementById('lang-btn').addEventListener('click',()=>{
+  lang=lang==='ja'?'en':'ja';
+  document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
+});
+
+// Start
+showMsg('牌をクリックして選択、もう一度クリックで捨て牌');
+initGame();
+</script>
+</body>
+</html>
