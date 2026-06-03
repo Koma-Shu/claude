@@ -192,32 +192,42 @@ if(!me){
       document.getElementById('no-chat').textContent=T('noChat');
       document.getElementById('messages').innerHTML=`<div class="empty-msg">${T('noChat')}</div>`;
       document.getElementById('create-group-btn').style.display=currentTab==='group'?'':'none';
-      renderConvList();   // キャッシュで即描画
-      loadAll();          // 最新データを取得して再描画
+      renderConvList();                                    // キャッシュで即描画
+      if(currentTab==='dm') loadFriends();                // DMタブ：フレンドのみ取得
+      else                  loadGroups();                 // Groupタブ：グループのみ取得
     });
   });
 
   document.getElementById('conv-search').addEventListener('input',()=>renderConvList());
 
-  async function loadAll(){
-    // Load friends
-    const frows=await sb(`/rest/v1/friends?or=(requester_id.eq.${me.id},addressee_id.eq.${me.id})&status=eq.accepted&select=id,requester_id,addressee_id`)||[];
-    const friendIds=frows.map(f=>f.requester_id===me.id?f.addressee_id:f.requester_id);
+  async function loadFriends(){
+    const [sent,recv]=await Promise.all([
+      sb(`/rest/v1/friends?requester_id=eq.${me.id}&status=eq.accepted&select=addressee_id`),
+      sb(`/rest/v1/friends?addressee_id=eq.${me.id}&status=eq.accepted&select=requester_id`)
+    ]);
+    const friendIds=[
+      ...(sent||[]).map(r=>r.addressee_id),
+      ...(recv||[]).map(r=>r.requester_id)
+    ];
     if(friendIds.length>0){
-      const ids=friendIds.map(id=>`id.eq.${id}`).join(',');
-      const users=await sb(`/rest/v1/users?or=(${ids})&select=id,username,full_name`)||[];
+      const ids=friendIds.join(',');
+      const users=await sb(`/rest/v1/users?id=in.(${ids})&select=id,username,full_name`)||[];
       friends=users;
     }else{friends=[];}
+    renderConvList();
+  }
 
-    // Load groups I'm in
+  async function loadGroups(){
     const gmRows=await sb(`/rest/v1/group_members?user_id=eq.${me.id}&select=group_id`)||[];
     if(gmRows.length>0){
-      const gids=gmRows.map(r=>`id.eq.${r.group_id}`).join(',');
-      groups=await sb(`/rest/v1/group_chats?or=(${gids})&select=id,name,created_by&order=created_at.desc`)||[];
+      const gids=gmRows.map(r=>r.group_id).join(',');
+      groups=await sb(`/rest/v1/group_chats?id=in.(${gids})&select=id,name,created_by&order=created_at.desc`)||[];
     }else{groups=[];}
-
     renderConvList();
+  }
 
+  async function loadAll(){
+    await Promise.all([loadFriends(), loadGroups()]);
     // Auto-open from URL param
     const params=new URLSearchParams(location.search);
     const targetUser=params.get('user');
@@ -361,7 +371,7 @@ if(!me){
     await sb('/rest/v1/group_members',{method:'POST',body:JSON.stringify(members)});
     document.getElementById('group-modal').style.display='none';
     document.getElementById('modal-create').disabled=false;
-    await loadAll();
+    await loadGroups();
     const newGroup=groups.find(g=>g.id===gid);
     if(newGroup)openGroup(newGroup);
   });
