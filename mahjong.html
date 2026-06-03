@@ -195,8 +195,8 @@ h1{font-size:1.5rem;letter-spacing:8px;color:#cc3300;text-shadow:0 0 24px rgba(2
 <!-- Game screen -->
 <div id="screen-game">
   <div id="topbar">
-    <span id="round-lbl">東1局</span>
-    <span>壁牌: <span id="wall-num">?</span></span>
+    <span id="round-lbl"></span>
+    <span id="wall-label-span">壁牌: <span id="wall-num">?</span></span>
   </div>
   <div id="scores"></div>
   <div id="table">
@@ -212,8 +212,8 @@ h1{font-size:1.5rem;letter-spacing:8px;color:#cc3300;text-shadow:0 0 24px rgba(2
         <div class="dcol" id="dis-3"></div>
       </div>
       <div id="cpanel">
-        <div id="round-badge">東1局</div>
-        <div id="wall-badge">壁牌 <span id="wall-num2">?</span></div>
+        <div id="round-badge"></div>
+        <div id="wall-badge"><span id="wall-badge-lbl"></span> <span id="wall-num2">?</span></div>
         <div id="cdis"></div>
       </div>
       <div class="ai-block" id="block-1">
@@ -294,16 +294,21 @@ function showScreen(id){
 showScreen('screen-mode');
 
 // ── Seat name helpers ─────────────────────────────────────────
-const SOLO_NAMES={
-  2:{0:'東(あなた)',2:'西(対面AI)'},
-  3:{0:'東(あなた)',1:'南AI',2:'西AI'},
-  4:{0:'東(あなた)',1:'南AI',2:'西AI',3:'北AI'},
-};
-const SEAT_LABELS=['東','南','西','北'];
-function seatLabel(seat){return SEAT_LABELS[seat]||'?';}
+const SEAT_LABELS_JA=['東','南','西','北'];
+const SEAT_LABELS_EN=['East','South','West','North'];
+function seatLabel(seat){return (lang==='en'?SEAT_LABELS_EN:SEAT_LABELS_JA)[seat]||'?';}
 function seatName(seat){
-  if(mySeat===null)return SOLO_NAMES[numPlayers][seat]||'AI';
-  if(seat===mySeat)return seatLabel(seat)+'(あなた)';
+  if(mySeat===null){
+    // solo seat names
+    if(seat===0){
+      return lang==='en'?'East(you)':'東(あなた)';
+    }
+    if(numPlayers===2&&seat===2){
+      return lang==='en'?'West(opponent AI)':'西(対面AI)';
+    }
+    return seatLabel(seat)+' AI';
+  }
+  if(seat===mySeat)return seatLabel(seat)+T('youSuffix');
   const info=roomSeats[seat];
   if(info&&info.name)return seatLabel(seat)+' '+info.name;
   return seatLabel(seat)+' AI';
@@ -368,8 +373,8 @@ function playerDraw(){
   if(!G.wall.length){endDraw();return;}
   G.draw=G.wall.pop();G.turn=0;G.phase='discard';
   const full=[...G.hands[0],G.draw];
-  if(isWin(full)){showBtns(['tsumo']);showMsg('ツモ和了できます！');}
-  else{showBtns([]);const w=getWaits(G.hands[0]);document.getElementById('tenpai-line').textContent=w.length?`テンパイ — 待ち: ${w.map(t=>tc(t)).join(' ')}`:''}
+  if(isWin(full)){showBtns(['tsumo']);showMsg(T('canTsumo'));}
+  else{showBtns([]);const w=getWaits(G.hands[0]);document.getElementById('tenpai-line').textContent=w.length?`${T('tenpaiLabel')} ${w.map(t=>tc(t)).join(' ')}`:''}
   render();
 }
 
@@ -384,13 +389,13 @@ function aiTurn(p){
       G.over=true;G.phase='over';G.hands[p]=full;
       const gain=2000;G.scores[p]+=gain*3;
       turnOrder(numPlayers).forEach(i=>{if(i!==p)G.scores[i]-=gain;});
-      showMsg(`${seatName(p)} がツモ和了！`);showBtns(['ng','menu']);render();return;
+      showMsg(`${seatName(p)}${T('winsByTsumo')}`);showBtns(['ng','menu']);render();return;
     }
     const disc=bestDiscard(full);
     G.hands[p]=full.filter(t=>t!==disc);G.discards[p].push(disc);G.last={tile:disc,p};render();
     const waits=getWaits(G.hands[0]);
     if(waits.some(w=>same(w,disc))){
-      G.phase='claim';showMsg(`${seatName(p)} が ${tc(disc)} を捨てました — ロンできます`);showBtns(['ron','pass']);return;
+      G.phase='claim';showMsg(`${seatName(p)} ${tc(disc)}${T('discardedCanRon')}`);showBtns(['ron','pass']);return;
     }
     nextTurnSolo(p);
   },800);
@@ -399,11 +404,11 @@ function aiTurn(p){
 function nextTurnSolo(curP){
   if(G.over)return;
   const next=nextInOrder(curP,numPlayers);G.turn=next;
-  if(next===0){G.phase='discard';showMsg('あなたのターン');playerDraw();}
+  if(next===0){G.phase='discard';showMsg(T('yourTurn'));playerDraw();}
   else setTimeout(()=>{if(!G.over)aiTurn(next);},400);
 }
 
-function endDraw(){G.over=true;G.phase='over';showMsg('流局（引き分け）');showBtns(['ng','menu']);render();}
+function endDraw(){G.over=true;G.phase='over';showMsg(T('exhaustedDraw'));showBtns(['ng','menu']);render();}
 
 function doDiscard(t){
   if(G.phase!=='discard'||G.turn!==0)return;
@@ -416,14 +421,14 @@ function doDiscard(t){
     if(getWaits(G.hands[p]).some(w=>same(w,G.last.tile))){
       G.over=true;G.phase='over';G.hands[p]=[...G.hands[p],G.last.tile];
       const gain=5800;G.scores[p]+=gain;G.scores[0]-=gain;
-      showMsg(`${seatName(p)} がロン和了！`);showBtns(['ng','menu']);render();return;
+      showMsg(`${seatName(p)}${T('winsByRon')}`);showBtns(['ng','menu']);render();return;
     }
   }
   showBtns([]);render();const next=nextInOrder(0,numPlayers);G.turn=next;setTimeout(()=>{if(!G.over)aiTurn(next);},600);
 }
 
-function doTsumo(){G.over=true;G.phase='over';G.hands[0]=[...G.hands[0],G.draw];G.draw=null;const gain=2000;G.scores[0]+=gain*(numPlayers-1);turnOrder(numPlayers).filter(p=>p!==0).forEach(p=>G.scores[p]-=gain);showMsg('ツモ和了！おめでとう🎉');showBtns(['ng','menu']);render();}
-function doRon(){if(!G.last)return;G.over=true;G.phase='over';G.hands[0]=[...G.hands[0],G.last.tile];const gain=5800;G.scores[0]+=gain;G.scores[G.last.p]-=gain;showMsg('ロン和了！おめでとう🎉');showBtns(['ng','menu']);render();}
+function doTsumo(){G.over=true;G.phase='over';G.hands[0]=[...G.hands[0],G.draw];G.draw=null;const gain=2000;G.scores[0]+=gain*(numPlayers-1);turnOrder(numPlayers).filter(p=>p!==0).forEach(p=>G.scores[p]-=gain);showMsg(T('tsumoWin'));showBtns(['ng','menu']);render();}
+function doRon(){if(!G.last)return;G.over=true;G.phase='over';G.hands[0]=[...G.hands[0],G.last.tile];const gain=5800;G.scores[0]+=gain;G.scores[G.last.p]-=gain;showMsg(T('ronWin'));showBtns(['ng','menu']);render();}
 function doPass(){G.phase='draw';showBtns([]);showMsg('');nextTurnSolo(G.last.p);}
 
 // ── Online game state (object-based) ──────────────────────────
@@ -437,10 +442,10 @@ function initOnlineGameState(n,seats){
 // ── Online: Room management ────────────────────────────────────
 async function createRoom(n){
   if(!me){alert('ログインが必要です。ログイン後にお試しください。');return;}
-  document.getElementById('online-err').textContent='作成中...';
+  document.getElementById('online-err').textContent=T('creating');
   const seats={0:{id:me.id,name:me.username||me.full_name||'Player'}};
   const data=await sb('/rest/v1/mahjong_rooms',{method:'POST',body:JSON.stringify({host_id:me.id,status:'waiting',num_players:n,seats,game_state:{}})});
-  if(!data||!data[0]){document.getElementById('online-err').textContent='ルーム作成に失敗しました';return;}
+  if(!data||!data[0]){document.getElementById('online-err').textContent=T('createFailed');return;}
   roomId=data[0].id;roomSeats=seats;mySeat=0;isHost=true;numPlayers=n;
   enterLobby(data[0]);
 }
@@ -448,16 +453,16 @@ async function createRoom(n){
 async function joinRoom(){
   if(!me){alert('ログインが必要です。ログイン後にお試しください。');return;}
   const code=document.getElementById('room-code-input').value.trim().toLowerCase();
-  if(code.length<6){document.getElementById('online-err').textContent='6文字のルームコードを入力してください';return;}
-  document.getElementById('online-err').textContent='検索中...';
+  if(code.length<6){document.getElementById('online-err').textContent=T('enterCode');return;}
+  document.getElementById('online-err').textContent=T('searching');
   const rooms=await sb(`/rest/v1/mahjong_rooms?id=ilike.${code}%&status=eq.waiting&select=*`);
-  if(!rooms||!rooms.length){document.getElementById('online-err').textContent='ルームが見つかりません';return;}
+  if(!rooms||!rooms.length){document.getElementById('online-err').textContent=T('roomNotFound');return;}
   const room=rooms[0];
   const seats=room.seats||{};
   const order=turnOrder(room.num_players);
   const taken=Object.keys(seats).map(Number);
   const available=order.filter(s=>!taken.includes(s));
-  if(!available.length){document.getElementById('online-err').textContent='ルームが満員です';return;}
+  if(!available.length){document.getElementById('online-err').textContent=T('roomFull');return;}
   const mySeatNum=available[0];
   const newSeats={...seats,[mySeatNum]:{id:me.id,name:me.username||me.full_name||'Player'}};
   await sb(`/rest/v1/mahjong_rooms?id=eq.${room.id}`,{method:'PATCH',body:JSON.stringify({seats:newSeats})});
@@ -489,10 +494,10 @@ async function loadFriendsForLobby(){
   users.forEach(u=>{
     const name=u.username||u.full_name||u.email||'?';
     const div=document.createElement('div');div.className='lf-item';
-    div.innerHTML=`<span class="lf-name">${name}</span><button class="lf-copy-btn" data-code="${code}">コードをコピー</button>`;
+    div.innerHTML=`<span class="lf-name">${name}</span><button class="lf-copy-btn" data-code="${code}">${T('copyCode')}</button>`;
     div.querySelector('.lf-copy-btn').addEventListener('click',function(){
       navigator.clipboard?.writeText('麻雀ルームコード: '+this.dataset.code+' — mahjong.html').catch(()=>{});
-      this.textContent='コピー済み！';setTimeout(()=>{this.textContent='コードをコピー';},2000);
+      this.textContent=T('copied');setTimeout(()=>{this.textContent=T('copyCode');},2000);
     });
     fl.appendChild(div);
   });
@@ -508,8 +513,8 @@ function renderLobby(room){
     const div=document.createElement('div');div.className='lobby-seat';
     const isMe=info&&me&&info.id===me.id;
     div.innerHTML=`<span class="seat-badge">${seatLabel(p)}</span>`+
-      (info?`<span class="seat-name ${isMe?'seat-you':''}">${info.name}${isMe?' (あなた)':''}</span>`
-           :`<span class="seat-empty">待機中...</span>`);
+      (info?`<span class="seat-name ${isMe?'seat-you':''}">${info.name}${isMe?T('youSuffix'):''}</span>`
+           :`<span class="seat-empty">${T('waitingSeat')}</span>`);
     seats.appendChild(div);
   });
   const joined=Object.keys(roomSeats).length;
@@ -517,10 +522,10 @@ function renderLobby(room){
   if(isHost){
     const btn=document.getElementById('btn-start-game');
     btn.style.display='block';
-    if(joined>=2){btn.disabled=false;msg.textContent=`${joined}/${room.num_players}人 参加済み — ゲーム開始できます`;}
-    else{btn.disabled=true;msg.textContent=`${joined}/${room.num_players}人 参加中 — あと${2-joined}人必要`;}
+    if(joined>=2){btn.disabled=false;msg.textContent=`${joined}/${room.num_players}${T('lobbyReady')}`;}
+    else{btn.disabled=true;msg.textContent=`${joined}/${room.num_players}${T('lobbyNeed1')}${2-joined}${T('lobbyNeed2')}`;}
   }else{
-    msg.textContent=`${joined}/${room.num_players}人 参加中 — ホストの開始を待っています...`;
+    msg.textContent=`${joined}/${room.num_players}${T('lobbyWaitHost')}`;
   }
 }
 
@@ -584,7 +589,7 @@ async function processOnlineTurn(){
       const ms=deadline-Date.now();
       if(ms>0){
         showBtns(['ron','pass']);
-        showMsg(`${tc(G.last.tile)} — ロンできます`);
+        showMsg(`${tc(G.last.tile)} — ${T('canRon')}`);
         startRonCountdown(ms,async()=>{
           // Auto-pass on timeout
           await onlineAction({type:'pass',seat:mySeat});
@@ -617,7 +622,7 @@ async function processOnlineTurn(){
       if(G.draw&&isWin(full)){showBtns(['tsumo']);}
       else{showBtns([]);}
       const waits=getWaits(G.hands[mySeat]);
-      document.getElementById('tenpai-line').textContent=waits.length?`テンパイ — 待ち: ${waits.map(t=>tc(t)).join(' ')}`:'';
+      document.getElementById('tenpai-line').textContent=waits.length?`${T('tenpaiLabel')} ${waits.map(t=>tc(t)).join(' ')}`:'';
     }
   } else if(isHost){
     // Host handles non-my-seat turns
@@ -639,8 +644,8 @@ async function hostDraw(seat){
   if(seat===mySeat){
     // It's host's own turn, check tsumo
     const full=[...newG.hands[seat],drawn];
-    if(isWin(full)){showBtns(['tsumo']);showMsg('ツモ和了できます！');}
-    else{showBtns([]);const w=getWaits(newG.hands[seat]);document.getElementById('tenpai-line').textContent=w.length?`テンパイ — 待ち: ${w.map(t=>tc(t)).join(' ')}`:'';}
+    if(isWin(full)){showBtns(['tsumo']);showMsg(T('canTsumo'));}
+    else{showBtns([]);const w=getWaits(newG.hands[seat]);document.getElementById('tenpai-line').textContent=w.length?`${T('tenpaiLabel')} ${w.map(t=>tc(t)).join(' ')}`:'';}
   }
   await saveGS(newG);
 }
@@ -753,8 +758,8 @@ function startRonCountdown(ms,onExpire){
   clearRonCountdown();
   const el=document.getElementById('ron-timer');
   let sec=Math.ceil(ms/1000);
-  el.textContent=`ロン受付: ${sec}秒`;
-  ronCountdown=setInterval(()=>{sec--;if(sec<=0){clearRonCountdown();onExpire();}else el.textContent=`ロン受付: ${sec}秒`;},1000);
+  el.textContent=`${T('ronTimerLabel')} ${sec}${T('seconds')}`;
+  ronCountdown=setInterval(()=>{sec--;if(sec<=0){clearRonCountdown();onExpire();}else el.textContent=`${T('ronTimerLabel')} ${sec}${T('seconds')}`;},1000);
 }
 function clearRonCountdown(){if(ronCountdown){clearInterval(ronCountdown);ronCountdown=null;}document.getElementById('ron-timer').textContent='';}
 
@@ -891,9 +896,9 @@ function renderOnline(){
   });
   // Game over message
   if(G.over){
-    if(G.winType==='tsumo'){showMsg(G.winner===mySeat?'ツモ和了！おめでとう🎉':`${seatName(G.winner)} がツモ和了！`);}
-    else if(G.winType==='ron'){showMsg(G.winner===mySeat?'ロン和了！おめでとう🎉':`${seatName(G.winner)} がロン和了！`);}
-    else if(G.winType==='draw'){showMsg('流局（引き分け）');}
+    if(G.winType==='tsumo'){showMsg(G.winner===mySeat?T('tsumoWin'):`${seatName(G.winner)}${T('winsByTsumo')}`);}
+    else if(G.winType==='ron'){showMsg(G.winner===mySeat?T('ronWin'):`${seatName(G.winner)}${T('winsByRon')}`);}
+    else if(G.winType==='draw'){showMsg(T('exhaustedDraw'));}
     showBtns(['ng','menu']);
   }
 }
@@ -970,8 +975,209 @@ document.getElementById('btn-menu').addEventListener('click',()=>{
   showScreen('screen-mode');
 });
 
-let lang='ja';
-document.getElementById('lang-btn').addEventListener('click',()=>{lang=lang==='ja'?'en':'ja';document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';});
+const LANG={
+  ja:{
+    // screen-mode
+    modeTitle:'モード選択',
+    modeSolo:'1人プレイ',
+    modeVsAI:'vs AI',
+    modeFriends:'フレンドと遊ぶ',
+    modeOnline:'オンライン対戦',
+    // screen-solo
+    soloTitle:'プレイ人数を選択',
+    npSuffix:'人打ち',
+    soloNote:'あなた + AI 対戦',
+    backBtn:'← 戻る',
+    // screen-online
+    onlineTitle:'オンライン対戦',
+    createRoom:'ルームを作成',
+    orSep:'または',
+    joinRoomTitle:'ルームに参加',
+    joinBtn:'参加する',
+    // online errors
+    creating:'作成中...',
+    createFailed:'ルーム作成に失敗しました',
+    enterCode:'6文字のルームコードを入力してください',
+    searching:'検索中...',
+    roomNotFound:'ルームが見つかりません',
+    roomFull:'ルームが満員です',
+    // screen-lobby
+    roomCodeLabel:'ルームコード',
+    roomCodeHint:'フレンドにこのコードを教えてください',
+    inviteFriends:'フレンドを招待',
+    copyCode:'コードをコピー',
+    copied:'コピー済み！',
+    waitingSeat:'待機中...',
+    youSuffix:' (あなた)',
+    startGame:'ゲーム開始',
+    leaveBtn:'退出',
+    // lobby messages (built programmatically with counts)
+    lobbyReady:'人 参加済み — ゲーム開始できます',
+    lobbyNeed1:'人 参加中 — あと',
+    lobbyNeed2:'人必要',
+    lobbyWaitHost:'人 参加中 — ホストの開始を待っています...',
+    // screen-game
+    roundLabel:'東1局',
+    wallLabel:'壁牌:',
+    wallBadge:'壁牌',
+    menuBtn:'メニュー',
+    tenpaiLabel:'テンパイ — 待ち:',
+    ronTimerLabel:'ロン受付:',
+    seconds:'秒',
+    // game messages
+    canTsumo:'ツモ和了できます！',
+    tsumoWin:'ツモ和了！おめでとう🎉',
+    ronWin:'ロン和了！おめでとう🎉',
+    exhaustedDraw:'流局（引き分け）',
+    canRon:'ロンできます！',
+    yourTurn:'あなたのターン',
+    winsByTsumo:' がツモ和了！',
+    winsByRon:' がロン和了！',
+    discardedCanRon:' — ロンできます',
+    // seat name components
+    youParen:'(あなた)',
+  },
+  en:{
+    // screen-mode
+    modeTitle:'Select Mode',
+    modeSolo:'Solo Play',
+    modeVsAI:'vs AI',
+    modeFriends:'Play with Friends',
+    modeOnline:'Online',
+    // screen-solo
+    soloTitle:'Select Players',
+    npSuffix:'P',
+    soloNote:'You + AI battle',
+    backBtn:'← Back',
+    // screen-online
+    onlineTitle:'Online Battle',
+    createRoom:'Create Room',
+    orSep:'or',
+    joinRoomTitle:'Join Room',
+    joinBtn:'Join',
+    // online errors
+    creating:'Creating...',
+    createFailed:'Failed to create room',
+    enterCode:'Enter a 6-character room code',
+    searching:'Searching...',
+    roomNotFound:'Room not found',
+    roomFull:'Room is full',
+    // screen-lobby
+    roomCodeLabel:'Room Code',
+    roomCodeHint:'Share this code with your friends',
+    inviteFriends:'Invite Friends',
+    copyCode:'Copy Code',
+    copied:'Copied!',
+    waitingSeat:'Waiting...',
+    youSuffix:' (you)',
+    startGame:'Start Game',
+    leaveBtn:'Leave',
+    // lobby messages
+    lobbyReady:' players joined — ready to start',
+    lobbyNeed1:' players — need ',
+    lobbyNeed2:' more',
+    lobbyWaitHost:' players — waiting for host...',
+    // screen-game
+    roundLabel:'East Round 1',
+    wallLabel:'Wall:',
+    wallBadge:'Wall',
+    menuBtn:'Menu',
+    tenpaiLabel:'Tenpai — Waiting:',
+    ronTimerLabel:'Ron claim:',
+    seconds:'s',
+    // game messages
+    canTsumo:'Can win by Tsumo!',
+    tsumoWin:'Tsumo win! Congratulations 🎉',
+    ronWin:'Ron win! Congratulations 🎉',
+    exhaustedDraw:'Exhausted draw',
+    canRon:'You can Ron!',
+    yourTurn:'Your turn',
+    winsByTsumo:' wins by Tsumo!',
+    winsByRon:' wins by Ron!',
+    discardedCanRon:' — you can Ron',
+    // seat name components
+    youParen:'(you)',
+  }
+};
+function T(k){return(LANG[lang]||LANG.ja)[k]||k;}
+
+function applyLang(){
+  // toggle button label
+  document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
+
+  // screen-mode
+  document.querySelector('#screen-mode h2').textContent=T('modeTitle');
+  document.querySelector('#btn-mode-solo .mode-title').textContent=T('modeSolo');
+  document.querySelector('#btn-mode-solo .mode-desc').textContent=T('modeVsAI');
+  document.querySelector('#btn-mode-online .mode-title').textContent=T('modeFriends');
+  document.querySelector('#btn-mode-online .mode-desc').textContent=T('modeOnline');
+
+  // screen-solo
+  document.querySelector('#screen-solo h2').textContent=T('soloTitle');
+  document.querySelectorAll('#screen-solo .np-btn span').forEach(sp=>sp.textContent=T('npSuffix'));
+  document.querySelector('#screen-solo .setup-note').textContent=T('soloNote');
+  document.getElementById('back-solo').textContent=T('backBtn');
+
+  // screen-online
+  document.querySelector('#screen-online h2').textContent=T('onlineTitle');
+  const onlineCardTitles=document.querySelectorAll('#screen-online .online-card-title');
+  if(onlineCardTitles[0])onlineCardTitles[0].textContent=T('createRoom');
+  if(onlineCardTitles[1])onlineCardTitles[1].textContent=T('joinRoomTitle');
+  document.querySelectorAll('#screen-online .np-btn span').forEach(sp=>sp.textContent=T('npSuffix'));
+  document.querySelector('.online-sep').textContent=T('orSep');
+  document.getElementById('btn-join-room').textContent=T('joinBtn');
+  document.getElementById('back-online').textContent=T('backBtn');
+
+  // screen-lobby
+  document.querySelector('.lobby-code-label').textContent=T('roomCodeLabel');
+  document.querySelector('.lobby-code-hint').textContent=T('roomCodeHint');
+  document.getElementById('lobby-friends-title').textContent=T('inviteFriends');
+  document.getElementById('btn-start-game').textContent=T('startGame');
+  document.getElementById('btn-leave').textContent=T('leaveBtn');
+  // update any visible copy-code buttons (not mid-copy)
+  document.querySelectorAll('.lf-copy-btn').forEach(btn=>{
+    const copiedText=LANG.ja.copied;const copiedTextEn=LANG.en.copied;
+    if(btn.textContent!==copiedText&&btn.textContent!==copiedTextEn)btn.textContent=T('copyCode');
+  });
+  // re-render lobby seats (to update "waiting" / "(you)" text) if in lobby
+  if(document.getElementById('screen-lobby').style.display!=='none'&&roomId){
+    const order=turnOrder(numPlayers);
+    const seats=document.getElementById('lobby-seats');seats.innerHTML='';
+    order.forEach(p=>{
+      const info=roomSeats[p];
+      const div=document.createElement('div');div.className='lobby-seat';
+      const isMe=info&&me&&info.id===me.id;
+      div.innerHTML=`<span class="seat-badge">${seatLabel(p)}</span>`+
+        (info?`<span class="seat-name ${isMe?'seat-you':''}">${info.name}${isMe?T('youSuffix'):''}</span>`
+             :`<span class="seat-empty">${T('waitingSeat')}</span>`);
+      seats.appendChild(div);
+    });
+  }
+
+  // screen-game: wall label in topbar
+  const wallSpan=document.getElementById('wall-label-span');
+  if(wallSpan){
+    const wallNum=document.getElementById('wall-num');
+    wallSpan.innerHTML='';
+    wallSpan.appendChild(document.createTextNode(T('wallLabel')+' '));
+    wallSpan.appendChild(wallNum);
+  }
+  document.getElementById('round-lbl').textContent=T('roundLabel');
+  document.getElementById('round-badge').textContent=T('roundLabel');
+  const wallBadgeLbl=document.getElementById('wall-badge-lbl');
+  if(wallBadgeLbl)wallBadgeLbl.textContent=T('wallBadge');
+  document.getElementById('btn-tsumo').textContent=T('tsumoBtn');
+  document.getElementById('btn-ron').textContent=T('ronBtn');
+  document.getElementById('btn-menu').textContent=T('menuBtn');
+}
+
+let lang=localStorage.getItem('lang')||'ja';
+document.getElementById('lang-btn').addEventListener('click',()=>{
+  lang=lang==='ja'?'en':'ja';
+  localStorage.setItem('lang',lang);
+  applyLang();
+});
+applyLang();
 </script>
 </body>
 </html>

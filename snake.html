@@ -26,6 +26,7 @@
     #dpad-up{grid-area:up}#dpad-left{grid-area:left}#dpad-right{grid-area:right}#dpad-down{grid-area:down}
 
     /* ヘルプ */
+    #lang-btn { position: fixed; top: 14px; left: 14px; background: #1e1e2e; border: 1px solid #444; border-radius: 6px; color: #888; font-family: 'Courier New', monospace; font-size: .72rem; padding: 5px 10px; cursor: pointer; z-index: 10; }
     #help-toggle { position: fixed; top: 14px; right: 14px; background: #1e1e2e; border: 1px solid #444; border-radius: 6px; color: #888; font-family: 'Courier New', monospace; font-size: 0.72rem; padding: 5px 10px; cursor: pointer; letter-spacing: 1px; z-index: 10; }
     #help-toggle:hover { color: #ccc; border-color: #666; }
     #help-panel { display: none; position: fixed; top: 44px; right: 14px; background: #13131f; border: 1px solid #333; border-radius: 8px; padding: 14px 16px; z-index: 10; min-width: 190px; }
@@ -88,17 +89,18 @@
 <script src="sound.js"></script>
 </head>
 <body>
+  <button id="lang-btn">EN</button>
   <h1>SNAKE</h1>
   <div id="mode-row">
     <button class="mbtn active" id="m1p">1P</button>
     <button class="mbtn" id="m2p">2P ローカル</button>
   </div>
   <div id="info">
-    スコア: <span id="score">0</span>
-    &nbsp;ハイスコア(ローカル): <span id="hi">0</span>
+    <span id="lbl-score">スコア:</span> <span id="score">0</span>
+    &nbsp;<span id="lbl-hi">ハイスコア(ローカル):</span> <span id="hi">0</span>
   </div>
   <div id="p2-info" style="display:none;font-size:0.82rem;color:#ff8c00;margin-bottom:4px;text-align:center">P2: <span id="score2">0</span></div>
-  <div id="global-best">🌐 グローバルベスト: <b id="gb-score">---</b> <span id="gb-name"></span></div>
+  <div id="global-best"><span id="lbl-gb">🌐 グローバルベスト:</span> <b id="gb-score">---</b> <span id="gb-name"></span></div>
   <canvas id="c"></canvas>
   <div id="message">スペースキー または 画面タップでスタート</div>
   <div id="dpad">
@@ -115,7 +117,7 @@
     </div>
     <div class="section-block">
       <div class="avg-display" id="avg-display"></div>
-      <div id="rating-toggle">★ このゲームを評価する</div>
+      <div id="rating-toggle">★ <span id="lbl-rate">このゲームを評価する</span></div>
       <div id="rating-form">
         <div id="star-input">
           <span class="star" data-v="1">★</span><span class="star" data-v="2">★</span>
@@ -124,6 +126,7 @@
         </div>
         <textarea id="comment-input" placeholder="コメントを入力（任意）..."></textarea>
         <button id="submit-rating">送信</button>
+
         <div class="status-msg" id="rating-status"></div>
       </div>
       <div id="ratings-list"></div>
@@ -135,18 +138,18 @@
   <button id="help-toggle">? 操作方法</button>
   <div id="help-panel">
     <div class="hp-title">CONTROLS</div>
-    <div class="hp-row"><span><span class="key">↑</span><span class="key">↓</span><span class="key">←</span><span class="key">→</span></span><span style="color:#666">移動方向</span></div>
-    <div class="hp-row"><span><span class="key">Space</span></span><span style="color:#666">スタート / リスタート</span></div>
-    <div class="hp-row"><span style="color:#888">📱</span><span style="color:#666">D-pad ボタンで操作</span></div>
+    <div class="hp-row"><span><span class="key">↑</span><span class="key">↓</span><span class="key">←</span><span class="key">→</span></span><span id="hp-dir" style="color:#666">移動方向</span></div>
+    <div class="hp-row"><span><span class="key">Space</span></span><span id="hp-start" style="color:#666">スタート / リスタート</span></div>
+    <div class="hp-row"><span style="color:#888">📱</span><span id="hp-dpad" style="color:#666">D-pad ボタンで操作</span></div>
     <hr class="hp-sep">
-    <div class="hp-note">🟥 赤いエサを食べるとスコア+1<br>壁・自分の体に当たるとゲームオーバー<br>逆方向への転換は不可</div>
+    <div class="hp-note" id="hp-note">🟥 赤いエサを食べるとスコア+1<br>壁・自分の体に当たるとゲームオーバー<br>逆方向への転換は不可</div>
   </div>
 
   <!-- スコア投稿ダイアログ -->
   <div id="score-dialog">
     <div id="score-dialog-inner">
       <h3>NEW SCORE!</h3>
-      <p>スコア <b id="dialog-score-val" style="color:#00d4aa"></b> をランキングに登録しますか？</p>
+      <p id="dialog-msg">スコア <b id="dialog-score-val" style="color:#00d4aa"></b> をランキングに登録しますか？</p>
       <input id="player-name-input" type="text" placeholder="名前（任意）" maxlength="20">
       <div class="dialog-btns">
         <button class="dialog-btn" id="btn-submit-score">登録</button>
@@ -166,6 +169,73 @@ const SUPABASE_READY = true;
 
 const GAME = 'snake';
 
+// ── i18n ─────────────────────────────────────────────────────
+const LANG={
+  ja:{
+    score:'スコア:',hi:'ハイスコア:',gb:'🌐 グローバルベスト:',
+    m2p:'2P ローカル',helpToggle:'? 操作方法',
+    hpDir:'移動方向',hpStart:'スタート / リスタート',hpDpad:'D-pad ボタンで操作',
+    hpNote:'🟥 赤いエサを食べるとスコア+1<br>壁・自分の体に当たるとゲームオーバー<br>逆方向への転換は不可',
+    rateGame:'このゲームを評価する',commentPlaceholder:'コメントを入力（任意）...',
+    submitRating:'送信',noRatings:'まだ評価がありません',loading:'読み込み中...',
+    noScores:'まだスコアがありません',ratingCount:'件の評価',
+    dialogSuffix:' をランキングに登録しますか？',namePlaceholder:'名前（任意）',
+    submitScore:'登録',skip:'スキップ',sending:'送信中...',sendFail:'送信失敗。後でお試しください。',
+    starAlert:'星を選んでください',
+    msgStart:'スペースキー または 画面タップでスタート',
+    msg1p:'矢印キー または D-padで操作',
+    msg2pStart:'スペースキーでスタート（P1:WASD  P2:矢印）',
+    msg2pPlay:'P1:WASD  P2:矢印キー',
+    goRestart:'スペース または タップでリスタート',
+    goSpaceRestart:'スペースでリスタート',
+    draw:'引き分け！',p2win:'P2（オレンジ）の勝ち！',p1win:'P1（緑）の勝ち！',
+  },
+  en:{
+    score:'Score:',hi:'Hi-Score:',gb:'🌐 Global Best:',
+    m2p:'2P Local',helpToggle:'? Controls',
+    hpDir:'Direction',hpStart:'Start / Restart',hpDpad:'Use D-pad buttons',
+    hpNote:'🟥 Eat red food for +1 score<br>Hit wall or body = Game Over<br>Cannot reverse direction',
+    rateGame:'Rate this game',commentPlaceholder:'Comment (optional)...',
+    submitRating:'Submit',noRatings:'No ratings yet',loading:'Loading...',
+    noScores:'No scores yet',ratingCount:' ratings',
+    dialogSuffix:' — register to leaderboard?',namePlaceholder:'Name (optional)',
+    submitScore:'Submit',skip:'Skip',sending:'Sending...',sendFail:'Send failed. Please try again.',
+    starAlert:'Please select a star rating',
+    msgStart:'Press Space or Tap to Start',
+    msg1p:'Arrow keys or D-pad',
+    msg2pStart:'Press Space to Start (P1:WASD  P2:Arrows)',
+    msg2pPlay:'P1:WASD  P2:Arrow Keys',
+    goRestart:'Space or Tap to Restart',
+    goSpaceRestart:'Space to Restart',
+    draw:'Draw!',p2win:'P2 (Orange) Wins!',p1win:'P1 (Green) Wins!',
+  }
+};
+let lang=localStorage.getItem('lang')||'ja';
+function T(k){return(LANG[lang]||LANG.ja)[k]||k;}
+function applyLang(){
+  document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
+  document.documentElement.lang=lang;
+  document.getElementById('lbl-score').textContent=T('score');
+  document.getElementById('lbl-hi').textContent=T('hi');
+  document.getElementById('lbl-gb').textContent=T('gb');
+  document.getElementById('m2p').textContent=T('m2p');
+  document.getElementById('help-toggle').textContent=T('helpToggle');
+  document.getElementById('hp-dir').textContent=T('hpDir');
+  document.getElementById('hp-start').textContent=T('hpStart');
+  document.getElementById('hp-dpad').textContent=T('hpDpad');
+  document.getElementById('hp-note').innerHTML=T('hpNote');
+  document.getElementById('lbl-rate').textContent=T('rateGame');
+  document.getElementById('comment-input').placeholder=T('commentPlaceholder');
+  document.getElementById('submit-rating').textContent=T('submitRating');
+  document.getElementById('player-name-input').placeholder=T('namePlaceholder');
+  document.getElementById('btn-submit-score').textContent=T('submitScore');
+  document.getElementById('btn-skip-score').textContent=T('skip');
+  if(!running) document.getElementById('message').textContent=gameMode==='2p'?T('msg2pStart'):T('msgStart');
+}
+document.getElementById('lang-btn').addEventListener('click',()=>{
+  lang=lang==='ja'?'en':'ja';localStorage.setItem('lang',lang);applyLang();
+});
+
 async function sbFetch(path, options = {}) {
   const res = await fetch(SUPABASE_URL + path, {
     headers: {
@@ -183,11 +253,11 @@ async function sbFetch(path, options = {}) {
 }
 
 async function loadLeaderboard() {
-  if (!SUPABASE_READY) { document.getElementById('leaderboard-list').innerHTML = '<div class="lb-empty">（バックエンド未設定）</div>'; return; }
+  if (!SUPABASE_READY) { document.getElementById('leaderboard-list').innerHTML = '<div class="lb-empty">—</div>'; return; }
   try {
     const data = await sbFetch(`/rest/v1/scores?game=eq.${GAME}&order=score.desc&limit=10&select=score,player_name`);
     const el = document.getElementById('leaderboard-list');
-    if (!data || !data.length) { el.innerHTML = '<div class="lb-empty">まだスコアがありません</div>'; return; }
+    if (!data || !data.length) { el.innerHTML = `<div class="lb-empty">${T('noScores')}</div>`; return; }
     const medals = ['gold','silver','bronze'];
     el.innerHTML = data.map((r,i) => `
       <div class="lb-row">
@@ -244,7 +314,7 @@ function renderLocalRatings() {
 
 function renderRatings(list) {
   const el = document.getElementById('ratings-list');
-  if (!list.length) { el.innerHTML = '<div class="lb-empty">まだ評価がありません</div>'; return; }
+  if (!list.length) { el.innerHTML = `<div class="lb-empty">${T('noRatings')}</div>`; return; }
   el.innerHTML = list.map(r => {
     const d = new Date(r.created_at).toLocaleDateString('ja-JP');
     return `<div class="rating-item">
@@ -259,7 +329,7 @@ function updateAvgBadge(list) {
   const el = document.getElementById('avg-display');
   if (!list.length) { el.textContent = ''; return; }
   const avg = (list.reduce((s,r)=>s+r.stars,0)/list.length).toFixed(1);
-  el.innerHTML = `<span>${'★'.repeat(Math.round(avg))}</span> ${avg} (${list.length}件の評価)`;
+  el.innerHTML = `<span>${'★'.repeat(Math.round(avg))}</span> ${avg} (${list.length}${T('ratingCount')})`;
 }
 
 // ゲームロジック
@@ -373,7 +443,7 @@ function gameOver() {
   ctx.fillStyle='#ff6b6b'; ctx.font=`bold ${CELL}px Courier New`; ctx.textAlign='center';
   ctx.fillText('GAME OVER',W/2,H/2-10);
   ctx.fillStyle='#aaa'; ctx.font=`${CELL*0.6}px Courier New`;
-  ctx.fillText('スペース または タップでリスタート',W/2,H/2+CELL);
+  ctx.fillText(T('goRestart'),W/2,H/2+CELL);
   document.getElementById('message').textContent='';
   if (score > 0) showScoreDialog(score);
 }
@@ -382,21 +452,22 @@ function gameOver2p(dead1, dead2) {
   clearInterval(loop); running=false;
   ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(0,0,W,H);
   let msg;
-  if (dead1&&dead2) msg='引き分け！';
-  else if (dead1) msg='P2（オレンジ）の勝ち！';
-  else msg='P1（緑）の勝ち！';
+  if (dead1&&dead2) msg=T('draw');
+  else if (dead1) msg=T('p2win');
+  else msg=T('p1win');
   ctx.fillStyle=dead1&&dead2?'#aaa':dead2?'#00d4aa':'#ff8c00';
   ctx.font=`bold ${CELL}px Courier New`; ctx.textAlign='center';
   ctx.fillText(msg,W/2,H/2-10);
   ctx.fillStyle='#666'; ctx.font=`${CELL*0.55}px Courier New`;
   ctx.fillText(`P1:${score}  P2:${score2}`,W/2,H/2+CELL*0.9);
   ctx.fillStyle='#444'; ctx.font=`${CELL*0.5}px Courier New`;
-  ctx.fillText('スペースでリスタート',W/2,H/2+CELL*1.9);
+  ctx.fillText(T('goSpaceRestart'),W/2,H/2+CELL*1.9);
   document.getElementById('message').textContent='';
 }
 
 function showScoreDialog(s) {
   document.getElementById('dialog-score-val').textContent = s;
+  document.getElementById('dialog-msg').innerHTML = 'Score <b style="color:#00d4aa">'+s+'</b>'+T('dialogSuffix');
   document.getElementById('player-name-input').value = localStorage.getItem('playerName') || '';
   document.getElementById('score-dialog').classList.add('open');
 }
@@ -415,7 +486,7 @@ function start() {
   if (running) return;
   document.getElementById('score-dialog').classList.remove('open');
   init(); draw(); running=true;
-  document.getElementById('message').textContent = gameMode==='2p' ? 'P1:WASD  P2:矢印キー' : '矢印キー または D-padで操作';
+  document.getElementById('message').textContent = gameMode==='2p' ? T('msg2pPlay') : T('msg1p');
   loop = setInterval(step, 130);
 }
 
@@ -440,7 +511,7 @@ document.getElementById('m1p').addEventListener('click',()=>{
   document.getElementById('global-best').style.display='';
   document.getElementById('bottom-section').style.display='';
   document.getElementById('dpad').style.display='grid';
-  init(); draw(); document.getElementById('message').textContent='スペースキー または 画面タップでスタート';
+  init(); draw(); document.getElementById('message').textContent=T('msgStart');
 });
 document.getElementById('m2p').addEventListener('click',()=>{
   gameMode='2p'; running=false; clearInterval(loop);
@@ -449,7 +520,7 @@ document.getElementById('m2p').addEventListener('click',()=>{
   document.getElementById('global-best').style.display='none';
   document.getElementById('bottom-section').style.display='none';
   document.getElementById('dpad').style.display='none';
-  init(); draw(); document.getElementById('message').textContent='スペースキーでスタート（P1:WASD  P2:矢印）';
+  init(); draw(); document.getElementById('message').textContent=T('msg2pStart');
 });
 canvas.addEventListener('touchend', e=>{e.preventDefault();start();},{passive:false});
 
@@ -475,9 +546,9 @@ document.querySelectorAll('.star').forEach(s=>{
   });
 });
 document.getElementById('submit-rating').addEventListener('click', async ()=>{
-  if(!selectedStars){alert('星を選んでください');return;}
+  if(!selectedStars){alert(T('starAlert'));return;}
   const statusEl = document.getElementById('rating-status');
-  statusEl.textContent='送信中...';
+  statusEl.textContent=T('sending');
   try {
     await submitRating(selectedStars, document.getElementById('comment-input').value.trim());
     selectedStars=0;
@@ -485,9 +556,10 @@ document.getElementById('submit-rating').addEventListener('click', async ()=>{
     document.getElementById('comment-input').value='';
     document.getElementById('rating-form').classList.remove('open');
     statusEl.textContent='';
-  } catch(e) { statusEl.textContent='送信失敗。後でお試しください。'; }
+  } catch(e) { statusEl.textContent=T('sendFail'); }
 });
 
+applyLang();
 loadLeaderboard();
 loadRatings();
 init(); draw();
