@@ -72,7 +72,7 @@ const LANG = {
     easy: 'イージー', normal: 'ノーマル', hard: 'ハード',
     serve: 'サーブ：Space', move: '移動：矢印キー', swing: 'スイング：Space',
     yourServe: 'あなたのサーブ', cpuServe: 'CPUのサーブ',
-    net: 'ネット！', out: 'アウト！', fault: 'フォルト',
+    net: 'ネット！', out: 'アウト！', fault: 'フォルト', doubleFault: 'ダブルフォルト！',
     winner: '勝者：', playAgain: 'もう一度：Space',
     deuce: 'デュース', adv: 'アドバンテージ',
     set: 'セット', game: 'ゲーム', match: 'マッチ',
@@ -85,7 +85,7 @@ const LANG = {
     easy: 'Easy', normal: 'Normal', hard: 'Hard',
     serve: 'Serve: Space', move: 'Move: Arrow Keys', swing: 'Swing: Space',
     yourServe: 'Your Serve', cpuServe: 'CPU Serve',
-    net: 'NET!', out: 'OUT!', fault: 'FAULT',
+    net: 'NET!', out: 'OUT!', fault: 'FAULT', doubleFault: 'DOUBLE FAULT!',
     winner: 'Winner: ', playAgain: 'Play Again: Space',
     deuce: 'DEUCE', adv: 'ADVANTAGE',
     set: 'Set', game: 'Game', match: 'MATCH',
@@ -232,6 +232,10 @@ let ratingDone = false;
 let ratingHover = 0;
 let ratingStars = 0;
 
+// ── Fault / Double-fault ──────────────────────────────────────────────────
+let faultCount = 0;       // 0 = first serve, 1 = second serve
+let serveInFlight = false; // true from serve launch until first bounce
+
 // ── CPU serve scheduling ──────────────────────────────────────────────────
 let cpuServeScheduled = false;
 let pointEndScheduled = false;
@@ -376,6 +380,8 @@ function startServe() {
   lastBounceSide = -1;
   cpuServeScheduled = false;
   pointEndScheduled = false;
+  faultCount = 0;
+  serveInFlight = false;
 
   if (score.server === 0) {
     ball = { cx: p1StartCx + 0.04, cz: 0.0, yh: 0.05, vcx:0, vcz:0, vcy:0, active:false };
@@ -588,7 +594,14 @@ function drawHUD() {
   ctx.font = '11px Courier New';
   ctx.textAlign = 'center';
   const holdHint = lang === 'ja' ? '(長押し=強打)' : '(hold=power)';
-  ctx.fillText(T('move') + '   ' + T('swing') + ' ' + holdHint, 300, 42);
+  let hintLine = T('move') + '   ' + T('swing') + ' ' + holdHint;
+  if (state === STATE.SERVING && score.server === 0) {
+    const serveNum = faultCount === 0
+      ? (lang === 'ja' ? '【ファーストサーブ】' : '【1st Serve】')
+      : (lang === 'ja' ? '【セカンドサーブ】' : '【2nd Serve】');
+    hintLine = serveNum;
+  }
+  ctx.fillText(hintLine, 300, 42);
 
   // Charge meter (under player)
   const activeCharge = mode2p ? -1 : p1ChargeStart;
@@ -644,26 +657,40 @@ function updateBall() {
       ball.vcz *= 0.85;
     }
 
+    // First bounce clears serve-in-flight flag
+    const bouncedSide = ball.cz < 0.5 ? 0 : 1;
+
+    if (serveInFlight) {
+      serveInFlight = false;
+      // Check serve landing: must be in opponent's service box (cz 0.5–0.75, |cx|<1)
+      const serverSide = score.server === 0 ? 0 : 1; // 0=near,1=far
+      const inServiceBox = (serverSide === 0)
+        ? (ball.cz >= 0.5 && ball.cz <= 0.75 && Math.abs(ball.cx) <= 1.0)
+        : (ball.cz >= 0.25 && ball.cz <= 0.5 && Math.abs(ball.cx) <= 1.0);
+      if (!inServiceBox) { serveFault(); return; }
+      // Good serve — continue as rally
+      ballBounces = 1;
+      lastBounceSide = bouncedSide;
+      return;
+    }
+
     // Track which side bounced
-    const side = ball.cz < 0.5 ? 0 : 1;
-    if (lastBounceSide === side) {
+    if (lastBounceSide === bouncedSide) {
       ballBounces++;
     } else {
       ballBounces = 1;
-      lastBounceSide = side;
+      lastBounceSide = bouncedSide;
     }
 
     // Double bounce → point over
     if (ballBounces >= 2) {
-      // Whoever's side it bounced on loses
       endPoint(1 - lastBounceSide, '');
       return;
     }
 
     // Out of bounds after bounce
     if (Math.abs(ball.cx) > 1.0 || ball.cz < 0 || ball.cz > 1.0) {
-      const winner = (lastHitBy === 0) ? 1 : 0;
-      endPoint(winner, T('out'));
+      endPoint((lastHitBy === 0) ? 1 : 0, T('out'));
       return;
     }
   }
@@ -671,31 +698,60 @@ function updateBall() {
   // Net check (crossing cz = 0.5)
   const prevCz = ball.cz - ball.vcz;
   if ((prevCz < 0.5 && ball.cz >= 0.5) || (prevCz > 0.5 && ball.cz <= 0.5)) {
-    const netHeight = 0.04; // in yh units
-    if (ball.yh < netHeight) {
-      const winner = (lastHitBy === 0) ? 1 : 0;
-      endPoint(winner, T('net'));
+    if (ball.yh < 0.04) {
+      if (serveInFlight) { serveInFlight = false; serveFault(); return; }
+      endPoint((lastHitBy === 0) ? 1 : 0, T('net'));
       return;
     }
   }
 
-  // Ball way out horizontally in flight
+  // Ball way out
   if (ball.yh > 0 && (ball.cx < -1.15 || ball.cx > 1.15)) {
-    const winner = (lastHitBy === 0) ? 1 : 0;
-    endPoint(winner, T('out'));
+    if (serveInFlight) { serveInFlight = false; serveFault(); return; }
+    endPoint((lastHitBy === 0) ? 1 : 0, T('out'));
     return;
   }
-
-  // Ball past far baseline in flight
   if (ball.cz > 1.05 && ball.yh > 0) {
+    if (serveInFlight) { serveInFlight = false; serveFault(); return; }
     endPoint(lastHitBy === 0 ? 1 : 0, T('out'));
     return;
   }
-
-  // Ball past near baseline in flight
   if (ball.cz < -0.05 && ball.yh > 0) {
+    if (serveInFlight) { serveInFlight = false; serveFault(); return; }
     endPoint(lastHitBy === 1 ? 0 : 1, T('out'));
     return;
+  }
+}
+
+function serveFault() {
+  if (pointEndScheduled) return;
+  ball.active = false;
+  serveInFlight = false;
+  faultCount++;
+  if (faultCount >= 2) {
+    // Double fault — server loses the point
+    faultCount = 0;
+    const faultWinner = 1 - score.server;
+    msg = T('doubleFault');
+    msgTimer = 120;
+    endPoint(faultWinner, '');
+  } else {
+    // First fault — allow second serve
+    msg = T('fault');
+    msgTimer = 90;
+    // Return to SERVING without resetting faultCount
+    state = STATE.SERVING;
+    pointEndScheduled = false;
+    const side = getServeSide();
+    if (score.server === 0) {
+      player.cz = 0.0;
+      ball = { cx: player.cx, cz: 0.0, yh: 0.05, vcx:0, vcz:0, vcy:0, active:false };
+    } else {
+      const cpuStartCx = side === 'deuce' ? -0.45 : 0.45;
+      cpu.cx = cpuStartCx;
+      ball = { cx: cpu.cx, cz: 1.0, yh: 0.05, vcx:0, vcz:0, vcy:0, active:false };
+      cpuServeScheduled = false;
+    }
   }
 }
 
@@ -722,14 +778,15 @@ function cpuServeNow() {
   ball.cx  = cpu.cx;
   ball.cz  = 1.0;
   ball.yh  = 0.06;
-  ball.vcz = -0.006;           // NEGATIVE toward player, same magnitude as P1 serve
-  ball.vcy = +0.0102;
-  // CPU deuce serve (getServeSide()='deuce') → P1's deuce side = cx > 0
-  // CPU ad   serve                           → P1's ad   side = cx < 0
+  ball.vcz = -0.005;           // NEGATIVE toward player
+  ball.vcy = +0.014;           // higher arc to clear net comfortably
+  // CPU deuce serve → P1's deuce side (cx > 0 in bird's-eye)
+  // CPU ad   serve  → P1's ad   side (cx < 0)
   const targetCx = serveSide === 'deuce' ? 0.35 : -0.35;
-  const airFrames = 96;
+  const airFrames = 116;
   ball.vcx = (targetCx - cpu.cx) / airFrames + (Math.random() - 0.5) * 0.0008;
   ball.active = true;
+  serveInFlight = true;
   lastHitBy = 1;
   ballBounces = 0;
   lastBounceSide = -1;
@@ -840,17 +897,17 @@ function handleP1Action(charge) {
     ball.cx  = player.cx;
     ball.cz  = 0.0;
     ball.yh  = 0.06;
-    ball.vcz = 0.006;    // POSITIVE toward CPU
-    ball.vcy = 0.0102;   // upward
-    // Diagonal target: deuce side → CPU's deuce box (opposite cx in bird's-eye)
-    // deuce serve (player at cx≈+0.45): target landing at cx≈-0.35
-    // ad    serve (player at cx≈-0.45): target landing at cx≈+0.35
+    ball.vcz = 0.005;    // POSITIVE toward CPU
+    ball.vcy = 0.014;    // higher arc to clear net comfortably
+    // Diagonal target: deuce → CPU's deuce box (cx < 0 in bird's-eye)
+    // ad    target → CPU's ad   box (cx > 0)
     const targetCx = side === 'deuce' ? -0.35 : 0.35;
-    const airFrames = 96; // estimated frames in air
+    const airFrames = 116; // estimated frames in air
     // Aim variation: ←→ key shifts target ±0.20
     const aimShift = keys['ArrowLeft'] ? -0.20 : keys['ArrowRight'] ? 0.20 : 0;
     ball.vcx = (targetCx + aimShift - ball.cx) / airFrames + (Math.random() - 0.5) * 0.0008;
     ball.active = true;
+    serveInFlight = true;
     lastHitBy = 0;
     ballBounces = 0;
     lastBounceSide = -1;
@@ -895,11 +952,12 @@ function handleP2Action(charge) {
     ball.cx  = player2.cx;
     ball.cz  = 1.0;
     ball.yh  = 0.06;
-    ball.vcz = -0.006;
-    ball.vcy = +0.0102;
+    ball.vcz = -0.005;
+    ball.vcy = +0.014;
     ball.vcx = (Math.random() - 0.5) * 0.005;
     ball.active = true;
     lastHitBy = 1;
+    serveInFlight = true;
     ballBounces = 0;
     lastBounceSide = -1;
     p2Swing = 8;
