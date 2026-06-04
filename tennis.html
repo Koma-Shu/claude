@@ -372,8 +372,8 @@ function startServe() {
   const cpuStartCx = side === 'deuce' ? -0.45 : 0.45;
 
   player  = { cx: p1StartCx, cz: 0.0 };  // locked to baseline
-  player2 = { cx: -p1StartCx, cz: 1.0 };
-  cpu     = { cx: cpuStartCx, cz: 1.0 };
+  player2 = { cx: -p1StartCx, cz: 0.95 };
+  cpu     = { cx: cpuStartCx, cz: 0.78 }; // not all the way back — easier to cover court
   p1Swing = 0; p2Swing = 0; cpuSwing = 0;
   lastHitBy = -1;
   ballBounces = 0;
@@ -803,9 +803,9 @@ function cpuHitBall() {
   lastBounceSide = -1;
   const err = CPU_ERROR[difficulty];
   // CPU rally shots — same slow speed as player
-  ball.vcz = -0.003;
-  ball.vcy = +0.007;
-  ball.vcx = (player.cx - ball.cx) * 0.002 + (Math.random() - 0.5) * err * 0.15;
+  ball.vcz = -0.006;   // deeper: 0.006×100frames = 0.60 court units
+  ball.vcy = +0.012;   // loft gives ~100 frames air time with gravity=0.00025
+  ball.vcx = (player.cx - ball.cx) * 0.002 + (Math.random() - 0.5) * err * 0.12;
 }
 
 function updateCPU() {
@@ -814,19 +814,23 @@ function updateCPU() {
   const speed = CPU_SPEED[difficulty];
 
   // Move toward ball when it's on CPU's side
-  if (ball.active && ball.cz > 0.55) {
+  if (ball.active && ball.cz > 0.52) {
     const err = CPU_ERROR[difficulty];
-    const targetCx = ball.cx + (Math.random() - 0.5) * err * 0.1;
-    if (cpu.cx < targetCx - 0.01) cpu.cx = Math.min(cpu.cx + speed, 0.9);
-    else if (cpu.cx > targetCx + 0.01) cpu.cx = Math.max(cpu.cx - speed, -0.9);
+    const targetCx = ball.cx + (Math.random() - 0.5) * err * 0.08;
+    if (cpu.cx < targetCx - 0.01) cpu.cx = Math.min(cpu.cx + speed, 0.88);
+    else if (cpu.cx > targetCx + 0.01) cpu.cx = Math.max(cpu.cx - speed, -0.88);
+    // CPU also moves toward ball depth (cz), staying in back half
+    const targetCz = Math.min(Math.max(ball.cz - 0.05, 0.55), 0.85);
+    if (cpu.cz < targetCz - 0.01) cpu.cz = Math.min(cpu.cz + speed * 0.5, 0.85);
+    else if (cpu.cz > targetCz + 0.01) cpu.cz = Math.max(cpu.cz - speed * 0.5, 0.55);
   }
 
   // Auto-hit when ball is close enough on CPU side
-  if (ball.active && ball.cz > 0.58 && ball.yh < 0.18 && lastHitBy !== 1) {
+  if (ball.active && ball.cz > 0.55 && ball.yh < 0.20 && lastHitBy !== 1) {
     const cpuPos = courtToScreen(cpu.cx, cpu.cz);
     const bPos   = courtToScreen(ball.cx, ball.cz);
     const dist   = Math.hypot(cpuPos.x - bPos.x, cpuPos.y - bPos.y);
-    if (dist < 90) {
+    if (dist < 100) {
       cpuHitBall();
     }
   }
@@ -888,7 +892,7 @@ function updatePlayer() {
 
 function handleP1Action(charge) {
   // charge: 0.0 (tap) to 1.0 (full hold ~1s)
-  const power = 0.75 + charge * 0.50; // 0.75 .. 1.25 multiplier
+  const power = 0.80 + charge * 0.35; // 0.80 .. 1.15 — slightly narrower for calmer feel
 
   if (state === STATE.SERVING && score.server === 0) {
     // Serve arc: vcz=0.006, vcy=0.0102, gravity=0.00025
@@ -928,25 +932,25 @@ function handleP1Action(charge) {
       lastBounceSide = -1;
 
       // Direction from movement keys
-      let vcx = (Math.random() - 0.5) * 0.0008;
-      if (keys['ArrowLeft'])  vcx = -0.003 * power;
-      if (keys['ArrowRight']) vcx = +0.003 * power;
+      let vcx = (Math.random() - 0.5) * 0.001;
+      if (keys['ArrowLeft'])  vcx = -0.004 * power;
+      if (keys['ArrowRight']) vcx = +0.004 * power;
 
-      // Depth from up/down keys
-      let vcz = 0.003 * power;
-      if (keys['ArrowUp'])   vcz = 0.0038 * power;
-      if (keys['ArrowDown']) vcz = 0.0022 * power;
+      // Depth: base=0.005 covers ~0.5 court at 100 frames; up=deep, down=short
+      let vcz = 0.005 * power;
+      if (keys['ArrowUp'])   vcz = 0.007 * power;   // deep to opponent baseline
+      if (keys['ArrowDown']) vcz = 0.003 * power;   // short (drop shot)
 
       ball.vcx = vcx;
       ball.vcz = vcz;  // POSITIVE toward opponent
-      ball.vcy = 0.007 * power;
+      ball.vcy = 0.012; // fixed loft for consistent arc; power affects vcz/vcx only
     }
   }
 }
 
 function handleP2Action(charge) {
   if (!mode2p) return;
-  const power = 0.75 + charge * 0.50;
+  const power = 0.80 + charge * 0.35;
 
   if (state === STATE.SERVING && score.server === 1) {
     ball.cx  = player2.cx;
@@ -976,16 +980,16 @@ function handleP2Action(charge) {
       ballBounces = 0;
       lastBounceSide = -1;
 
-      let vcx = (Math.random() - 0.5) * 0.0008;
-      if (keys['ArrowLeft'])  vcx = +0.003 * power;
-      if (keys['ArrowRight']) vcx = -0.003 * power;
-      let vcz = -0.003 * power;
-      if (keys['ArrowUp'])   vcz = -0.0038 * power;
-      if (keys['ArrowDown']) vcz = -0.0022 * power;
+      let vcx = (Math.random() - 0.5) * 0.001;
+      if (keys['ArrowLeft'])  vcx = +0.004 * power;
+      if (keys['ArrowRight']) vcx = -0.004 * power;
+      let vcz = -0.005 * power;
+      if (keys['ArrowUp'])   vcz = -0.007 * power;
+      if (keys['ArrowDown']) vcz = -0.003 * power;
 
       ball.vcx = vcx;
       ball.vcz = vcz;
-      ball.vcy = 0.007 * power;
+      ball.vcy = 0.012;
     }
   }
 }
