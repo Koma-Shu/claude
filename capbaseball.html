@@ -229,7 +229,7 @@ const LANG={
       '3ストライクでアウト、4ボールで四球（ランナー出塁）',
       '3アウトでチェンジ（攻守交代）',
     ],
-    close:'閉じる',
+    close:'閉じる', bases:'塁',
   },
   en:{
     mode:'MODE', inn:'INNINGS', play:'▶ PLAY',
@@ -279,7 +279,7 @@ const LANG={
       '3 strikes = out, 4 balls = walk (runner advances)',
       '3 outs = side change (half-inning over)',
     ],
-    close:'CLOSE',
+    close:'CLOSE', bases:'',
   }
 };
 let lang=localStorage.getItem('lang')||'ja';
@@ -569,7 +569,7 @@ function drawRunnerDiamond(){
   const runCount=runners.filter(Boolean).length;
   if(runCount>0){
     ctx.fillStyle='#ffd700'; ctx.font='bold 9px Courier New'; ctx.textAlign='center';
-    ctx.fillText(runCount+'塁',cx,cy+4);
+    ctx.fillText(runCount+T('bases'),cx,cy+4);
   }
   ctx.restore();
 }

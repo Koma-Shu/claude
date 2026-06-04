@@ -118,7 +118,7 @@ h1{font-size:1.5rem;letter-spacing:8px;color:#cc3300;text-shadow:0 0 24px rgba(2
 </head>
 <body>
 <button id="lang-btn">EN</button>
-<a href="index.html" id="back-btn">← HOME</a>
+<a href="index.html" id="back-btn">← ARCADE</a>
 <h1>麻雀</h1>
 
 <!-- Mode selection -->
@@ -441,7 +441,7 @@ function initOnlineGameState(n,seats){
 
 // ── Online: Room management ────────────────────────────────────
 async function createRoom(n){
-  if(!me){alert('ログインが必要です。ログイン後にお試しください。');return;}
+  if(!me){alert(T('loginRequired'));return;}
   document.getElementById('online-err').textContent=T('creating');
   const seats={0:{id:me.id,name:me.username||me.full_name||'Player'}};
   const data=await sb('/rest/v1/mahjong_rooms',{method:'POST',body:JSON.stringify({host_id:me.id,status:'waiting',num_players:n,seats,game_state:{}})});
@@ -451,7 +451,7 @@ async function createRoom(n){
 }
 
 async function joinRoom(){
-  if(!me){alert('ログインが必要です。ログイン後にお試しください。');return;}
+  if(!me){alert(T('loginRequired'));return;}
   const code=document.getElementById('room-code-input').value.trim().toLowerCase();
   if(code.length<6){document.getElementById('online-err').textContent=T('enterCode');return;}
   document.getElementById('online-err').textContent=T('searching');
@@ -922,7 +922,7 @@ function showBtns(ids){['tsumo','ron','pass','ng','menu'].forEach(id=>document.g
 // ── Events ─────────────────────────────────────────────────────
 document.getElementById('btn-mode-solo').addEventListener('click',()=>showScreen('screen-solo'));
 document.getElementById('btn-mode-online').addEventListener('click',()=>{
-  if(!me){alert('オンライン対戦にはログインが必要です。');return;}
+  if(!me){alert(T('loginRequiredOnline'));return;}
   document.getElementById('online-err').textContent='';
   showScreen('screen-online');
 });
@@ -1036,6 +1036,11 @@ const LANG={
     discardedCanRon:' — ロンできます',
     // seat name components
     youParen:'(あなた)',
+    // action buttons
+    tsumoBtn:'TSUMO ツモ', ronBtn:'RON ロン',
+    // login alerts
+    loginRequired:'ログインが必要です。ログイン後にお試しください。',
+    loginRequiredOnline:'オンライン対戦にはログインが必要です。',
   },
   en:{
     // screen-mode
@@ -1097,6 +1102,11 @@ const LANG={
     discardedCanRon:' — you can Ron',
     // seat name components
     youParen:'(you)',
+    // action buttons
+    tsumoBtn:'TSUMO', ronBtn:'RON',
+    // login alerts
+    loginRequired:'Login required. Please log in and try again.',
+    loginRequiredOnline:'Online play requires login.',
   }
 };
 function T(k){return(LANG[lang]||LANG.ja)[k]||k;}
