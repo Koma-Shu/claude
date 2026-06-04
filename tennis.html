@@ -192,18 +192,44 @@ let pointEndScheduled = false;
 
 // ── Keys ──────────────────────────────────────────────────────────────────
 const keys = {};
-const justPressed = {};
-window.addEventListener('keydown', e => {
-  if (!keys[e.code]) justPressed[e.code] = true;
-  keys[e.code] = true;
-  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
-});
-window.addEventListener('keyup', e => { keys[e.code] = false; });
+let frameCount = 0;
 
-function consumeJust(code) {
-  if (justPressed[code]) { delete justPressed[code]; return true; }
-  return false;
-}
+// Charge state: -1 = not charging
+let p1ChargeStart = -1;
+let p2ChargeStart = -1;
+
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyF','KeyW','KeyA','KeyS','KeyD'].includes(e.code)) e.preventDefault();
+  // Start charge on press (only during active play)
+  const inPlay = state === STATE.SERVING || state === STATE.RALLY;
+  if (e.code === 'Space' && inPlay) {
+    if (!mode2p && p1ChargeStart < 0) p1ChargeStart = frameCount;   // 1P: Space = P1
+    if (mode2p  && p2ChargeStart < 0) p2ChargeStart = frameCount;   // 2P: Space = P2
+  }
+  if (e.code === 'KeyF' && mode2p && p1ChargeStart < 0 && inPlay) p1ChargeStart = frameCount; // 2P: F = P1
+});
+window.addEventListener('keyup', e => {
+  keys[e.code] = false;
+  // Release → execute shot
+  if (e.code === 'Space') {
+    if (!mode2p && p1ChargeStart >= 0) {
+      const charge = Math.min((frameCount - p1ChargeStart) / 60, 1.0);
+      p1ChargeStart = -1;
+      handleP1Action(charge);
+    }
+    if (mode2p && p2ChargeStart >= 0) {
+      const charge = Math.min((frameCount - p2ChargeStart) / 60, 1.0);
+      p2ChargeStart = -1;
+      handleP2Action(charge);
+    }
+  }
+  if (e.code === 'KeyF' && mode2p && p1ChargeStart >= 0) {
+    const charge = Math.min((frameCount - p1ChargeStart) / 60, 1.0);
+    p1ChargeStart = -1;
+    handleP1Action(charge);
+  }
+});
 
 // ── Title ─────────────────────────────────────────────────────────────────
 function drawTitle() {
@@ -239,16 +265,36 @@ function drawTitle() {
   ctx.fillText('↑↓: select   Space/Enter: confirm', 300, 420);
 }
 
-function handleTitle() {
-  if (consumeJust('ArrowUp'))   titleSel = (titleSel + 4) % 5;
-  if (consumeJust('ArrowDown')) titleSel = (titleSel + 1) % 5;
-  if (consumeJust('Space') || consumeJust('Enter')) {
-    if      (titleSel === 0) { mode2p = false; startMatch(); }
-    else if (titleSel === 1) { mode2p = true;  startMatch(); }
-    else if (titleSel === 2) { difficulty = 'easy';   titleSel = 0; }
-    else if (titleSel === 3) { difficulty = 'normal'; titleSel = 0; }
-    else if (titleSel === 4) { difficulty = 'hard';   titleSel = 0; }
+const titleJust = {};
+window.addEventListener('keydown', e => {
+  if (state === STATE.TITLE) titleJust[e.code] = true;
+});
+window.addEventListener('keyup', e => {
+  if (state === STATE.TITLE && (e.code === 'Space' || e.code === 'Enter') && titleJust[e.code]) {
+    delete titleJust[e.code];
+    titleConfirm();
   }
+  delete titleJust[e.code];
+});
+
+function titleConfirm() {
+  if      (titleSel === 0) { mode2p = false; startMatch(); }
+  else if (titleSel === 1) { mode2p = true;  startMatch(); }
+  else if (titleSel === 2) { difficulty = 'easy';   titleSel = 0; }
+  else if (titleSel === 3) { difficulty = 'normal'; titleSel = 0; }
+  else if (titleSel === 4) { difficulty = 'hard';   titleSel = 0; }
+}
+
+let titleUpJust = false, titleDownJust = false;
+window.addEventListener('keydown', e => {
+  if (state === STATE.TITLE) {
+    if (e.code === 'ArrowUp')   { titleSel = (titleSel + 4) % 5; }
+    if (e.code === 'ArrowDown') { titleSel = (titleSel + 1) % 5; }
+  }
+});
+
+function handleTitle() {
+  // handled via event listeners above
 }
 
 // ── Match / Serve Init ────────────────────────────────────────────────────
@@ -302,17 +348,33 @@ function drawCourt() {
   line(40, 380, 130, 100);
   line(560, 380, 470, 100);
 
-  // Net
+  // Net — drawn with proper height
   const nL = courtToScreen(-1, 0.5);
   const nR = courtToScreen( 1, 0.5);
-  ctx.strokeStyle = '#ddd';
+  const netGroundY = nL.y; // = 240
+  const NET_PX = 0.04 * 600; // 24px above ground
+  const netTopY = netGroundY - NET_PX;
+  // Net fill (mesh)
+  ctx.fillStyle = 'rgba(220,220,220,0.12)';
+  ctx.fillRect(nL.x, netTopY, nR.x - nL.x, NET_PX);
+  // Horizontal mesh lines
+  ctx.strokeStyle = 'rgba(220,220,220,0.35)';
+  ctx.lineWidth = 0.7;
+  for (let i = 0; i <= 4; i++) { const ny = netTopY + NET_PX * i / 4; line(nL.x, ny, nR.x, ny); }
+  // Vertical mesh lines
+  for (let i = 0; i <= 16; i++) { const nx = nL.x + (nR.x - nL.x) * i / 16; line(nx, netTopY, nx, netGroundY); }
+  // Net top tape (white band)
+  ctx.strokeStyle = '#fff';
   ctx.lineWidth = 3;
-  line(nL.x, nL.y, nR.x, nR.y);
-  // Net posts
-  ctx.strokeStyle = '#bbb';
-  ctx.lineWidth = 2;
-  line(nL.x, nL.y, nL.x, nL.y + 10);
-  line(nR.x, nR.y, nR.x, nR.y + 10);
+  line(nL.x, netTopY, nR.x, netTopY);
+  // Net bottom
+  ctx.lineWidth = 1.5;
+  line(nL.x, netGroundY, nR.x, netGroundY);
+  // Posts
+  ctx.strokeStyle = '#ccc';
+  ctx.lineWidth = 3;
+  line(nL.x, netTopY - 4, nL.x, netGroundY);
+  line(nR.x, netTopY - 4, nR.x, netGroundY);
 
   // Center line
   const cN = courtToScreen(0, 0);
@@ -441,7 +503,26 @@ function drawHUD() {
   ctx.fillStyle = '#555';
   ctx.font = '11px Courier New';
   ctx.textAlign = 'center';
-  ctx.fillText(T('move') + '   ' + T('swing'), 300, 42);
+  const holdHint = lang === 'ja' ? '(長押し=強打)' : '(hold=power)';
+  ctx.fillText(T('move') + '   ' + T('swing') + ' ' + holdHint, 300, 42);
+
+  // Charge meter (under player)
+  const activeCharge = mode2p ? -1 : p1ChargeStart;
+  if (activeCharge >= 0 && (state === STATE.SERVING || state === STATE.RALLY)) {
+    const charge = Math.min((frameCount - activeCharge) / 60, 1.0);
+    const pPos = courtToScreen(player.cx, player.cz);
+    const barW = 60, barH = 7;
+    const bx = pPos.x - barW/2, by = pPos.y + 18;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(bx - 1, by - 1, barW + 2, barH + 2);
+    // Color: green → yellow → red
+    const r = Math.floor(charge * 255), g = Math.floor((1 - charge) * 180 + 75);
+    ctx.fillStyle = `rgb(${r},${g},0)`;
+    ctx.fillRect(bx, by, barW * charge, barH);
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bx, by, barW, barH);
+  }
 
   // Message overlay
   if (msg && msgTimer > 0) {
@@ -615,54 +696,55 @@ function updateCPU() {
 }
 
 // ── Player Input ──────────────────────────────────────────────────────────
+let spaceJustReleased = false; // for game-over restart (no-charge context)
+window.addEventListener('keyup', e => {
+  if (e.code === 'Space' && state === STATE.GAME_OVER) spaceJustReleased = true;
+  if (e.code === 'Space' && state === STATE.TITLE) spaceJustReleased = true;
+});
+
 function updatePlayer() {
   const spd = 0.012;
 
   if (state === STATE.SERVING || state === STATE.RALLY) {
-    // P1 arrow keys (single player)
     if (!mode2p) {
       if (keys['ArrowLeft'])  player.cx = Math.max(player.cx - spd, -0.9);
       if (keys['ArrowRight']) player.cx = Math.min(player.cx + spd,  0.9);
       if (keys['ArrowUp'])    player.cz = Math.min(player.cz + spd,  0.38);
       if (keys['ArrowDown'])  player.cz = Math.max(player.cz - spd,  0.0);
     }
-    // P1 WASD (2P mode)
     if (mode2p) {
       if (keys['KeyA']) player.cx = Math.max(player.cx - spd, -0.9);
       if (keys['KeyD']) player.cx = Math.min(player.cx + spd,  0.9);
       if (keys['KeyW']) player.cz = Math.min(player.cz + spd,  0.38);
       if (keys['KeyS']) player.cz = Math.max(player.cz - spd,  0.0);
-
-      // P2 arrow keys
-      if (keys['ArrowLeft'])  player2.cx = Math.min(player2.cx + spd, 0.9); // mirrored
+      if (keys['ArrowLeft'])  player2.cx = Math.min(player2.cx + spd, 0.9);
       if (keys['ArrowRight']) player2.cx = Math.max(player2.cx - spd, -0.9);
       if (keys['ArrowUp'])    player2.cz = Math.max(player2.cz - spd, 0.62);
       if (keys['ArrowDown'])  player2.cz = Math.min(player2.cz + spd, 1.0);
     }
   }
 
-  // P1 action: Space (1P) or F (2P)
-  const p1Act = !mode2p ? consumeJust('Space') : consumeJust('KeyF');
-  if (p1Act) handleP1Action();
-
-  // P2 action: Space (2P)
-  if (mode2p && consumeJust('Space')) handleP2Action();
-
-  // Game over restart
-  if (state === STATE.GAME_OVER && consumeJust('Space')) {
-    state = STATE.TITLE;
+  // Actions are handled in keyup listeners (charge system)
+  // Game over / title restart
+  if (spaceJustReleased) {
+    spaceJustReleased = false;
+    if (state === STATE.GAME_OVER) state = STATE.TITLE;
   }
 }
 
-function handleP1Action() {
+function handleP1Action(charge) {
+  // charge: 0.0 (tap) to 1.0 (full hold ~1s)
+  const power = 0.75 + charge * 0.50; // 0.75 .. 1.25 multiplier
+
   if (state === STATE.SERVING && score.server === 0) {
-    // Serve: ball moves TOWARD opponent (vcz POSITIVE, cz increases)
+    // Serve must clear net AND land in service box (cz 0.5–0.75)
+    // Base: vcz=0.020, vcy=0.034 → lands ~cz 0.60 (checked numerically)
     ball.cx  = player.cx + 0.05;
     ball.cz  = player.cz;
-    ball.yh  = 0.05;
-    ball.vcz = +0.012;   // POSITIVE: toward CPU (cz=1)
-    ball.vcy = +0.025;   // upward
-    ball.vcx = (Math.random() - 0.5) * 0.004;
+    ball.yh  = 0.06;
+    ball.vcz = 0.020 * power;   // POSITIVE: toward CPU (cz=1)
+    ball.vcy = 0.034 * power;   // upward arc
+    ball.vcx = (Math.random() - 0.5) * 0.005;
     ball.active = true;
     lastHitBy = 0;
     ballBounces = 0;
@@ -677,39 +759,40 @@ function handleP1Action() {
     const bPos = ballToScreen(ball.cx, ball.cz, ball.yh);
     const dist = Math.hypot(pPos.x - bPos.x, pPos.y - bPos.y);
 
-    if (ball.cz < 0.4 && dist < 80 && ball.yh < 0.15 && lastHitBy !== 0) {
-      // Swing!
+    if (ball.cz < 0.45 && dist < 90 && ball.yh < 0.18 && lastHitBy !== 0) {
       p1Swing = 8;
       lastHitBy = 0;
       ballBounces = 0;
       lastBounceSide = -1;
 
-      // Direction
-      let vcx = (Math.random() - 0.5) * 0.005;
-      if (keys['ArrowLeft'])  vcx = -0.015;
-      if (keys['ArrowRight']) vcx = +0.015;
+      // Direction from movement keys
+      let vcx = (Math.random() - 0.5) * 0.004;
+      if (keys['ArrowLeft'])  vcx = -0.018 * power;
+      if (keys['ArrowRight']) vcx = +0.018 * power;
 
-      // Depth
-      let vcz = 0.014;
-      if (keys['ArrowUp'])   vcz = 0.018;
-      if (keys['ArrowDown']) vcz = 0.010;
+      // Depth from up/down keys
+      let vcz = 0.018 * power;
+      if (keys['ArrowUp'])   vcz = 0.022 * power;
+      if (keys['ArrowDown']) vcz = 0.013 * power;
 
       ball.vcx = vcx;
       ball.vcz = vcz;  // POSITIVE toward opponent
-      ball.vcy = 0.030;
+      ball.vcy = 0.032 * power;
     }
   }
 }
 
-function handleP2Action() {
+function handleP2Action(charge) {
   if (!mode2p) return;
+  const power = 0.75 + charge * 0.50;
+
   if (state === STATE.SERVING && score.server === 1) {
     ball.cx  = player2.cx;
     ball.cz  = player2.cz;
-    ball.yh  = 0.05;
-    ball.vcz = -0.012;  // NEGATIVE: toward P1 (cz decreases)
-    ball.vcy = +0.025;
-    ball.vcx = (Math.random() - 0.5) * 0.004;
+    ball.yh  = 0.06;
+    ball.vcz = -0.020 * power; // NEGATIVE: toward P1 (cz decreases)
+    ball.vcy = +0.034 * power;
+    ball.vcx = (Math.random() - 0.5) * 0.005;
     ball.active = true;
     lastHitBy = 1;
     ballBounces = 0;
@@ -724,22 +807,22 @@ function handleP2Action() {
     const bPos  = ballToScreen(ball.cx, ball.cz, ball.yh);
     const dist  = Math.hypot(p2Pos.x - bPos.x, p2Pos.y - bPos.y);
 
-    if (ball.cz > 0.6 && dist < 80 && ball.yh < 0.15 && lastHitBy !== 1) {
+    if (ball.cz > 0.55 && dist < 90 && ball.yh < 0.18 && lastHitBy !== 1) {
       p2Swing = 8;
       lastHitBy = 1;
       ballBounces = 0;
       lastBounceSide = -1;
 
-      let vcx = (Math.random() - 0.5) * 0.005;
-      if (keys['ArrowLeft'])  vcx = +0.015;
-      if (keys['ArrowRight']) vcx = -0.015;
-      let vcz = -0.014;
-      if (keys['ArrowUp'])   vcz = -0.018;
-      if (keys['ArrowDown']) vcz = -0.010;
+      let vcx = (Math.random() - 0.5) * 0.004;
+      if (keys['ArrowLeft'])  vcx = +0.018 * power;
+      if (keys['ArrowRight']) vcx = -0.018 * power;
+      let vcz = -0.018 * power;
+      if (keys['ArrowUp'])   vcz = -0.022 * power;
+      if (keys['ArrowDown']) vcz = -0.013 * power;
 
       ball.vcx = vcx;
-      ball.vcz = vcz;  // NEGATIVE toward P1
-      ball.vcy = 0.030;
+      ball.vcz = vcz;
+      ball.vcy = 0.032 * power;
     }
   }
 }
@@ -844,6 +927,7 @@ async function submitRating(stars) {
 // ── Main Loop ─────────────────────────────────────────────────────────────
 function loop() {
   requestAnimationFrame(loop);
+  frameCount++;
 
   // Clear background
   ctx.fillStyle = '#0d0d1a';
