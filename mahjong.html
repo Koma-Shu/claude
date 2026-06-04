@@ -119,7 +119,7 @@ h1{font-size:1.5rem;letter-spacing:8px;color:#cc3300;text-shadow:0 0 24px rgba(2
 <body>
 <button id="lang-btn">EN</button>
 <a href="index.html" id="back-btn">← ARCADE</a>
-<h1>麻雀</h1>
+<h1 id="mj-h1">麻雀</h1>
 
 <!-- Mode selection -->
 <div id="screen-mode">
@@ -978,7 +978,7 @@ document.getElementById('btn-menu').addEventListener('click',()=>{
 const LANG={
   ja:{
     // screen-mode
-    modeTitle:'モード選択',
+    pageTitle:'麻雀', modeTitle:'モード選択',
     modeSolo:'1人プレイ',
     modeVsAI:'vs AI',
     modeFriends:'フレンドと遊ぶ',
@@ -1044,7 +1044,7 @@ const LANG={
   },
   en:{
     // screen-mode
-    modeTitle:'Select Mode',
+    pageTitle:'MAHJONG', modeTitle:'Select Mode',
     modeSolo:'Solo Play',
     modeVsAI:'vs AI',
     modeFriends:'Play with Friends',
@@ -1114,6 +1114,7 @@ function T(k){return(LANG[lang]||LANG.ja)[k]||k;}
 function applyLang(){
   // toggle button label
   document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
+  document.getElementById('mj-h1').textContent=T('pageTitle');
 
   // screen-mode
   document.querySelector('#screen-mode h2').textContent=T('modeTitle');

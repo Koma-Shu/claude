@@ -299,7 +299,7 @@
     <canvas class="preview" id="keshibatoPreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
-        <div class="card-title" style="color:#e84040">消しバト</div>
+        <div class="card-title" style="color:#e84040" id="keshibato-title">消しバト</div>
         <div class="avg-badge" id="avg-keshibato"></div>
       </div>
       <p class="card-desc" id="desc-keshibato"></p>
@@ -307,8 +307,8 @@
       <div class="controls">
         <div class="controls-title pc-ctrl-title"></div>
         <div class="controls-grid">
-          <span class="key">ドラッグ</span><span class="ctrl-desc" id="kb-drag">消しゴムを投げる</span>
-          <span class="key">オンライン</span><span class="ctrl-desc" id="kb-online">2〜4人対応</span>
+          <span class="key" id="kb-key-drag">ドラッグ</span><span class="ctrl-desc" id="kb-drag">消しゴムを投げる</span>
+          <span class="key" id="kb-key-online">オンライン</span><span class="ctrl-desc" id="kb-online">2〜4人対応</span>
         </div>
       </div>
       <div class="card-tags">
@@ -325,7 +325,7 @@
     <canvas class="preview" id="mahjongPreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
-        <div class="card-title" style="color:#cc3300">麻雀</div>
+        <div class="card-title" style="color:#cc3300" id="mahjong-title">麻雀</div>
         <div class="avg-badge" id="avg-mahjong"></div>
       </div>
       <p class="card-desc" id="desc-mahjong"></p>
@@ -368,6 +368,10 @@ const ITEXT = {
     mahjongClick: 'クリック',
     mahjongTile: '牌を選択・捨て牌',
     mahjongBtn: 'ボタン',
+    mahjongTitle: '麻雀',
+    keshibatoTitle: '消しバト',
+    kbKeyDrag: 'ドラッグ',
+    kbKeyOnline: 'オンライン',
     shogiTitle: '将棋',
     mobile: 'スマホ',
     both: '両対応',
@@ -401,6 +405,10 @@ const ITEXT = {
     mahjongClick: 'Click',
     mahjongTile: 'Select &amp; discard tile',
     mahjongBtn: 'Button',
+    mahjongTitle: 'MAHJONG',
+    keshibatoTitle: 'ERASER BATTLE',
+    kbKeyDrag: 'Drag',
+    kbKeyOnline: 'Online',
     shogiTitle: 'SHOGI',
     mobile: 'Mobile',
     both: 'Both supported',
@@ -437,6 +445,10 @@ function applyLang() {
   document.getElementById('desc-keshibato').textContent = T('descKeshibato');
   document.getElementById('kb-drag').textContent = lang==='ja'?'消しゴムを投げる':'Throw eraser';
   document.getElementById('kb-online').textContent = lang==='ja'?'2〜4人オンライン対戦':'2–4 player online';
+  document.getElementById('kb-key-drag').textContent = T('kbKeyDrag');
+  document.getElementById('kb-key-online').textContent = T('kbKeyOnline');
+  document.getElementById('mahjong-title').textContent = T('mahjongTitle');
+  document.getElementById('keshibato-title').textContent = T('keshibatoTitle');
   document.getElementById('cb-click').textContent = T('cbClick');
   document.getElementById('cb-swing').textContent = T('cbSwing');
   document.getElementById('cb-space').textContent = T('cbSwing');
