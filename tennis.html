@@ -162,6 +162,7 @@ function awardPoint(winner) {
     }
   } else {
     score.pts[winner]++;
+    pointInGame++;
     if (score.pts[winner] >= 4) {
       if (score.pts[1 - winner] < 3) {
         winGame(winner);
@@ -183,6 +184,7 @@ function winGame(winner) {
   score.deuce = false;
   score.advantage = -1;
   score.server = 1 - score.server;
+  pointInGame = 0;
   if (score.games[winner] >= 6 && score.games[winner] - score.games[1 - winner] >= 2) {
     score.sets[winner]++;
     score.games = [0, 0];
@@ -196,6 +198,7 @@ function winGame(winner) {
 }
 
 let matchWinner = -1;
+let pointInGame = 0; // 0=deuce side, 1=ad side, alternates each point
 
 // ── Mode / Difficulty ─────────────────────────────────────────────────────
 let mode2p = false;
@@ -348,13 +351,25 @@ function startMatch() {
   matchWinner = -1;
   ratingShown = false;
   ratingDone = false;
+  pointInGame = 0;
   startServe();
 }
 
+function getServeSide() {
+  // pointInGame%2: 0=deuce(right for P1/near), 1=ad(left for P1/near)
+  return pointInGame % 2 === 0 ? 'deuce' : 'ad';
+}
+
 function startServe() {
-  player  = { cx: 0, cz: 0.05 };
-  player2 = { cx: 0, cz: 0.92 };
-  cpu     = { cx: 0, cz: 0.85 };
+  const side = getServeSide();
+  // P1 (near baseline): deuce=right(cx>0), ad=left(cx<0)
+  const p1StartCx = side === 'deuce' ? 0.45 : -0.45;
+  // CPU (far baseline): deuce=left from CPU's perspective(cx<0), ad=right(cx>0)
+  const cpuStartCx = side === 'deuce' ? -0.45 : 0.45;
+
+  player  = { cx: p1StartCx, cz: 0.0 };  // locked to baseline
+  player2 = { cx: -p1StartCx, cz: 1.0 };
+  cpu     = { cx: cpuStartCx, cz: 1.0 };
   p1Swing = 0; p2Swing = 0; cpuSwing = 0;
   lastHitBy = -1;
   ballBounces = 0;
@@ -363,10 +378,10 @@ function startServe() {
   pointEndScheduled = false;
 
   if (score.server === 0) {
-    ball = { cx: player.cx + 0.05, cz: player.cz, yh: 0.05, vcx:0, vcz:0, vcy:0, active:false };
+    ball = { cx: p1StartCx + 0.04, cz: 0.0, yh: 0.05, vcx:0, vcz:0, vcy:0, active:false };
     msg = T('yourServe');
   } else {
-    ball = { cx: cpu.cx, cz: cpu.cz, yh: 0.05, vcx:0, vcz:0, vcy:0, active:false };
+    ball = { cx: cpuStartCx, cz: 1.0, yh: 0.05, vcx:0, vcz:0, vcy:0, active:false };
     msg = T('cpuServe');
   }
   msgTimer = 90;
@@ -375,6 +390,30 @@ function startServe() {
 
 // ── Court Drawing ─────────────────────────────────────────────────────────
 function drawCourt() {
+  // Serve zone highlight (during serving)
+  if (state === STATE.SERVING && score.server === 0) {
+    const side = getServeSide();
+    const zoneX1 = side === 'deuce' ? 0 : -1;
+    const zoneX2 = side === 'deuce' ? 1 : 0;
+    const bl = courtToScreen(zoneX1, 0.0);
+    const br = courtToScreen(zoneX2, 0.0);
+    // Highlight a strip along the near baseline
+    ctx.fillStyle = 'rgba(255,255,100,0.12)';
+    ctx.beginPath();
+    ctx.moveTo(bl.x, bl.y); ctx.lineTo(br.x, br.y);
+    ctx.lineTo(br.x, br.y - 18); ctx.lineTo(bl.x, bl.y - 18);
+    ctx.closePath(); ctx.fill();
+    // Arrow indicator
+    const midX = (bl.x + br.x) / 2;
+    ctx.fillStyle = 'rgba(255,255,100,0.7)';
+    ctx.font = 'bold 11px Courier New';
+    ctx.textAlign = 'center';
+    const sideLabel = lang === 'ja'
+      ? (side === 'deuce' ? 'フォア側からサーブ' : 'バック側からサーブ')
+      : (side === 'deuce' ? 'Serve from deuce side' : 'Serve from ad side');
+    ctx.fillText(sideLabel, midX, bl.y + 16);
+  }
+
   // Surface
   ctx.fillStyle = '#2d6e2d';
   ctx.beginPath();
@@ -586,7 +625,7 @@ function updateBall() {
   if (!ball.active) return;
 
   // Gravity (subtract: upward velocity decreases over time)
-  ball.vcy -= 0.0025;
+  ball.vcy -= 0.0004;  // gravity (0.4x time-scaled from 0.0025)
 
   // Move
   ball.cx  += ball.vcx;
@@ -597,7 +636,7 @@ function updateBall() {
   if (ball.yh <= 0) {
     ball.yh = 0;
 
-    if (Math.abs(ball.vcy) < 0.003) {
+    if (Math.abs(ball.vcy) < 0.0005) {
       ball.vcy = 0;
     } else {
       ball.vcy  = -ball.vcy * 0.6;
@@ -679,12 +718,15 @@ function endPoint(winner, reason) {
 function cpuServeNow() {
   if (state !== STATE.SERVING || score.server !== 1) return;
   // CPU serves toward player: vcz is NEGATIVE (decreasing cz toward 0)
+  const serveSide = getServeSide();
   ball.cx  = cpu.cx;
-  ball.cz  = cpu.cz;
-  ball.yh  = 0.05;
-  ball.vcz = -0.020;          // NEGATIVE: moves toward player (cz decreases)
-  ball.vcy = +0.034;          // upward arc — same formula as player serve
-  ball.vcx = (player.cx - cpu.cx) * 0.015 + (Math.random() - 0.5) * 0.004;
+  ball.cz  = 1.0;
+  ball.yh  = 0.06;
+  ball.vcz = -0.008;          // NEGATIVE: toward player — 0.4x of -0.020
+  ball.vcy = +0.0136;         // 0.4x of 0.034
+  // Aim toward correct service box (deuce/ad from CPU's perspective)
+  const targetCx = serveSide === 'deuce' ? 0.3 : -0.3;
+  ball.vcx = (targetCx - cpu.cx) * 0.003 + (Math.random() - 0.5) * 0.002;
   ball.active = true;
   lastHitBy = 1;
   ballBounces = 0;
@@ -701,10 +743,10 @@ function cpuHitBall() {
   ballBounces = 0;
   lastBounceSide = -1;
   const err = CPU_ERROR[difficulty];
-  // CPU shots: vcz NEGATIVE (toward player, cz=0) — slower for playability
-  ball.vcz = -0.010;
-  ball.vcy = +0.026;
-  ball.vcx = (player.cx - ball.cx) * 0.008 + (Math.random() - 0.5) * err * 0.5;
+  // CPU shots: 0.4x scaling, NEGATIVE vcz toward player
+  ball.vcz = -0.004;
+  ball.vcy = +0.0104;
+  ball.vcx = (player.cx - ball.cx) * 0.003 + (Math.random() - 0.5) * err * 0.2;
 }
 
 function updateCPU() {
@@ -752,10 +794,18 @@ function updatePlayer() {
 
   if (state === STATE.SERVING || state === STATE.RALLY) {
     if (!mode2p) {
-      if (keys['ArrowLeft'])  player.cx = Math.max(player.cx - spd, -0.9);
-      if (keys['ArrowRight']) player.cx = Math.min(player.cx + spd,  0.9);
-      if (keys['ArrowUp'])    player.cz = Math.min(player.cz + spd,  0.38);
-      if (keys['ArrowDown'])  player.cz = Math.max(player.cz - spd,  0.0);
+      const side = getServeSide();
+      // During serve: player locked to baseline (cz=0), only their serve half
+      if (state === STATE.SERVING && score.server === 0) {
+        if (keys['ArrowLeft'])  player.cx = Math.max(player.cx - spd, side === 'ad' ? -0.9 : 0.0);
+        if (keys['ArrowRight']) player.cx = Math.min(player.cx + spd, side === 'deuce' ? 0.9 : 0.0);
+        player.cz = 0.0; // always locked to baseline during serve
+      } else {
+        if (keys['ArrowLeft'])  player.cx = Math.max(player.cx - spd, -0.9);
+        if (keys['ArrowRight']) player.cx = Math.min(player.cx + spd,  0.9);
+        if (keys['ArrowUp'])    player.cz = Math.min(player.cz + spd,  0.38);
+        if (keys['ArrowDown'])  player.cz = Math.max(player.cz - spd,  0.0);
+      }
     }
     if (mode2p) {
       if (keys['KeyA']) player.cx = Math.max(player.cx - spd, -0.9);
@@ -782,14 +832,17 @@ function handleP1Action(charge) {
   const power = 0.75 + charge * 0.50; // 0.75 .. 1.25 multiplier
 
   if (state === STATE.SERVING && score.server === 0) {
-    // Serve must clear net AND land in service box (cz 0.5–0.75)
-    // Base: vcz=0.020, vcy=0.034 → lands ~cz 0.60 (checked numerically)
-    ball.cx  = player.cx + 0.05;
-    ball.cz  = player.cz;
+    // Serve: fixed power 1.0 (charge affects aim only, not arc)
+    // vcz=0.008, vcy=0.0136 is 0.4x of original (0.020/0.034)
+    // Lands at cz≈0.63 (in service box 0.5–0.75) — verified numerically
+    ball.cx  = player.cx + 0.04;
+    ball.cz  = 0.0;
     ball.yh  = 0.06;
-    ball.vcz = 0.020 * power;   // POSITIVE: toward CPU (cz=1)
-    ball.vcy = 0.034 * power;   // upward arc
-    ball.vcx = (Math.random() - 0.5) * 0.005;
+    ball.vcz = 0.008;           // POSITIVE: toward CPU — fixed, not power-scaled
+    ball.vcy = 0.0136;          // upward arc — fixed
+    // Aim: left/right key shifts landing direction
+    const aimOffset = keys['ArrowLeft'] ? -0.012 : keys['ArrowRight'] ? 0.012 : 0;
+    ball.vcx = aimOffset + (Math.random() - 0.5) * 0.002;
     ball.active = true;
     lastHitBy = 0;
     ballBounces = 0;
@@ -810,19 +863,19 @@ function handleP1Action(charge) {
       ballBounces = 0;
       lastBounceSide = -1;
 
-      // Direction from movement keys
-      let vcx = (Math.random() - 0.5) * 0.003;
-      if (keys['ArrowLeft'])  vcx = -0.011 * power;
-      if (keys['ArrowRight']) vcx = +0.011 * power;
+      // Direction from movement keys (0.4x of original values)
+      let vcx = (Math.random() - 0.5) * 0.0012;
+      if (keys['ArrowLeft'])  vcx = -0.0044 * power;
+      if (keys['ArrowRight']) vcx = +0.0044 * power;
 
       // Depth from up/down keys
-      let vcz = 0.011 * power;
-      if (keys['ArrowUp'])   vcz = 0.013 * power;
-      if (keys['ArrowDown']) vcz = 0.008 * power;
+      let vcz = 0.0044 * power;
+      if (keys['ArrowUp'])   vcz = 0.0052 * power;
+      if (keys['ArrowDown']) vcz = 0.0032 * power;
 
       ball.vcx = vcx;
       ball.vcz = vcz;  // POSITIVE toward opponent
-      ball.vcy = 0.026 * power;
+      ball.vcy = 0.0104 * power;
     }
   }
 }
@@ -833,10 +886,10 @@ function handleP2Action(charge) {
 
   if (state === STATE.SERVING && score.server === 1) {
     ball.cx  = player2.cx;
-    ball.cz  = player2.cz;
+    ball.cz  = 1.0;
     ball.yh  = 0.06;
-    ball.vcz = -0.020 * power; // NEGATIVE: toward P1 (cz decreases)
-    ball.vcy = +0.034 * power;
+    ball.vcz = -0.008; // NEGATIVE: toward P1 — fixed power
+    ball.vcy = +0.0136;
     ball.vcx = (Math.random() - 0.5) * 0.005;
     ball.active = true;
     lastHitBy = 1;
@@ -858,16 +911,16 @@ function handleP2Action(charge) {
       ballBounces = 0;
       lastBounceSide = -1;
 
-      let vcx = (Math.random() - 0.5) * 0.004;
-      if (keys['ArrowLeft'])  vcx = +0.018 * power;
-      if (keys['ArrowRight']) vcx = -0.018 * power;
-      let vcz = -0.018 * power;
-      if (keys['ArrowUp'])   vcz = -0.022 * power;
-      if (keys['ArrowDown']) vcz = -0.013 * power;
+      let vcx = (Math.random() - 0.5) * 0.0012;
+      if (keys['ArrowLeft'])  vcx = +0.0044 * power;
+      if (keys['ArrowRight']) vcx = -0.0044 * power;
+      let vcz = -0.0044 * power;
+      if (keys['ArrowUp'])   vcz = -0.0052 * power;
+      if (keys['ArrowDown']) vcz = -0.0032 * power;
 
       ball.vcx = vcx;
       ball.vcz = vcz;
-      ball.vcy = 0.032 * power;
+      ball.vcy = 0.0104 * power;
     }
   }
 }
@@ -999,14 +1052,17 @@ function loop() {
   if (cpuSwing > 0) cpuSwing--;
   if (msgTimer > 0) msgTimer--;
 
-  // When serving, keep ball on server's position
+  // When serving, keep ball floating near server
   if (state === STATE.SERVING) {
     if (score.server === 0) {
-      ball.cx = player.cx + 0.05;
-      ball.cz = player.cz;
+      ball.cx = player.cx + 0.04;
+      ball.cz = 0.0;
+      ball.yh = 0.05;
+    } else if (!mode2p) {
+      ball.cx = cpu.cx;
+      ball.cz = 1.0;
       ball.yh = 0.05;
     }
-    // CPU serve position tracked via cpu.cx/cz
   }
 
   // CPU logic
