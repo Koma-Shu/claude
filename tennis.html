@@ -371,9 +371,9 @@ function startServe() {
   // CPU (far baseline): deuce=left from CPU's perspective(cx<0), ad=right(cx>0)
   const cpuStartCx = side === 'deuce' ? -0.45 : 0.45;
 
-  player  = { cx: p1StartCx, cz: 0.0 };  // locked to baseline
-  player2 = { cx: -p1StartCx, cz: 0.95 };
-  cpu     = { cx: cpuStartCx, cz: 0.78 }; // not all the way back — easier to cover court
+  player  = { cx: p1StartCx,  cz: 0.0  };  // locked to baseline for serve
+  player2 = { cx: -p1StartCx, cz: 1.0  };  // P2 locked to their baseline
+  cpu     = { cx: cpuStartCx, cz: 1.0  };  // CPU at baseline for serve
   p1Swing = 0; p2Swing = 0; cpuSwing = 0;
   lastHitBy = -1;
   ballBounces = 0;
@@ -688,7 +688,7 @@ function updateBall() {
       return;
     }
 
-    // Out of bounds after bounce
+    // Out of bounds after bounce (rally only — serve out handled by serveInFlight check above)
     if (Math.abs(ball.cx) > 1.0 || ball.cz < 0 || ball.cz > 1.0) {
       endPoint((lastHitBy === 0) ? 1 : 0, T('out'));
       return;
@@ -759,7 +759,7 @@ function endPoint(winner, reason) {
   if (pointEndScheduled) return;
   pointEndScheduled = true;
   ball.active = false;
-  if (reason) { msg = reason; msgTimer = 100; }
+  if (reason) { msg = reason; msgTimer = 100; } else { msg = ''; msgTimer = 0; }
   awardPoint(winner);
   if (state !== STATE.GAME_OVER) {
     state = STATE.POINT_END;
@@ -819,10 +819,13 @@ function updateCPU() {
     const targetCx = ball.cx + (Math.random() - 0.5) * err * 0.08;
     if (cpu.cx < targetCx - 0.01) cpu.cx = Math.min(cpu.cx + speed, 0.88);
     else if (cpu.cx > targetCx + 0.01) cpu.cx = Math.max(cpu.cx - speed, -0.88);
-    // CPU also moves toward ball depth (cz), staying in back half
-    const targetCz = Math.min(Math.max(ball.cz - 0.05, 0.55), 0.85);
-    if (cpu.cz < targetCz - 0.01) cpu.cz = Math.min(cpu.cz + speed * 0.5, 0.85);
-    else if (cpu.cz > targetCz + 0.01) cpu.cz = Math.max(cpu.cz - speed * 0.5, 0.55);
+    // Move toward ball depth, staying in back half (cz 0.60–0.85)
+    const targetCz = Math.min(Math.max(ball.cz - 0.04, 0.60), 0.85);
+    if (cpu.cz < targetCz - 0.01) cpu.cz = Math.min(cpu.cz + speed * 0.6, 0.85);
+    else if (cpu.cz > targetCz + 0.01) cpu.cz = Math.max(cpu.cz - speed * 0.6, 0.60);
+  } else if (!ball.active || ball.cz <= 0.52) {
+    // Return to baseline when ball is on player's side
+    if (cpu.cz < 0.78) cpu.cz = Math.min(cpu.cz + speed * 0.3, 0.78);
   }
 
   // Auto-hit when ball is close enough on CPU side
@@ -1121,13 +1124,15 @@ function loop() {
   if (cpuSwing > 0) cpuSwing--;
   if (msgTimer > 0) msgTimer--;
 
-  // When serving, keep ball floating near server
+  // When serving, keep ball at server position and lock positions
   if (state === STATE.SERVING) {
     if (score.server === 0) {
       ball.cx = player.cx + 0.04;
       ball.cz = 0.0;
       ball.yh = 0.05;
+      player.cz = 0.0;  // keep player locked to baseline
     } else if (!mode2p) {
+      cpu.cz = 1.0;     // CPU stays at baseline while serving
       ball.cx = cpu.cx;
       ball.cz = 1.0;
       ball.yh = 0.05;
