@@ -80,6 +80,8 @@
     .btn-mahjong { background: linear-gradient(135deg, #cc3300, #880000); color: #fff; font-weight: bold; }
     .btn-capbb { background: linear-gradient(135deg, #ff6633, #cc3300); color: #fff; font-weight: bold; }
     .btn-keshibato { background: linear-gradient(135deg, #e84040, #3b82f6); color: #fff; font-weight: bold; }
+    .btn-bikerun { background: linear-gradient(135deg, #00d4aa, #00aa88); color: #000; font-weight: bold; }
+    .btn-tennis { background: linear-gradient(135deg, #aadd00, #77aa00); color: #000; font-weight: bold; }
     #lang-btn { position:fixed; top:14px; left:14px; background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; z-index:10; }
     #auth-area { position:fixed; top:14px; right:14px; display:flex; gap:8px; z-index:10; }
     .auth-btn { background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; text-decoration:none; display:inline-block; transition:color 0.15s,border-color 0.15s; }
@@ -320,6 +322,65 @@
     </div>
   </div>
 
+  <!-- Bike Run -->
+  <div class="card" data-game="bikerun">
+    <canvas class="preview" id="bikerunPreview" width="320" height="200"></canvas>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-title" style="color:#00d4aa" id="bikerun-title">チャリ走</div>
+        <div class="avg-badge" id="avg-bikerun"></div>
+      </div>
+      <p class="card-desc" id="desc-bikerun"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
+      <div class="controls">
+        <div class="controls-title pc-ctrl-title"></div>
+        <div class="controls-grid">
+          <span><span class="key">Space</span></span>
+          <span class="ctrl-desc" id="bikerun-jump-ctrl"></span>
+        </div>
+        <div class="controls-title mobile-ctrl-title" style="margin-top:8px"></div>
+        <div class="controls-grid">
+          <span style="color:#888;font-size:0.72rem" class="tap-label"></span>
+          <span class="ctrl-desc" id="bikerun-tap-ctrl"></span>
+        </div>
+      </div>
+      <div class="card-tags">
+        <span class="tag">1 PLAYER</span>
+        <span class="tag">ENDLESS</span>
+        <span class="tag">ACTION</span>
+      </div>
+      <a href="bikerun.html" class="play-btn btn-bikerun">▶ PLAY</a>
+    </div>
+  </div>
+
+  <!-- Tennis -->
+  <div class="card" data-game="tennis">
+    <canvas class="preview" id="tennisPreview" width="320" height="200"></canvas>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-title" style="color:#aadd00" id="tennis-title">テニス</div>
+        <div class="avg-badge" id="avg-tennis"></div>
+      </div>
+      <p class="card-desc" id="desc-tennis"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC</div>
+      <div class="controls">
+        <div class="controls-title pc-ctrl-title"></div>
+        <div class="controls-grid">
+          <span><span class="key">←</span><span class="key">→</span></span>
+          <span class="ctrl-desc" id="tennis-move-ctrl"></span>
+          <span><span class="key">Space</span></span>
+          <span class="ctrl-desc" id="tennis-swing-ctrl"></span>
+        </div>
+      </div>
+      <div class="card-tags">
+        <span class="tag">1-2 PLAYERS</span>
+        <span class="tag">SPORTS</span>
+        <span class="tag">VS CPU</span>
+      </div>
+      <a href="tennis.html" class="play-btn btn-tennis">▶ PLAY</a>
+    </div>
+  </div>
+
   <!-- Mahjong -->
   <div class="card" data-game="mahjong">
     <canvas class="preview" id="mahjongPreview" width="320" height="200"></canvas>
@@ -364,6 +425,14 @@ const ITEXT = {
     descKeshibato: '消しゴムをドラッグして相手を場外へ弾き出せ！1〜4人対応。CPU対戦・ローカル・オンラインに対応。',
     cbClick: 'クリック / タップ',
     cbSwing: 'スイング！',
+    descBikerun: '自転車で障害物を飛び越えろ！スペースキーでジャンプしながら、加速し続けるコースをどこまで走れるか挑戦しよう。',
+    bikerunTitle: 'チャリ走',
+    bikerunJump: 'ジャンプ',
+    bikerunTap: 'ジャンプ',
+    descTennis: '本格テニスゲーム。左右移動とスイングでラリーを制せ。CPU 対戦（難易度3段階）＆ローカル 2P 対応。',
+    tennisTitle: 'テニス',
+    tennisMove: '左右移動',
+    tennisSwing: 'サーブ / スイング',
     descMahjong: '2〜4人打ち麻雀。AI対戦 & フレンドとのオンライン対戦に対応。ツモ和了・ロン和了に対応。',
     mahjongClick: 'クリック',
     mahjongTile: '牌を選択・捨て牌',
@@ -401,6 +470,14 @@ const ITEXT = {
     descKeshibato: 'Drag your eraser to knock opponents off the table! 1–4 players. CPU, local, and online play.',
     cbClick: 'Click / Tap',
     cbSwing: 'Swing!',
+    descBikerun: 'Endless bike runner! Press Space to jump over obstacles and see how far you can ride as the speed keeps increasing.',
+    bikerunTitle: 'BIKE RUSH',
+    bikerunJump: 'Jump',
+    bikerunTap: 'Jump',
+    descTennis: 'Full-featured tennis game. Move and swing to win the rally. VS CPU (3 difficulty levels) & local 2P supported.',
+    tennisTitle: 'TENNIS',
+    tennisMove: 'Move left/right',
+    tennisSwing: 'Serve / Swing',
     descMahjong: 'Mahjong for 2-4 players. Play vs AI or online with friends. Supports Tsumo and Ron wins.',
     mahjongClick: 'Click',
     mahjongTile: 'Select &amp; discard tile',
@@ -443,6 +520,14 @@ function applyLang() {
   document.getElementById('desc-shogi').textContent = T('descShogi');
   document.getElementById('desc-capbaseball').textContent = T('descCapbaseball');
   document.getElementById('desc-keshibato').textContent = T('descKeshibato');
+  document.getElementById('desc-bikerun').textContent = T('descBikerun');
+  document.getElementById('bikerun-title').textContent = T('bikerunTitle');
+  document.getElementById('bikerun-jump-ctrl').textContent = T('bikerunJump');
+  document.getElementById('bikerun-tap-ctrl').textContent = T('bikerunTap');
+  document.getElementById('desc-tennis').textContent = T('descTennis');
+  document.getElementById('tennis-title').textContent = T('tennisTitle');
+  document.getElementById('tennis-move-ctrl').textContent = T('tennisMove');
+  document.getElementById('tennis-swing-ctrl').textContent = T('tennisSwing');
   document.getElementById('kb-drag').textContent = lang==='ja'?'消しゴムを投げる':'Throw eraser';
   document.getElementById('kb-online').textContent = lang==='ja'?'2〜4人オンライン対戦':'2–4 player online';
   document.getElementById('kb-key-drag').textContent = T('kbKeyDrag');
@@ -512,6 +597,8 @@ const GAME_NAMES = {
   mahjong:     {ja:'麻雀',           en:'MAHJONG'},
   capbaseball: {ja:'キャップ野球',   en:'CAP BASEBALL'},
   keshibato:   {ja:'消しバト',       en:'ERASER BATTLE'},
+  bikerun:     {ja:'チャリ走',       en:'BIKE RUSH'},
+  tennis:      {ja:'テニス',         en:'TENNIS'},
 };
 
 const gameStats = {}; // game → {avg, count, plays}
