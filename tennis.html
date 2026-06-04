@@ -13,12 +13,55 @@
   #back-btn:hover { color: #fff; border-color: #888; }
   #lang-btn { position: fixed; top: 14px; left: 14px; color: #aaa; font-family: 'Courier New', monospace; font-size: 13px; background: rgba(0,0,0,0.5); padding: 6px 12px; border-radius: 4px; border: 1px solid #444; cursor: pointer; }
   #lang-btn:hover { color: #fff; border-color: #888; }
+
+  /* Mobile controls */
+  #mobile-controls {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 160px;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .m-btn {
+    position: absolute;
+    background: rgba(255,255,255,0.12);
+    border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 50%;
+    color: #fff;
+    font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: all;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+  .m-btn:active { background: rgba(255,255,255,0.28); }
+  #m-up    { width:52px;height:52px; left:88px;  bottom:100px; }
+  #m-down  { width:52px;height:52px; left:88px;  bottom:14px;  }
+  #m-left  { width:52px;height:52px; left:28px;  bottom:57px;  }
+  #m-right { width:52px;height:52px; left:148px; bottom:57px;  }
+  #m-hit   { width:80px;height:80px; right:40px; bottom:40px;
+              background:rgba(0,212,170,0.25); border-color:rgba(0,212,170,0.6);
+              font-size:13px; font-family:'Courier New',monospace; color:#00d4aa; }
+  @media (pointer: coarse) {
+    #mobile-controls { display: block; }
+    canvas { margin-bottom: 160px; }
+  }
 </style>
 </head>
 <body>
 <a href="index.html" id="back-btn">← ARCADE</a>
 <button id="lang-btn" onclick="toggleLang()">EN</button>
 <canvas id="c" width="600" height="450"></canvas>
+
+<div id="mobile-controls">
+  <div class="m-btn" id="m-up">▲</div>
+  <div class="m-btn" id="m-down">▼</div>
+  <div class="m-btn" id="m-left">◀</div>
+  <div class="m-btn" id="m-right">▶</div>
+  <div class="m-btn" id="m-hit">HIT</div>
+</div>
 
 <script>
 // ── i18n ──────────────────────────────────────────────────────────────────
@@ -285,13 +328,15 @@ function titleConfirm() {
   else if (titleSel === 4) { difficulty = 'hard';   titleSel = 0; }
 }
 
-let titleUpJust = false, titleDownJust = false;
+const _titleNavPrev = {};
 window.addEventListener('keydown', e => {
-  if (state === STATE.TITLE) {
-    if (e.code === 'ArrowUp')   { titleSel = (titleSel + 4) % 5; }
-    if (e.code === 'ArrowDown') { titleSel = (titleSel + 1) % 5; }
+  if (state === STATE.TITLE && !_titleNavPrev[e.code]) {
+    _titleNavPrev[e.code] = true;
+    if (e.code === 'ArrowUp')   titleSel = (titleSel + 4) % 5;
+    if (e.code === 'ArrowDown') titleSel = (titleSel + 1) % 5;
   }
 });
+window.addEventListener('keyup', e => { delete _titleNavPrev[e.code]; });
 
 function handleTitle() {
   // handled via event listeners above
@@ -637,8 +682,8 @@ function cpuServeNow() {
   ball.cx  = cpu.cx;
   ball.cz  = cpu.cz;
   ball.yh  = 0.05;
-  ball.vcz = -0.012;          // NEGATIVE: moves toward player (cz decreases)
-  ball.vcy = +0.025;          // upward
+  ball.vcz = -0.020;          // NEGATIVE: moves toward player (cz decreases)
+  ball.vcy = +0.034;          // upward arc — same formula as player serve
   ball.vcx = (player.cx - cpu.cx) * 0.015 + (Math.random() - 0.5) * 0.004;
   ball.active = true;
   lastHitBy = 1;
@@ -656,10 +701,10 @@ function cpuHitBall() {
   ballBounces = 0;
   lastBounceSide = -1;
   const err = CPU_ERROR[difficulty];
-  // CPU shots: vcz NEGATIVE (toward player, cz=0)
-  ball.vcz = -0.014;
-  ball.vcy = +0.030;
-  ball.vcx = (player.cx - ball.cx) * 0.010 + (Math.random() - 0.5) * err;
+  // CPU shots: vcz NEGATIVE (toward player, cz=0) — slower for playability
+  ball.vcz = -0.010;
+  ball.vcy = +0.026;
+  ball.vcx = (player.cx - ball.cx) * 0.008 + (Math.random() - 0.5) * err * 0.5;
 }
 
 function updateCPU() {
@@ -676,11 +721,11 @@ function updateCPU() {
   }
 
   // Auto-hit when ball is close enough on CPU side
-  if (ball.active && ball.cz > 0.65 && ball.yh < 0.15 && lastHitBy !== 1) {
+  if (ball.active && ball.cz > 0.58 && ball.yh < 0.18 && lastHitBy !== 1) {
     const cpuPos = courtToScreen(cpu.cx, cpu.cz);
     const bPos   = courtToScreen(ball.cx, ball.cz);
     const dist   = Math.hypot(cpuPos.x - bPos.x, cpuPos.y - bPos.y);
-    if (dist < 70) {
+    if (dist < 90) {
       cpuHitBall();
     }
   }
@@ -759,25 +804,25 @@ function handleP1Action(charge) {
     const bPos = ballToScreen(ball.cx, ball.cz, ball.yh);
     const dist = Math.hypot(pPos.x - bPos.x, pPos.y - bPos.y);
 
-    if (ball.cz < 0.45 && dist < 90 && ball.yh < 0.18 && lastHitBy !== 0) {
+    if (ball.cz < 0.48 && dist < 110 && ball.yh < 0.20 && lastHitBy !== 0) {
       p1Swing = 8;
       lastHitBy = 0;
       ballBounces = 0;
       lastBounceSide = -1;
 
       // Direction from movement keys
-      let vcx = (Math.random() - 0.5) * 0.004;
-      if (keys['ArrowLeft'])  vcx = -0.018 * power;
-      if (keys['ArrowRight']) vcx = +0.018 * power;
+      let vcx = (Math.random() - 0.5) * 0.003;
+      if (keys['ArrowLeft'])  vcx = -0.011 * power;
+      if (keys['ArrowRight']) vcx = +0.011 * power;
 
       // Depth from up/down keys
-      let vcz = 0.018 * power;
-      if (keys['ArrowUp'])   vcz = 0.022 * power;
-      if (keys['ArrowDown']) vcz = 0.013 * power;
+      let vcz = 0.011 * power;
+      if (keys['ArrowUp'])   vcz = 0.013 * power;
+      if (keys['ArrowDown']) vcz = 0.008 * power;
 
       ball.vcx = vcx;
       ball.vcz = vcz;  // POSITIVE toward opponent
-      ball.vcy = 0.032 * power;
+      ball.vcy = 0.026 * power;
     }
   }
 }
@@ -995,6 +1040,62 @@ function loop() {
 }
 
 loop();
+
+// ── Mobile Touch Controls ─────────────────────────────────────────────────
+(function() {
+  const map = {
+    'm-up':    'ArrowUp',
+    'm-down':  'ArrowDown',
+    'm-left':  'ArrowLeft',
+    'm-right': 'ArrowRight',
+  };
+
+  function press(code) { keys[code] = true; }
+  function release(code) { keys[code] = false; }
+
+  Object.entries(map).forEach(([id, code]) => {
+    const el = document.getElementById(id);
+    el.addEventListener('touchstart', e => { e.preventDefault(); press(code); }, {passive:false});
+    el.addEventListener('touchend',   e => { e.preventDefault(); release(code); }, {passive:false});
+    el.addEventListener('touchcancel',e => { e.preventDefault(); release(code); }, {passive:false});
+  });
+
+  // HIT button: touchstart = begin charge, touchend = release & fire
+  const hitBtn = document.getElementById('m-hit');
+  hitBtn.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const inPlay = state === STATE.SERVING || state === STATE.RALLY;
+    if (inPlay && p1ChargeStart < 0) p1ChargeStart = frameCount;
+    // Title screen: confirm selection
+    if (state === STATE.TITLE) titleConfirm();
+  }, {passive:false});
+  hitBtn.addEventListener('touchend', e => {
+    e.preventDefault();
+    if (state === STATE.GAME_OVER) { state = STATE.TITLE; return; }
+    if (p1ChargeStart >= 0) {
+      const charge = Math.min((frameCount - p1ChargeStart) / 60, 1.0);
+      p1ChargeStart = -1;
+      handleP1Action(charge);
+    }
+  }, {passive:false});
+  hitBtn.addEventListener('touchcancel', e => {
+    e.preventDefault();
+    p1ChargeStart = -1;
+  }, {passive:false});
+
+  // Show hit button label based on state
+  const origLoop = loop;
+  function updateHitLabel() {
+    const lbl = state === STATE.TITLE ? 'START' :
+                state === STATE.GAME_OVER ? 'AGAIN' :
+                state === STATE.SERVING ? (lang==='ja'?'サーブ':'SERVE') :
+                (lang==='ja'?'HIT':'HIT');
+    hitBtn.textContent = lbl;
+  }
+  // Patch into animation frame
+  const _loop = window.requestAnimationFrame;
+  setInterval(updateHitLabel, 200);
+})();
 </script>
 </body>
 </html>
