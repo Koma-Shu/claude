@@ -625,7 +625,7 @@ function updateBall() {
   if (!ball.active) return;
 
   // Gravity (subtract: upward velocity decreases over time)
-  ball.vcy -= 0.0004;  // gravity (0.4x time-scaled from 0.0025)
+  ball.vcy -= 0.00025;  // gravity (slowed further from 0.0004)
 
   // Move
   ball.cx  += ball.vcx;
@@ -636,7 +636,7 @@ function updateBall() {
   if (ball.yh <= 0) {
     ball.yh = 0;
 
-    if (Math.abs(ball.vcy) < 0.0005) {
+    if (Math.abs(ball.vcy) < 0.0003) {
       ball.vcy = 0;
     } else {
       ball.vcy  = -ball.vcy * 0.6;
@@ -722,11 +722,13 @@ function cpuServeNow() {
   ball.cx  = cpu.cx;
   ball.cz  = 1.0;
   ball.yh  = 0.06;
-  ball.vcz = -0.008;          // NEGATIVE: toward player — 0.4x of -0.020
-  ball.vcy = +0.0136;         // 0.4x of 0.034
-  // Aim toward correct service box (deuce/ad from CPU's perspective)
-  const targetCx = serveSide === 'deuce' ? 0.3 : -0.3;
-  ball.vcx = (targetCx - cpu.cx) * 0.003 + (Math.random() - 0.5) * 0.002;
+  ball.vcz = -0.006;           // NEGATIVE toward player, same magnitude as P1 serve
+  ball.vcy = +0.0102;
+  // CPU deuce serve (getServeSide()='deuce') → P1's deuce side = cx > 0
+  // CPU ad   serve                           → P1's ad   side = cx < 0
+  const targetCx = serveSide === 'deuce' ? 0.35 : -0.35;
+  const airFrames = 96;
+  ball.vcx = (targetCx - cpu.cx) / airFrames + (Math.random() - 0.5) * 0.0008;
   ball.active = true;
   lastHitBy = 1;
   ballBounces = 0;
@@ -743,10 +745,10 @@ function cpuHitBall() {
   ballBounces = 0;
   lastBounceSide = -1;
   const err = CPU_ERROR[difficulty];
-  // CPU shots: 0.4x scaling, NEGATIVE vcz toward player
-  ball.vcz = -0.004;
-  ball.vcy = +0.0104;
-  ball.vcx = (player.cx - ball.cx) * 0.003 + (Math.random() - 0.5) * err * 0.2;
+  // CPU rally shots — same slow speed as player
+  ball.vcz = -0.003;
+  ball.vcy = +0.007;
+  ball.vcx = (player.cx - ball.cx) * 0.002 + (Math.random() - 0.5) * err * 0.15;
 }
 
 function updateCPU() {
@@ -832,17 +834,22 @@ function handleP1Action(charge) {
   const power = 0.75 + charge * 0.50; // 0.75 .. 1.25 multiplier
 
   if (state === STATE.SERVING && score.server === 0) {
-    // Serve: fixed power 1.0 (charge affects aim only, not arc)
-    // vcz=0.008, vcy=0.0136 is 0.4x of original (0.020/0.034)
-    // Lands at cz≈0.63 (in service box 0.5–0.75) — verified numerically
-    ball.cx  = player.cx + 0.04;
+    // Serve arc: vcz=0.006, vcy=0.0102, gravity=0.00025
+    // Air time ≈ 96 frames; lands at cz≈0.63 (inside service box 0.5–0.75)
+    const side = getServeSide();
+    ball.cx  = player.cx;
     ball.cz  = 0.0;
     ball.yh  = 0.06;
-    ball.vcz = 0.008;           // POSITIVE: toward CPU — fixed, not power-scaled
-    ball.vcy = 0.0136;          // upward arc — fixed
-    // Aim: left/right key shifts landing direction
-    const aimOffset = keys['ArrowLeft'] ? -0.012 : keys['ArrowRight'] ? 0.012 : 0;
-    ball.vcx = aimOffset + (Math.random() - 0.5) * 0.002;
+    ball.vcz = 0.006;    // POSITIVE toward CPU
+    ball.vcy = 0.0102;   // upward
+    // Diagonal target: deuce side → CPU's deuce box (opposite cx in bird's-eye)
+    // deuce serve (player at cx≈+0.45): target landing at cx≈-0.35
+    // ad    serve (player at cx≈-0.45): target landing at cx≈+0.35
+    const targetCx = side === 'deuce' ? -0.35 : 0.35;
+    const airFrames = 96; // estimated frames in air
+    // Aim variation: ←→ key shifts target ±0.20
+    const aimShift = keys['ArrowLeft'] ? -0.20 : keys['ArrowRight'] ? 0.20 : 0;
+    ball.vcx = (targetCx + aimShift - ball.cx) / airFrames + (Math.random() - 0.5) * 0.0008;
     ball.active = true;
     lastHitBy = 0;
     ballBounces = 0;
@@ -863,19 +870,19 @@ function handleP1Action(charge) {
       ballBounces = 0;
       lastBounceSide = -1;
 
-      // Direction from movement keys (0.4x of original values)
-      let vcx = (Math.random() - 0.5) * 0.0012;
-      if (keys['ArrowLeft'])  vcx = -0.0044 * power;
-      if (keys['ArrowRight']) vcx = +0.0044 * power;
+      // Direction from movement keys
+      let vcx = (Math.random() - 0.5) * 0.0008;
+      if (keys['ArrowLeft'])  vcx = -0.003 * power;
+      if (keys['ArrowRight']) vcx = +0.003 * power;
 
       // Depth from up/down keys
-      let vcz = 0.0044 * power;
-      if (keys['ArrowUp'])   vcz = 0.0052 * power;
-      if (keys['ArrowDown']) vcz = 0.0032 * power;
+      let vcz = 0.003 * power;
+      if (keys['ArrowUp'])   vcz = 0.0038 * power;
+      if (keys['ArrowDown']) vcz = 0.0022 * power;
 
       ball.vcx = vcx;
       ball.vcz = vcz;  // POSITIVE toward opponent
-      ball.vcy = 0.0104 * power;
+      ball.vcy = 0.007 * power;
     }
   }
 }
@@ -888,8 +895,8 @@ function handleP2Action(charge) {
     ball.cx  = player2.cx;
     ball.cz  = 1.0;
     ball.yh  = 0.06;
-    ball.vcz = -0.008; // NEGATIVE: toward P1 — fixed power
-    ball.vcy = +0.0136;
+    ball.vcz = -0.006;
+    ball.vcy = +0.0102;
     ball.vcx = (Math.random() - 0.5) * 0.005;
     ball.active = true;
     lastHitBy = 1;
@@ -911,16 +918,16 @@ function handleP2Action(charge) {
       ballBounces = 0;
       lastBounceSide = -1;
 
-      let vcx = (Math.random() - 0.5) * 0.0012;
-      if (keys['ArrowLeft'])  vcx = +0.0044 * power;
-      if (keys['ArrowRight']) vcx = -0.0044 * power;
-      let vcz = -0.0044 * power;
-      if (keys['ArrowUp'])   vcz = -0.0052 * power;
-      if (keys['ArrowDown']) vcz = -0.0032 * power;
+      let vcx = (Math.random() - 0.5) * 0.0008;
+      if (keys['ArrowLeft'])  vcx = +0.003 * power;
+      if (keys['ArrowRight']) vcx = -0.003 * power;
+      let vcz = -0.003 * power;
+      if (keys['ArrowUp'])   vcz = -0.0038 * power;
+      if (keys['ArrowDown']) vcz = -0.0022 * power;
 
       ball.vcx = vcx;
       ball.vcz = vcz;
-      ball.vcy = 0.0104 * power;
+      ball.vcy = 0.007 * power;
     }
   }
 }
