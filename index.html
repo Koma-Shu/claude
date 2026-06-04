@@ -1040,6 +1040,124 @@ document.addEventListener('keydown', function startAudioKey() {
   ctx.fillStyle='#e84040';ctx.font='10px Courier New';ctx.textAlign='left';
   ctx.fillText('消しバト  1-4 PLAYERS  ONLINE',10,H-8);
 })();
+
+// ── Bike Run Preview ──────────────────────────────────────────────
+(function(){
+  const c=document.getElementById('bikerunPreview');
+  if(!c)return;
+  const ctx=c.getContext('2d'),W=c.width,H=c.height;
+  // Sky gradient
+  const sky=ctx.createLinearGradient(0,0,0,H*0.65);
+  sky.addColorStop(0,'#0d0d1a');sky.addColorStop(1,'#1a1a3a');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  // Stars
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  [[30,20],[80,40],[150,15],[220,30],[270,10],[310,25],[50,55],[180,50]].forEach(([x,y])=>{ctx.beginPath();ctx.arc(x,y,1,0,Math.PI*2);ctx.fill();});
+  // Buildings silhouette
+  ctx.fillStyle='#111128';
+  [[10,80,40,80],[55,100,35,60],[95,70,45,90],[145,110,30,50],[180,90,50,70],[235,105,30,55],[270,80,45,80],[0,0,0,0]].forEach(([x,y,w,h])=>{if(w)ctx.fillRect(x,y,w,h);});
+  // Ground
+  const grd=ctx.createLinearGradient(0,H*0.65,0,H);
+  grd.addColorStop(0,'#2a2a2a');grd.addColorStop(1,'#1a1a1a');
+  ctx.fillStyle=grd;ctx.fillRect(0,H*0.65,W,H*0.35);
+  // Road markings
+  ctx.strokeStyle='#00d4aa';ctx.lineWidth=1.5;ctx.setLineDash([20,15]);
+  ctx.beginPath();ctx.moveTo(0,H*0.72);ctx.lineTo(W,H*0.72);ctx.stroke();ctx.setLineDash([]);
+  // Obstacle (barrier)
+  const ox=W*0.75,oy=H*0.65-18;
+  ctx.fillStyle='#cc2200';ctx.fillRect(ox,oy,8,30);
+  ctx.fillStyle='#ff4400';ctx.fillRect(ox-10,oy+8,28,10);
+  // Bicycle
+  const bx=W*0.35,by=H*0.65;
+  // Wheels
+  ctx.strokeStyle='#00d4aa';ctx.lineWidth=2.5;ctx.setLineDash([]);
+  [bx-18,bx+18].forEach(wx=>{ctx.beginPath();ctx.arc(wx,by,14,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(wx,by-14);ctx.lineTo(wx,by+14);ctx.moveTo(wx-14,by);ctx.lineTo(wx+14,by);ctx.stroke();});
+  // Frame
+  ctx.strokeStyle='#00aaff';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(bx-18,by);ctx.lineTo(bx,by-18);ctx.lineTo(bx+18,by);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(bx,by-18);ctx.lineTo(bx-6,by-10);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(bx,by-18);ctx.lineTo(bx+5,by-28);ctx.stroke();// handlebar
+  // Rider
+  ctx.strokeStyle='#eee';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(bx+5,by-40,7,0,Math.PI*2);ctx.fillStyle='#f90';ctx.fill();ctx.stroke();// head/helmet
+  ctx.beginPath();ctx.moveTo(bx+5,by-33);ctx.lineTo(bx+3,by-20);ctx.stroke();// body
+  ctx.beginPath();ctx.moveTo(bx+3,by-28);ctx.lineTo(bx+5,by-28);ctx.stroke();// arm to handlebar
+  // Speed lines
+  ctx.strokeStyle='rgba(0,212,170,0.3)';ctx.lineWidth=1;
+  [[0,H*0.55,60],[0,H*0.60,40],[0,H*0.58,80]].forEach(([x,y,l])=>{ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+l,y);ctx.stroke();});
+  // Label
+  ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,H-26,W,26);
+  ctx.fillStyle='#00d4aa';ctx.font='10px Courier New';ctx.textAlign='left';
+  ctx.fillText('チャリ走  BIKE RUSH  ENDLESS',10,H-8);
+})();
+
+// ── Tennis Preview ────────────────────────────────────────────────
+(function(){
+  const c=document.getElementById('tennisPreview');
+  if(!c)return;
+  const ctx=c.getContext('2d'),W=c.width,H=c.height;
+  // Background
+  ctx.fillStyle='#0d1a0d';ctx.fillRect(0,0,W,H);
+  // Court in perspective
+  const nearL=30,nearR=W-30,nearY=H-30;
+  const farL=90,farR=W-90,farY=60;
+  // Court surface
+  ctx.fillStyle='#2d6e2d';
+  ctx.beginPath();ctx.moveTo(nearL,nearY);ctx.lineTo(nearR,nearY);ctx.lineTo(farR,farY);ctx.lineTo(farL,farY);ctx.closePath();ctx.fill();
+  // Court lines
+  ctx.strokeStyle='rgba(255,255,255,0.8)';ctx.lineWidth=1.5;
+  // Baseline near
+  ctx.beginPath();ctx.moveTo(nearL,nearY);ctx.lineTo(nearR,nearY);ctx.stroke();
+  // Baseline far
+  ctx.beginPath();ctx.moveTo(farL,farY);ctx.lineTo(farR,farY);ctx.stroke();
+  // Sidelines
+  ctx.beginPath();ctx.moveTo(nearL,nearY);ctx.lineTo(farL,farY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(nearR,nearY);ctx.lineTo(farR,farY);ctx.stroke();
+  // Net (midpoint)
+  const netY=(nearY+farY)/2,netL=nearL+(farL-nearL)*0.5,netR=nearR+(farR-nearR)*0.5;
+  ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(netL,netY);ctx.lineTo(netR,netY);ctx.stroke();
+  // Center line
+  const cxN=(nearL+nearR)/2,cxF=(farL+farR)/2;
+  ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(cxN,nearY);ctx.lineTo(cxF,farY);ctx.stroke();
+  // Service boxes (horizontal)
+  const svcY=(netY+nearY)/2;
+  const svcL=nearL+(farL-nearL)*(svcY-nearY)/(farY-nearY);
+  const svcR=nearR+(farR-nearR)*(svcY-nearY)/(farY-nearY);
+  ctx.beginPath();ctx.moveTo(svcL,svcY);ctx.lineTo(svcR,svcY);ctx.stroke();
+  // Player 1 (near, blue, seen from behind)
+  const p1x=W/2,p1y=nearY-10;
+  ctx.fillStyle='#3b82f6';
+  ctx.beginPath();ctx.arc(p1x,p1y-28,8,0,Math.PI*2);ctx.fill();// head
+  ctx.strokeStyle='#3b82f6';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(p1x,p1y-20);ctx.lineTo(p1x,p1y-2);ctx.stroke();// body
+  ctx.beginPath();ctx.moveTo(p1x-12,p1y-12);ctx.lineTo(p1x+18,p1y-8);ctx.stroke();// arm+racket
+  ctx.beginPath();ctx.moveTo(p1x,p1y-2);ctx.lineTo(p1x-8,p1y+12);ctx.moveTo(p1x,p1y-2);ctx.lineTo(p1x+8,p1y+12);ctx.stroke();// legs
+  // Racket head
+  ctx.strokeStyle='#00d4aa';ctx.lineWidth=2;
+  ctx.beginPath();ctx.ellipse(p1x+20,p1y-10,8,6,0.4,0,Math.PI*2);ctx.stroke();
+  // CPU player (far, red)
+  const p2x=W/2,p2y=farY+20;
+  ctx.fillStyle='#e84040';
+  ctx.beginPath();ctx.arc(p2x,p2y+6,5,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#e84040';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(p2x,p2y+11);ctx.lineTo(p2x,p2y+20);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(p2x-8,p2y+14);ctx.lineTo(p2x+14,p2y+14);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(p2x,p2y+20);ctx.lineTo(p2x-5,p2y+28);ctx.moveTo(p2x,p2y+20);ctx.lineTo(p2x+5,p2y+28);ctx.stroke();
+  // Ball in mid-air
+  const bx=W*0.55,by=H*0.42;
+  ctx.shadowColor='rgba(0,0,0,0.4)';ctx.shadowBlur=4;
+  ctx.fillStyle='#ccdd00';ctx.beginPath();ctx.arc(bx,by,6,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;
+  // Shadow on court
+  const sbx=bx+(cxN-bx)*0.15,sby=nearY-10;
+  ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(sbx,sby,5,2,0,0,Math.PI*2);ctx.fill();
+  // Label
+  ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,H-26,W,26);
+  ctx.fillStyle='#aadd00';ctx.font='10px Courier New';ctx.textAlign='left';
+  ctx.fillText('テニス  TENNIS  VS CPU / 2P',10,H-8);
+})();
 </script>
 </body>
 </html>
