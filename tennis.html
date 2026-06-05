@@ -909,19 +909,19 @@ function updatePlayer() {
         if (keys['ArrowRight']) player.cx = Math.min(player.cx + spd, side === 'deuce' ? 0.9 : 0.0);
         player.cz = 0.0; // always locked to baseline during serve
       } else {
-        if (keys['ArrowLeft'])  player.cx = Math.max(player.cx - spd, -0.9);
-        if (keys['ArrowRight']) player.cx = Math.min(player.cx + spd,  0.9);
+        if (keys['ArrowLeft'])  player.cx = Math.max(player.cx - spd, -1.5);
+        if (keys['ArrowRight']) player.cx = Math.min(player.cx + spd,  1.5);
         if (keys['ArrowUp'])    player.cz = Math.min(player.cz + spd,  0.38);
         if (keys['ArrowDown'])  player.cz = Math.max(player.cz - spd, -0.50);
       }
     }
     if (mode2p) {
-      if (keys['KeyA']) player.cx = Math.max(player.cx - spd, -0.9);
-      if (keys['KeyD']) player.cx = Math.min(player.cx + spd,  0.9);
+      if (keys['KeyA']) player.cx = Math.max(player.cx - spd, -1.5);
+      if (keys['KeyD']) player.cx = Math.min(player.cx + spd,  1.5);
       if (keys['KeyW']) player.cz = Math.min(player.cz + spd,  0.38);
       if (keys['KeyS']) player.cz = Math.max(player.cz - spd, -0.50);
-      if (keys['ArrowLeft'])  player2.cx = Math.min(player2.cx + spd, 0.9);
-      if (keys['ArrowRight']) player2.cx = Math.max(player2.cx - spd, -0.9);
+      if (keys['ArrowLeft'])  player2.cx = Math.min(player2.cx + spd, 1.5);
+      if (keys['ArrowRight']) player2.cx = Math.max(player2.cx - spd, -1.5);
       if (keys['ArrowUp'])    player2.cz = Math.max(player2.cz - spd, 0.62);
       if (keys['ArrowDown'])  player2.cz = Math.min(player2.cz + spd, 1.0);
     }
