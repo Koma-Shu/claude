@@ -702,8 +702,9 @@ function updateBall() {
       return;
     }
 
-    // Out of bounds after bounce (rally only — serve out handled by serveInFlight check above)
-    if (Math.abs(ball.cx) > 1.0 || ball.cz < 0 || ball.cz > 1.0) {
+    // Out of bounds after first bounce — CPU side only
+    // On player's side, double-bounce (below) handles the point so player has time to return
+    if (bouncedSide === 1 && (Math.abs(ball.cx) > 1.0 || ball.cz < 0 || ball.cz > 1.0)) {
       endPoint((lastHitBy === 0) ? 1 : 0, T('out'));
       return;
     }
