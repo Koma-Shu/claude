@@ -683,11 +683,11 @@ function updateBall() {
 
     if (serveInFlight) {
       serveInFlight = false;
-      // Check serve landing: must be in opponent's service box (cz 0.5–0.75, |cx|<1)
+      // Check serve landing: extended service box to allow deep power serves
       const serverSide = score.server === 0 ? 0 : 1; // 0=near,1=far
       const inServiceBox = (serverSide === 0)
-        ? (ball.cz >= 0.5 && ball.cz <= 0.75 && Math.abs(ball.cx) <= 1.0)
-        : (ball.cz >= 0.25 && ball.cz <= 0.5 && Math.abs(ball.cx) <= 1.0);
+        ? (ball.cz >= 0.5 && ball.cz <= 0.92 && Math.abs(ball.cx) <= 1.0)
+        : (ball.cz >= 0.08 && ball.cz <= 0.5 && Math.abs(ball.cx) <= 1.0);
       if (!inServiceBox) { serveFault(); return; }
       // Good serve — continue as rally
       ballBounces = 1;
@@ -799,12 +799,12 @@ function cpuServeNow() {
   ball.cx  = cpu.cx;
   ball.cz  = 1.0;
   ball.yh  = 0.06;
-  ball.vcz = -0.006;           // NEGATIVE toward player — deeper landing ~cz 0.28
-  ball.vcy = +0.015;           // arc clears net and lands near back of service box
+  ball.vcz = -0.010;           // NEGATIVE toward player — flat deep serve, lands ~cz 0.12
+  ball.vcy = +0.011;           // lower arc = flatter, more aggressive serve
   // CPU deuce serve → P1's deuce side (cx > 0 in bird's-eye)
   // CPU ad   serve  → P1's ad   side (cx < 0)
   const targetCx = serveSide === 'deuce' ? 0.35 : -0.35;
-  const airFrames = 120;
+  const airFrames = 88; // 2*0.011/0.00025 = 88 frames
   ball.vcx = (targetCx - cpu.cx) / airFrames + (Math.random() - 0.5) * 0.0008;
   ball.active = true;
   serveInFlight = true;
@@ -923,18 +923,17 @@ function handleP1Action(charge) {
   const power = 0.80 + charge * 0.50; // 0.80 .. 1.30 — tap=safe, full charge=risky out
 
   if (state === STATE.SERVING && score.server === 0) {
-    // Serve arc: vcz=0.006, vcy=0.0102, gravity=0.00025
-    // Air time ≈ 96 frames; lands at cz≈0.63 (inside service box 0.5–0.75)
     const side = getServeSide();
     ball.cx  = player.cx;
     ball.cz  = 0.0;
     ball.yh  = 0.06;
-    ball.vcz = 0.006;    // POSITIVE toward CPU — deeper landing ~cz 0.72
-    ball.vcy = 0.015;    // arc clears net and lands near back of service box
+    // Charge: full charge = flat fast serve (vcz high, vcy low); tap = high arc safer serve
+    ball.vcz = 0.007 + charge * 0.005;   // 0.007(tap) → 0.012(full), lands cz 0.70→0.88
+    ball.vcy = 0.014 - charge * 0.005;   // 0.014(tap) → 0.009(full) — flatter under pressure
     // Diagonal target: deuce → CPU's deuce box (cx < 0 in bird's-eye)
     // ad    target → CPU's ad   box (cx > 0)
     const targetCx = side === 'deuce' ? -0.35 : 0.35;
-    const airFrames = 120; // estimated frames in air
+    const airFrames = Math.round(2 * ball.vcy / 0.00025); // dynamic based on vcy
     // Aim variation: ←→ key shifts target ±0.20
     const aimShift = keys['ArrowLeft'] ? -0.20 : keys['ArrowRight'] ? 0.20 : 0;
     ball.vcx = (targetCx + aimShift - ball.cx) / airFrames + (Math.random() - 0.5) * 0.0008;
@@ -965,14 +964,16 @@ function handleP1Action(charge) {
       if (keys['ArrowLeft'])  vcx = -0.005 * power;
       if (keys['ArrowRight']) vcx = +0.005 * power;
 
-      // Depth: base=0.006; up=deep (can go out on full charge), down=short drop
-      let vcz = 0.006 * power;
-      if (keys['ArrowUp'])   vcz = 0.009 * power;   // deep — full charge risks out
-      if (keys['ArrowDown']) vcz = 0.003 * power;   // short drop shot
+      // Depth: charge raises vcz (more pace); full charge = flat low trajectory
+      let vcz = 0.006 + charge * 0.006;             // 0.006(tap) → 0.012(full)
+      if (keys['ArrowUp'])   vcz = 0.009 + charge * 0.006;  // deep shot
+      if (keys['ArrowDown']) vcz = 0.003 + charge * 0.002;  // drop shot stays short
+      vcz *= (keys['ArrowUp'] || keys['ArrowDown']) ? 1.0 : power / 1.3; // directional shots use raw vcz
 
       ball.vcx = vcx;
-      ball.vcz = vcz;  // POSITIVE toward opponent
-      ball.vcy = 0.012; // fixed loft for consistent arc; power affects vcz/vcx only
+      ball.vcz = vcz;
+      // Full charge → flat (vcy low); tap → high arc (vcy high)
+      ball.vcy = 0.013 - charge * 0.006; // 0.013(tap) → 0.007(full charge)
     }
   }
 }
@@ -1012,13 +1013,13 @@ function handleP2Action(charge) {
       let vcx = (Math.random() - 0.5) * 0.0015;
       if (keys['ArrowLeft'])  vcx = +0.005 * power;
       if (keys['ArrowRight']) vcx = -0.005 * power;
-      let vcz = -0.006 * power;
-      if (keys['ArrowUp'])   vcz = -0.009 * power;
-      if (keys['ArrowDown']) vcz = -0.003 * power;
+      let vcz = -(0.006 + charge * 0.006);
+      if (keys['ArrowUp'])   vcz = -(0.009 + charge * 0.006);
+      if (keys['ArrowDown']) vcz = -(0.003 + charge * 0.002);
 
       ball.vcx = vcx;
       ball.vcz = vcz;
-      ball.vcy = 0.012;
+      ball.vcy = 0.013 - charge * 0.006;
     }
   }
 }

@@ -1168,5 +1168,19 @@ document.addEventListener('keydown', function startAudioKey() {
   ctx.fillText('テニス  TENNIS  VS CPU / 2P',10,H-8);
 })();
 </script>
+
+<footer id="version-footer" style="margin-top:48px;padding:16px 0 32px;text-align:center;font-family:'Courier New',monospace;font-size:0.7rem;color:#333;letter-spacing:2px;">
+  v1.2 &nbsp;|&nbsp; 2026-06-05
+  <span id="version-note" style="color:#2a2a3a;margin-left:12px;font-size:0.65rem;"></span>
+</footer>
+<script>
+  // バージョン履歴
+  const VERSION_LOG = [
+    { v:'v1.2', date:'2026-06-05', note:'テニス: サーブ深度UP・チャージ低弾道・有効エリア拡張' },
+    { v:'v1.1', date:'2026-06-01', note:'テニス: CPU難易度選択・バウンド判定改善' },
+    { v:'v1.0', date:'2026-05-01', note:'初版: テニス・チャリ走追加' },
+  ];
+  document.getElementById('version-note').textContent = VERSION_LOG[0].note;
+</script>
 </body>
 </html>
