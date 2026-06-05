@@ -799,8 +799,8 @@ function cpuServeNow() {
   ball.cx  = cpu.cx;
   ball.cz  = 1.0;
   ball.yh  = 0.06;
-  ball.vcz = -0.010;           // NEGATIVE toward player — flat deep serve, lands ~cz 0.12
-  ball.vcy = +0.011;           // lower arc = flatter, more aggressive serve
+  ball.vcz = -0.009;           // NEGATIVE toward player — lands ~cz 0.16 (in service box 0.08–0.50)
+  ball.vcy = +0.011;           // moderate arc, clears net comfortably
   // CPU deuce serve → P1's deuce side (cx > 0 in bird's-eye)
   // CPU ad   serve  → P1's ad   side (cx < 0)
   const targetCx = serveSide === 'deuce' ? 0.35 : -0.35;
@@ -927,9 +927,9 @@ function handleP1Action(charge) {
     ball.cx  = player.cx;
     ball.cz  = 0.0;
     ball.yh  = 0.06;
-    // Charge: full charge = flat fast serve (vcz high, vcy low); tap = high arc safer serve
-    ball.vcz = 0.007 + charge * 0.005;   // 0.007(tap) → 0.012(full), lands cz 0.70→0.88
-    ball.vcy = 0.014 - charge * 0.005;   // 0.014(tap) → 0.009(full) — flatter under pressure
+    // tap→land cz≈0.74, full charge→land cz≈0.86 (all within service box 0.5–0.92)
+    ball.vcz = 0.008 + charge * 0.003;   // 0.008(tap) → 0.011(full)
+    ball.vcy = 0.011 - charge * 0.002;   // 0.011(tap) → 0.009(full) — flatter with power
     // Diagonal target: deuce → CPU's deuce box (cx < 0 in bird's-eye)
     // ad    target → CPU's ad   box (cx > 0)
     const targetCx = side === 'deuce' ? -0.35 : 0.35;
