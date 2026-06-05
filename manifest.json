@@ -1,7 +1,8 @@
 {
   "name": "ARCADE",
   "short_name": "ARCADE",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0d0d1a",
   "theme_color": "#00d4aa",
