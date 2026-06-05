@@ -664,12 +664,19 @@ function updateBall() {
     ball.yh = 0;
 
     if (Math.abs(ball.vcy) < 0.0003) {
+      // Ball barely moving vertically — sliding to a stop.
+      // End the point now rather than letting the sliding loop trigger
+      // double-bounce every frame.
       ball.vcy = 0;
-    } else {
-      ball.vcy  = -ball.vcy * 0.6;
-      ball.vcx *= 0.85;
-      ball.vcz *= 0.85;
+      if (ballBounces >= 1) {
+        endPoint(1 - (ball.cz < 0.5 ? 0 : 1), '');
+      }
+      return;
     }
+
+    ball.vcy  = -ball.vcy * 0.6;
+    ball.vcx *= 0.85;
+    ball.vcz *= 0.85;
 
     // First bounce clears serve-in-flight flag
     const bouncedSide = ball.cz < 0.5 ? 0 : 1;
@@ -696,14 +703,17 @@ function updateBall() {
       lastBounceSide = bouncedSide;
     }
 
-    // Double bounce → point over
-    if (ballBounces >= 2) {
+    // Double bounce → point over.
+    // Player's side needs 3 bounces so they have enough time to reach and swing.
+    // CPU's side uses the standard 2 bounces.
+    const bounceLimit = lastBounceSide === 0 ? 3 : 2;
+    if (ballBounces >= bounceLimit) {
       endPoint(1 - lastBounceSide, '');
       return;
     }
 
     // Out of bounds after first bounce — CPU side only
-    // On player's side, double-bounce (below) handles the point so player has time to return
+    // On player's side, the extra bounce allowance handles the point.
     if (bouncedSide === 1 && (Math.abs(ball.cx) > 1.0 || ball.cz < 0 || ball.cz > 1.0)) {
       endPoint((lastHitBy === 0) ? 1 : 0, T('out'));
       return;
