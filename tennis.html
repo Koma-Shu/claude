@@ -716,6 +716,16 @@ function updateBall() {
       lastBounceSide = bouncedSide;
     }
 
+    // Own-court bounce: hitter's shot landed on their own side → opponent wins
+    if (bouncedSide === 0 && lastHitBy === 0) {
+      endPoint(1, T('out'));
+      return;
+    }
+    if (bouncedSide === 1 && lastHitBy === 1) {
+      endPoint(0, T('out'));
+      return;
+    }
+
     // Double bounce → point over (standard 2-bounce rule for both sides)
     if (ballBounces >= 2) {
       endPoint(1 - lastBounceSide, '');
