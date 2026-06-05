@@ -732,9 +732,7 @@ function serveFault() {
     // Double fault — server loses the point
     faultCount = 0;
     const faultWinner = 1 - score.server;
-    msg = T('doubleFault');
-    msgTimer = 120;
-    endPoint(faultWinner, '');
+    endPoint(faultWinner, T('doubleFault'));
   } else {
     // First fault — allow second serve
     msg = T('fault');
@@ -759,7 +757,8 @@ function endPoint(winner, reason) {
   if (pointEndScheduled) return;
   pointEndScheduled = true;
   ball.active = false;
-  if (reason) { msg = reason; msgTimer = 100; } else { msg = ''; msgTimer = 0; }
+  // Only overwrite msg if we have a new reason (don't clear double-fault etc already set)
+  if (reason) { msg = reason; msgTimer = 120; }
   awardPoint(winner);
   if (state !== STATE.GAME_OVER) {
     state = STATE.POINT_END;
@@ -799,6 +798,7 @@ function cpuHitBall() {
   if (lastHitBy === 1) return;
   cpuSwing = 8;
   lastHitBy = 1;
+  serveInFlight = false;  // CPU hitting always ends serve phase
   ballBounces = 0;
   lastBounceSide = -1;
   const err = CPU_ERROR[difficulty];
@@ -856,7 +856,7 @@ window.addEventListener('keyup', e => {
 });
 
 function updatePlayer() {
-  const spd = 0.012;
+  const spd = 0.018;  // faster player movement
 
   if (state === STATE.SERVING || state === STATE.RALLY) {
     if (!mode2p) {
@@ -895,7 +895,7 @@ function updatePlayer() {
 
 function handleP1Action(charge) {
   // charge: 0.0 (tap) to 1.0 (full hold ~1s)
-  const power = 0.80 + charge * 0.35; // 0.80 .. 1.15 — slightly narrower for calmer feel
+  const power = 0.80 + charge * 0.50; // 0.80 .. 1.30 — tap=safe, full charge=risky out
 
   if (state === STATE.SERVING && score.server === 0) {
     // Serve arc: vcz=0.006, vcy=0.0102, gravity=0.00025
@@ -931,18 +931,19 @@ function handleP1Action(charge) {
     if (ball.cz < 0.48 && dist < 110 && ball.yh < 0.20 && lastHitBy !== 0) {
       p1Swing = 8;
       lastHitBy = 0;
+      serveInFlight = false;  // clear regardless — player hit means serve phase is over
       ballBounces = 0;
       lastBounceSide = -1;
 
       // Direction from movement keys
-      let vcx = (Math.random() - 0.5) * 0.001;
-      if (keys['ArrowLeft'])  vcx = -0.004 * power;
-      if (keys['ArrowRight']) vcx = +0.004 * power;
+      let vcx = (Math.random() - 0.5) * 0.0015;
+      if (keys['ArrowLeft'])  vcx = -0.005 * power;
+      if (keys['ArrowRight']) vcx = +0.005 * power;
 
-      // Depth: base=0.005 covers ~0.5 court at 100 frames; up=deep, down=short
-      let vcz = 0.005 * power;
-      if (keys['ArrowUp'])   vcz = 0.007 * power;   // deep to opponent baseline
-      if (keys['ArrowDown']) vcz = 0.003 * power;   // short (drop shot)
+      // Depth: base=0.006; up=deep (can go out on full charge), down=short drop
+      let vcz = 0.006 * power;
+      if (keys['ArrowUp'])   vcz = 0.009 * power;   // deep — full charge risks out
+      if (keys['ArrowDown']) vcz = 0.003 * power;   // short drop shot
 
       ball.vcx = vcx;
       ball.vcz = vcz;  // POSITIVE toward opponent
@@ -953,7 +954,7 @@ function handleP1Action(charge) {
 
 function handleP2Action(charge) {
   if (!mode2p) return;
-  const power = 0.80 + charge * 0.35;
+  const power = 0.80 + charge * 0.50;
 
   if (state === STATE.SERVING && score.server === 1) {
     ball.cx  = player2.cx;
@@ -983,11 +984,11 @@ function handleP2Action(charge) {
       ballBounces = 0;
       lastBounceSide = -1;
 
-      let vcx = (Math.random() - 0.5) * 0.001;
-      if (keys['ArrowLeft'])  vcx = +0.004 * power;
-      if (keys['ArrowRight']) vcx = -0.004 * power;
-      let vcz = -0.005 * power;
-      if (keys['ArrowUp'])   vcz = -0.007 * power;
+      let vcx = (Math.random() - 0.5) * 0.0015;
+      if (keys['ArrowLeft'])  vcx = +0.005 * power;
+      if (keys['ArrowRight']) vcx = -0.005 * power;
+      let vcz = -0.006 * power;
+      if (keys['ArrowUp'])   vcz = -0.009 * power;
       if (keys['ArrowDown']) vcz = -0.003 * power;
 
       ball.vcx = vcx;
