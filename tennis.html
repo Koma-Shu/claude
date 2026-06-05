@@ -46,7 +46,11 @@
               font-size:13px; font-family:'Courier New',monospace; color:#00d4aa; }
   @media (pointer: coarse) {
     #mobile-controls { display: block; }
-    canvas { margin-bottom: 160px; }
+    canvas {
+      width: 100vw !important;
+      height: calc(100vw * 450 / 600) !important;
+      margin-bottom: 160px;
+    }
   }
 </style>
 </head>
@@ -205,7 +209,9 @@ let mode2p = false;
 let difficulty = 'normal';
 const CPU_SPEED = { easy: 0.008, normal: 0.012, hard: 0.018 };
 const CPU_ERROR = { easy: 0.20, normal: 0.10, hard: 0.05 };
-let titleSel = 0;
+let titleMode = 0;               // 0=1P vs CPU, 1=2P local
+let diffIdx   = 1;               // 0=easy, 1=normal, 2=hard
+const DIFF_KEYS = ['easy', 'normal', 'hard'];
 
 // ── Player state ──────────────────────────────────────────────────────────
 let player  = { cx: 0, cz: 0.05 };
@@ -289,30 +295,38 @@ function drawTitle() {
   ctx.fillStyle = '#00ff88';
   ctx.font = 'bold 48px Courier New';
   ctx.textAlign = 'center';
-  ctx.fillText(T('title'), 300, 100);
+  ctx.fillText(T('title'), 300, 90);
 
   ctx.fillStyle = '#aaa';
   ctx.font = '16px Courier New';
-  ctx.fillText(T('subtitle'), 300, 130);
+  ctx.fillText(T('subtitle'), 300, 120);
 
-  const opts = [
-    { label: T('mode1p'), sel: 0 },
-    { label: T('mode2p'), sel: 1 },
-    { label: T('easy'),   sel: 2 },
-    { label: T('normal'), sel: 3 },
-    { label: T('hard'),   sel: 4 },
-  ];
-
-  opts.forEach(o => {
-    ctx.fillStyle = titleSel === o.sel ? '#ffee00' : '#888';
-    ctx.font = titleSel === o.sel ? 'bold 22px Courier New' : '18px Courier New';
-    const prefix = titleSel === o.sel ? '▶ ' : '  ';
-    ctx.fillText(prefix + o.label, 300, 200 + o.sel * 38);
+  // Mode selection (up/down)
+  const modes = [T('mode1p'), T('mode2p')];
+  modes.forEach((label, i) => {
+    const sel = titleMode === i;
+    ctx.fillStyle = sel ? '#ffee00' : '#888';
+    ctx.font = sel ? 'bold 24px Courier New' : '19px Courier New';
+    ctx.fillText((sel ? '▶ ' : '  ') + label, 300, 185 + i * 48);
   });
 
+  // Difficulty selection (left/right)
   ctx.fillStyle = '#555';
-  ctx.font = '14px Courier New';
-  ctx.fillText('↑↓: select   Space/Enter: confirm', 300, 420);
+  ctx.font = '13px Courier New';
+  ctx.fillText('── ' + (lang === 'ja' ? '難易度' : 'DIFFICULTY') + ' ──', 300, 305);
+
+  const diffColors = ['#44ff99', '#ffee00', '#ff6644'];
+  const diffLabel  = T(DIFF_KEYS[diffIdx]);
+  ctx.fillStyle = diffColors[diffIdx];
+  ctx.font = 'bold 22px Courier New';
+  ctx.fillText('◀   ' + diffLabel + '   ▶', 300, 340);
+
+  ctx.fillStyle = '#555';
+  ctx.font = '13px Courier New';
+  const hint = lang === 'ja'
+    ? '↑↓:モード選択   ←→:難易度   Space:スタート'
+    : '↑↓: Mode   ←→: Difficulty   Space: Start';
+  ctx.fillText(hint, 300, 418);
 }
 
 const titleJust = {};
@@ -328,19 +342,19 @@ window.addEventListener('keyup', e => {
 });
 
 function titleConfirm() {
-  if      (titleSel === 0) { mode2p = false; startMatch(); }
-  else if (titleSel === 1) { mode2p = true;  startMatch(); }
-  else if (titleSel === 2) { difficulty = 'easy';   titleSel = 0; }
-  else if (titleSel === 3) { difficulty = 'normal'; titleSel = 0; }
-  else if (titleSel === 4) { difficulty = 'hard';   titleSel = 0; }
+  difficulty = DIFF_KEYS[diffIdx];
+  mode2p = titleMode === 1;
+  startMatch();
 }
 
 const _titleNavPrev = {};
 window.addEventListener('keydown', e => {
   if (state === STATE.TITLE && !_titleNavPrev[e.code]) {
     _titleNavPrev[e.code] = true;
-    if (e.code === 'ArrowUp')   titleSel = (titleSel + 4) % 5;
-    if (e.code === 'ArrowDown') titleSel = (titleSel + 1) % 5;
+    if (e.code === 'ArrowUp')    titleMode = (titleMode + 1) % 2;
+    if (e.code === 'ArrowDown')  titleMode = (titleMode + 1) % 2;
+    if (e.code === 'ArrowLeft')  diffIdx = (diffIdx + 2) % 3;
+    if (e.code === 'ArrowRight') diffIdx = (diffIdx + 1) % 3;
   }
 });
 window.addEventListener('keyup', e => { delete _titleNavPrev[e.code]; });
@@ -802,10 +816,13 @@ function cpuHitBall() {
   ballBounces = 0;
   lastBounceSide = -1;
   const err = CPU_ERROR[difficulty];
-  // CPU rally shots — same slow speed as player
-  ball.vcz = -0.006;   // deeper: 0.006×100frames = 0.60 court units
-  ball.vcy = +0.012;   // loft gives ~100 frames air time with gravity=0.00025
-  ball.vcx = (player.cx - ball.cx) * 0.002 + (Math.random() - 0.5) * err * 0.12;
+  // Extra error for deep balls (ball landing near CPU's baseline)
+  const depthFactor = Math.max(0, (ball.cz - 0.65) / 0.35);
+  const totalErr = err * (1 + depthFactor * 3);
+  // CPU rally shots
+  ball.vcz = -0.006 + (Math.random() - 0.5) * totalErr * 0.004;
+  ball.vcy = +0.012 + (Math.random() - 0.5) * totalErr * 0.002;
+  ball.vcx = (player.cx - ball.cx) * 0.002 + (Math.random() - 0.5) * totalErr * 0.14;
 }
 
 function updateCPU() {
