@@ -705,18 +705,18 @@ function updateBall() {
     }
   }
 
-  // Ball way out
-  if (ball.yh > 0 && (ball.cx < -1.15 || ball.cx > 1.15)) {
+  // Ball way out (only before first bounce — after valid bounce, double-bounce handles the point)
+  if (ball.yh > 0 && ballBounces === 0 && (ball.cx < -1.15 || ball.cx > 1.15)) {
     if (serveInFlight) { serveInFlight = false; serveFault(); return; }
     endPoint((lastHitBy === 0) ? 1 : 0, T('out'));
     return;
   }
-  if (ball.cz > 1.05 && ball.yh > 0) {
+  if (ball.cz > 1.05 && ball.yh > 0 && ballBounces === 0) {
     if (serveInFlight) { serveInFlight = false; serveFault(); return; }
     endPoint(lastHitBy === 0 ? 1 : 0, T('out'));
     return;
   }
-  if (ball.cz < -0.05 && ball.yh > 0) {
+  if (ball.cz < -0.05 && ball.yh > 0 && ballBounces === 0) {
     if (serveInFlight) { serveInFlight = false; serveFault(); return; }
     endPoint(lastHitBy === 1 ? 0 : 1, T('out'));
     return;
@@ -829,7 +829,7 @@ function updateCPU() {
   }
 
   // Auto-hit when ball is close enough on CPU side
-  if (ball.active && ball.cz > 0.55 && ball.yh < 0.20 && lastHitBy !== 1) {
+  if (ball.active && ball.cz > 0.55 && ball.yh < 0.20 && lastHitBy !== 1 && ballBounces >= 1 && lastBounceSide === 1) {
     const cpuPos = courtToScreen(cpu.cx, cpu.cz);
     const bPos   = courtToScreen(ball.cx, ball.cz);
     const dist   = Math.hypot(cpuPos.x - bPos.x, cpuPos.y - bPos.y);
