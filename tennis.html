@@ -703,11 +703,8 @@ function updateBall() {
       lastBounceSide = bouncedSide;
     }
 
-    // Double bounce → point over.
-    // Player's side needs 3 bounces so they have enough time to reach and swing.
-    // CPU's side uses the standard 2 bounces.
-    const bounceLimit = lastBounceSide === 0 ? 3 : 2;
-    if (ballBounces >= bounceLimit) {
+    // Double bounce → point over (standard 2-bounce rule for both sides)
+    if (ballBounces >= 2) {
       endPoint(1 - lastBounceSide, '');
       return;
     }
@@ -741,7 +738,7 @@ function updateBall() {
     endPoint(lastHitBy === 0 ? 1 : 0, T('out'));
     return;
   }
-  if (ball.cz < -0.05 && ball.yh > 0 && ballBounces === 0) {
+  if (ball.cz < -0.20 && ball.yh > 0 && ballBounces === 0) {
     if (serveInFlight) { serveInFlight = false; serveFault(); return; }
     endPoint(lastHitBy === 1 ? 0 : 1, T('out'));
     return;
@@ -898,14 +895,14 @@ function updatePlayer() {
         if (keys['ArrowLeft'])  player.cx = Math.max(player.cx - spd, -0.9);
         if (keys['ArrowRight']) player.cx = Math.min(player.cx + spd,  0.9);
         if (keys['ArrowUp'])    player.cz = Math.min(player.cz + spd,  0.38);
-        if (keys['ArrowDown'])  player.cz = Math.max(player.cz - spd,  0.0);
+        if (keys['ArrowDown'])  player.cz = Math.max(player.cz - spd, -0.18);
       }
     }
     if (mode2p) {
       if (keys['KeyA']) player.cx = Math.max(player.cx - spd, -0.9);
       if (keys['KeyD']) player.cx = Math.min(player.cx + spd,  0.9);
       if (keys['KeyW']) player.cz = Math.min(player.cz + spd,  0.38);
-      if (keys['KeyS']) player.cz = Math.max(player.cz - spd,  0.0);
+      if (keys['KeyS']) player.cz = Math.max(player.cz - spd, -0.18);
       if (keys['ArrowLeft'])  player2.cx = Math.min(player2.cx + spd, 0.9);
       if (keys['ArrowRight']) player2.cx = Math.max(player2.cx - spd, -0.9);
       if (keys['ArrowUp'])    player2.cz = Math.max(player2.cz - spd, 0.62);
@@ -956,7 +953,7 @@ function handleP1Action(charge) {
     const bPos = ballToScreen(ball.cx, ball.cz, ball.yh);
     const dist = Math.hypot(pPos.x - bPos.x, pPos.y - bPos.y);
 
-    if (ball.cz < 0.48 && dist < 110 && ball.yh < 0.20 && lastHitBy !== 0) {
+    if (ball.cz < 0.48 && ball.cz > -0.20 && dist < 110 && ball.yh < 0.20 && lastHitBy !== 0) {
       p1Swing = 8;
       lastHitBy = 0;
       serveInFlight = false;  // clear regardless — player hit means serve phase is over
