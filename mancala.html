@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>マンカラ</title>
+  <script src="sound.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#1a0a00;overflow:hidden;font-family:'Hiragino Sans','Meiryo','Segoe UI',sans-serif}
+    canvas{display:block}
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+/* Kalah rules:
+   Board: 2×6 pits + 2 stores. p1 owns pits[0..5], store[0]; p2 owns pits[6..11], store[1].
+   Pits index: p1 left→right = 0..5, p2 right→left = 6..11.
+   Seed distribution: counterclockwise = p1: 0→1→..→5→store0→(skip p2 store)→p2 pits 6..11 loop.
+   Free turn: last seed lands in own store.
+   Capture: last seed in own empty pit → take it + opposite pit's seeds.
+   End: when one player's 6 pits are all empty. Other collects theirs.
+*/
+const PITS=6;
+// Board positions: indices 0-5 = p1 pits (left to right), 6 = p1 store,
+//                            7-12 = p2 pits (right to left), 13 = p2 store
+// Travelling counterclockwise: p1 plays 0→1→..5→6(store)→7→8→..12→0...
+// p2 plays 7→8→..12→13(store)→0→1→..5→7...
+// Opposite of pit i (0-5): pit (12-i) in positions 7-12 → pos 7+5-i = 12-i
+// Actually let me use a flat array of 14 slots:
+//   slots[0..5]  = p1 pits
+//   slots[6]     = p1 store (kalah)
+//   slots[7..12] = p2 pits (index 7 is rightmost from p2's view = across from slots[5])
+//   slots[13]    = p2 store
+// CCW traversal: 0→1→2→3→4→5→6→7→8→9→10→11→12→13→0→...
+// Opposite: slot[i] (0-5) ↔ slot[12-i] (from 12 down to 7)
+
+let seeds, turn, gameOver, winner, animating;
+let movingSeeds=[], captureFlash=0;
+let scores={p1:0,p2:0}, mode='cpu', cpuPending=false;
+let lang=localStorage.getItem('lang')||'ja';
+let lastTs=0, pulse=0;
+let highlightPit=-1;
+
+const STR={
+  title:{ja:'マンカラ',en:'Mancala'},
+  you:{ja:'あなた',en:'You'},
+  cpu:{ja:'CPU',en:'CPU'},
+  p1:{ja:'プレイヤー1',en:'Player 1'},
+  p2:{ja:'プレイヤー2',en:'Player 2'},
+  yourTurn:{ja:'あなたのターン',en:'Your turn'},
+  cpuTurn:{ja:'CPU思考中…',en:'CPU thinking…'},
+  p1Turn:{ja:'プレイヤー1のターン',en:'Player 1\'s turn'},
+  p2Turn:{ja:'プレイヤー2のターン',en:'Player 2\'s turn'},
+  freeTurn:{ja:'もう一度！',en:'Free turn!'},
+  capture:{ja:'奪取！',en:'Capture!'},
+  youWin:{ja:'あなたの勝ち！',en:'You Win!'},
+  cpuWin:{ja:'CPUの勝ち！',en:'CPU Wins!'},
+  p1Win:{ja:'プレイヤー1の勝ち！',en:'Player 1 Wins!'},
+  p2Win:{ja:'プレイヤー2の勝ち！',en:'Player 2 Wins!'},
+  draw:{ja:'引き分け！',en:'Draw!'},
+  tap:{ja:'タップして再スタート',en:'Tap to restart'},
+  modeVs:{ja:'2人対戦',en:'2P Mode'},
+  modeCpu:{ja:'CPU対戦',en:'vs CPU'},
+  back:{ja:'戻る',en:'Back'},
+  rules:{ja:'自分の穴を選んで種を配ろう',en:'Choose a pit to sow seeds'},
+};
+const t=k=>(STR[k]?.[lang])||k;
+
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+let CW,CH, PIT_R, PIT_GAP, STORE_R, BX,BY, BW,BH;
+
+// Colors for seeds — warm earthy tones
+const SEED_COLORS=['#c8440a','#e8a020','#d47030','#f0c060','#b83010','#dc6030'];
+
+function resize(){
+  CW=canvas.width=window.innerWidth;
+  CH=canvas.height=window.innerHeight;
+  // Board dimensions
+  const maxW=Math.min(CW*0.92, 900);
+  const maxH=Math.min(CH*0.55, 300);
+  // 2 stores + 6 pits + gaps on each side
+  PIT_R=Math.floor(Math.min(maxW/(PITS*2.6+3), maxH/2.3));
+  PIT_GAP=Math.floor(PIT_R*0.35);
+  STORE_R=Math.floor(PIT_R*1.35);
+  BW=2*STORE_R + PITS*(2*PIT_R) + (PITS+1)*PIT_GAP + 2*PIT_GAP;
+  BH=2*(2*PIT_R+PIT_GAP)+PIT_GAP*2;
+  BX=Math.floor((CW-BW)/2);
+  BY=Math.floor((CH-BH)/2);
+}
+
+function initBoard(){
+  seeds=new Array(14).fill(0);
+  for(let i=0;i<PITS;i++) seeds[i]=4;   // p1 pits
+  for(let i=7;i<7+PITS;i++) seeds[i]=4; // p2 pits
+  seeds[6]=0; seeds[13]=0;               // stores
+  turn=0; // 0=p1, 1=p2
+  gameOver=false; winner=-1; animating=false;
+  movingSeeds=[]; captureFlash=0; cpuPending=false; pulse=0;
+  highlightPit=-1; statusMsg=''; freeTurnMsg=0;
+}
+
+// Returns the pit slot position on canvas
+function pitPos(slot){
+  // slots 0-5: p1 row (bottom), left-to-right
+  // slots 7-12: p2 row (top), right-to-left (slot 7 across from slot 5)
+  // slot 6: p1 store (right)
+  // slot 13: p2 store (left)
+  const pitsStartX = BX + PIT_GAP*2 + STORE_R*2;
+  const p1Y = BY + BH - PIT_R - PIT_GAP;
+  const p2Y = BY + PIT_R + PIT_GAP;
+  if(slot>=0&&slot<PITS){
+    return {x: pitsStartX + slot*(2*PIT_R+PIT_GAP) + PIT_R, y: p1Y};
+  }
+  if(slot===6){
+    return {x: BX + BW - STORE_R - PIT_GAP, y: BY+BH/2};
+  }
+  if(slot>=7&&slot<7+PITS){
+    const idx=slot-7; // 0=across slot5, 5=across slot0
+    return {x: pitsStartX + (PITS-1-idx)*(2*PIT_R+PIT_GAP) + PIT_R, y: p2Y};
+  }
+  if(slot===13){
+    return {x: BX + STORE_R + PIT_GAP, y: BY+BH/2};
+  }
+  return {x:0,y:0};
+}
+
+function oppositePit(slot){
+  // slot 0-5 ↔ slot 12-7 (slot 0 ↔ 12, slot 1 ↔ 11, ..., slot 5 ↔ 7)
+  if(slot>=0&&slot<PITS) return 12-slot;
+  if(slot>=7&&slot<13)  return 12-(slot-7+7-7); // = 12-(slot-7)
+  return -1;
+}
+
+// Actually: slot i (0-5) opposite is slot (12-i) no...
+// Let me think: pit 0 (p1 leftmost) ↔ pit 12 (p2 rightmost from board view, slot 7 = across slot 5)
+// slot 7 is across slot 5, slot 8 across slot 4, ..., slot 12 across slot 0
+// So slot i (0-5) ↔ slot (12-i)
+// And slot (7..12) ↔ slot (12 - (slot-7)) = 12-slot+7 = 19-slot? No.
+// slot 7 ↔ slot 5: 12-7=5 ✓
+// slot 12 ↔ slot 0: 12-12=0 ✓
+// So: opposite(slot) = 12-slot for 0-5 and 7-12
+
+// Move: player p picks slot. Returns {type: 'normal'|'freeTurn'|'capture', board}
+function doMove(b, slot, player){
+  const nb=[...b];
+  let n=nb[slot];
+  nb[slot]=0;
+  let cur=slot;
+  const skipStore = player===0 ? 13 : 6; // skip opponent's store
+  while(n>0){
+    cur=(cur+1)%14;
+    if(cur===skipStore) cur=(cur+1)%14;
+    nb[cur]++;
+    n--;
+  }
+  // Last seed in own store → free turn
+  const ownStore = player===0 ? 6 : 13;
+  if(cur===ownStore) return {nb, result:'freeTurn', lastSlot:cur};
+  // Last seed in own empty pit (before sowing it was 1, meaning it was empty before) → capture
+  const ownPits = player===0 ? [0,1,2,3,4,5] : [7,8,9,10,11,12];
+  if(ownPits.includes(cur) && nb[cur]===1){
+    const opp = 12-cur; // for p1: opp 0..5 → 12..7; for p2: opp 7..12 → 5..0
+    if(nb[opp]>0){
+      nb[ownStore]+=nb[cur]+nb[opp];
+      nb[cur]=0;nb[opp]=0;
+      return {nb, result:'capture', lastSlot:cur};
+    }
+  }
+  return {nb, result:'normal', lastSlot:cur};
+}
+
+function checkGameOver(b){
+  const p1empty=b.slice(0,PITS).every(x=>x===0);
+  const p2empty=b.slice(7,7+PITS).every(x=>x===0);
+  if(p1empty||p2empty){
+    const nb=[...b];
+    if(!p1empty){for(let i=0;i<PITS;i++){nb[6]+=nb[i];nb[i]=0;}}
+    if(!p2empty){for(let i=7;i<7+PITS;i++){nb[13]+=nb[i];nb[i]=0;}}
+    return nb;
+  }
+  return null;
+}
+
+function validMoves(b, player){
+  const pits = player===0 ? Array.from({length:PITS},(_,i)=>i) : Array.from({length:PITS},(_,i)=>i+7);
+  return pits.filter(i=>b[i]>0);
+}
+
+// ── AI (minimax depth 8) ─────────────────────────────────────────
+function evalBoard(b, p){
+  // Difference in store seeds, favoring player p
+  const s0=b[6], s1=b[13];
+  return p===0 ? s0-s1 : s1-s0;
+}
+
+function minimaxM(b, depth, alpha, beta, player, maximizing){
+  const fin=checkGameOver(b);
+  if(fin||depth===0){
+    const fb=fin||b;
+    const score=fb[6]-fb[13];
+    // Return from p1's perspective always
+    return [null, score];
+  }
+  const moves=validMoves(b,player);
+  if(moves.length===0) return [null, b[6]-b[13]];
+
+  if(maximizing){ // p1's turn
+    let best=-Infinity, bestMove=moves[0];
+    for(const m of moves){
+      const {nb,result}=doMove(b,m,player);
+      const nextPlayer = result==='freeTurn' ? player : 1-player;
+      const nextMax = result==='freeTurn' ? true : false;
+      const[,sc]=minimaxM(nb,depth-1,alpha,beta,nextPlayer,nextMax);
+      if(sc>best){best=sc;bestMove=m;}
+      alpha=Math.max(alpha,sc);
+      if(alpha>=beta)break;
+    }
+    return [bestMove,best];
+  }else{
+    let best=Infinity, bestMove=moves[0];
+    for(const m of moves){
+      const {nb,result}=doMove(b,m,player);
+      const nextPlayer = result==='freeTurn' ? player : 1-player;
+      const nextMax = result==='freeTurn' ? false : true;
+      const[,sc]=minimaxM(nb,depth-1,alpha,beta,nextPlayer,nextMax);
+      if(sc<best){best=sc;bestMove=m;}
+      beta=Math.min(beta,sc);
+      if(alpha>=beta)break;
+    }
+    return [bestMove,best];
+  }
+}
+
+// ── Animation system ─────────────────────────────────────────────
+// Each moving seed: {x,y, tx,ty, t,dur, color, slot (destination)}
+let animQueue=[], animPhase=0, pendingResult=null;
+
+function animateSow(fromSlot, toSlots, onDone){
+  // toSlots: array of slot indices in sowing order
+  const fp=pitPos(fromSlot);
+  let delay=0;
+  const newAnims=[];
+  toSlots.forEach((sl,i)=>{
+    const tp=pitPos(sl);
+    newAnims.push({
+      x:fp.x+(Math.random()-.5)*PIT_R*0.5,
+      y:fp.y+(Math.random()-.5)*PIT_R*0.5,
+      tx:tp.x+(Math.random()-.5)*PIT_R*0.6,
+      ty:tp.y+(Math.random()-.5)*PIT_R*0.6,
+      startT:delay, dur:0.22+i*0.0,
+      t:0, done:false,
+      color:SEED_COLORS[i%SEED_COLORS.length],
+      slot:sl
+    });
+    delay+=0.12;
+  });
+  animQueue=newAnims;
+  animating=true;
+  animDone=onDone;
+}
+
+let animDone=null;
+let animT=0;
+
+function updateAnims(dt){
+  if(!animating)return;
+  animT+=dt;
+  let allDone=true;
+  for(const a of animQueue){
+    if(a.done) continue;
+    const t=Math.max(0,(animT-a.startT)/a.dur);
+    if(t<1){
+      allDone=false;
+      const e=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2; // ease
+      a.cx=a.x+(a.tx-a.x)*e;
+      a.cy=a.y+(a.ty-a.y)*e - Math.sin(t*Math.PI)*PIT_R*0.8;
+      a.progress=t;
+    }else{
+      a.done=true;
+      a.cx=a.tx;a.cy=a.ty;
+    }
+  }
+  if(allDone){
+    animating=false;
+    animQueue=[];
+    animT=0;
+    if(animDone){const f=animDone;animDone=null;f();}
+  }
+}
+
+// ── Player action ─────────────────────────────────────────────────
+let statusMsg='', freeTurnMsg=0;
+
+function playerMove(slot){
+  if(animating||gameOver||cpuPending)return;
+  const vm=validMoves(seeds,turn);
+  if(!vm.includes(slot))return;
+  if(mode==='cpu'&&turn===1)return;
+
+  executeMove(slot);
+}
+
+function executeMove(slot){
+  // Build sow sequence for animation
+  let n=seeds[slot];
+  const skipStore=turn===0?13:6;
+  const sowSlots=[];
+  let cur=slot;
+  let tmp=n;
+  while(tmp>0){
+    cur=(cur+1)%14;
+    if(cur===skipStore) cur=(cur+1)%14;
+    sowSlots.push(cur);
+    tmp--;
+  }
+
+  const oldSeeds=[...seeds];
+  const {nb,result}=doMove(seeds,slot,turn);
+
+  SND.sfx.draw?.();
+
+  animateSow(slot, sowSlots, ()=>{
+    seeds=nb;
+    SND.sfx.discard?.();
+
+    // Check game over
+    const fin=checkGameOver(seeds);
+    if(fin){
+      seeds=fin;
+      gameOver=true;
+      SND.stopBGM?.();
+      if(seeds[6]>seeds[13]){
+        winner=0;
+        if(mode==='cpu'){scores.p1++;SND.sfx.win?.();}
+        else{scores.p1++;SND.sfx.pointWin?.();}
+      }else if(seeds[13]>seeds[6]){
+        winner=1;
+        if(mode==='cpu'){scores.p2++;SND.sfx.lose?.();}
+        else{scores.p2++;SND.sfx.pointWin?.();}
+      }else{
+        winner=-2; // draw
+        SND.sfx.point?.();
+      }
+      return;
+    }
+
+    if(result==='freeTurn'){
+      statusMsg=t('freeTurn'); freeTurnMsg=120;
+      SND.sfx.coin?.();
+      if(mode==='cpu'&&turn===1&&!gameOver) scheduleCPU();
+    }else if(result==='capture'){
+      statusMsg=t('capture'); freeTurnMsg=120;
+      SND.sfx.pointWin?.();
+      turn=1-turn;
+      if(mode==='cpu'&&turn===1&&!gameOver) scheduleCPU();
+    }else{
+      turn=1-turn;
+      if(mode==='cpu'&&turn===1&&!gameOver) scheduleCPU();
+    }
+  });
+}
+
+function scheduleCPU(){
+  cpuPending=true;
+  setTimeout(()=>{
+    cpuPending=false;
+    if(gameOver)return;
+    const[mv]=minimaxM(seeds,8,-Infinity,Infinity,1,false);
+    if(mv!=null) executeMove(mv);
+  },400);
+}
+
+// ── Drawing ──────────────────────────────────────────────────────
+function drawBg(){
+  const g=ctx.createLinearGradient(0,0,0,CH);
+  g.addColorStop(0,'#1a0a00');g.addColorStop(1,'#2d1500');
+  ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);
+  // Subtle wood grain lines
+  ctx.strokeStyle='rgba(255,180,80,0.04)';ctx.lineWidth=1;
+  for(let i=0;i<20;i++){
+    const y=((i*47)%CH);
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke();
+  }
+}
+
+function drawBoardBg(){
+  // Board shadow
+  ctx.shadowBlur=35;ctx.shadowColor='rgba(0,0,0,0.7)';
+  // Board wood bg
+  const g=ctx.createLinearGradient(BX,BY,BX,BY+BH);
+  g.addColorStop(0,'#7a4010');g.addColorStop(0.5,'#9a5520');g.addColorStop(1,'#6a3808');
+  ctx.fillStyle=g;
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(BX,BY,BW,BH,Math.floor(PIT_R*0.7));
+  else ctx.rect(BX,BY,BW,BH);
+  ctx.fill();
+  ctx.shadowBlur=0;
+  // Wood grain
+  ctx.strokeStyle='rgba(0,0,0,0.12)';ctx.lineWidth=2;
+  for(let i=0;i<8;i++){
+    const y=BY+BH*0.15+i*(BH*0.72/7);
+    ctx.beginPath();ctx.moveTo(BX+PIT_R*0.3,y);ctx.lineTo(BX+BW-PIT_R*0.3,y);ctx.stroke();
+  }
+  // Border highlight
+  ctx.strokeStyle='rgba(255,200,100,0.35)';ctx.lineWidth=3;
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(BX+2,BY+2,BW-4,BH-4,Math.floor(PIT_R*0.65));
+  else ctx.rect(BX+2,BY+2,BW-4,BH-4);
+  ctx.stroke();
+}
+
+function drawPit(slot, highlighted){
+  const {x,y}=pitPos(slot);
+  const r=PIT_R;
+  const isStore=(slot===6||slot===13);
+  const sr=isStore?STORE_R:r;
+
+  // Pit depression shadow
+  ctx.beginPath();ctx.arc(x,y+sr*0.1,sr,0,Math.PI*2);
+  ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fill();
+  // Pit bowl
+  ctx.beginPath();ctx.arc(x,y,sr,0,Math.PI*2);
+  const g2=ctx.createRadialGradient(x-sr*0.2,y-sr*0.2,sr*0.1,x+sr*0.15,y+sr*0.15,sr);
+  g2.addColorStop(0,'#4a2808');g2.addColorStop(1,'#2a1204');
+  ctx.fillStyle=g2;ctx.fill();
+
+  // Highlight if valid move
+  if(highlighted){
+    ctx.beginPath();ctx.arc(x,y,sr,0,Math.PI*2);
+    const a=0.15+0.12*Math.sin(pulse);
+    ctx.fillStyle=`rgba(255,220,80,${a})`;ctx.fill();
+    ctx.strokeStyle=`rgba(255,220,80,${0.5+0.4*Math.sin(pulse)})`;
+    ctx.lineWidth=3;ctx.stroke();
+  }
+  // Inner rim
+  ctx.beginPath();ctx.arc(x,y,sr*0.88,0,Math.PI*2);
+  ctx.strokeStyle='rgba(255,180,80,0.2)';ctx.lineWidth=1.5;ctx.stroke();
+}
+
+function drawSeed(x,y,color,r){
+  r=r||PIT_R*0.22;
+  const g=ctx.createRadialGradient(x-r*0.3,y-r*0.35,r*0.05,x,y,r);
+  g.addColorStop(0,'rgba(255,255,200,0.6)');
+  g.addColorStop(0.4,color);
+  g.addColorStop(1,'rgba(0,0,0,0.5)');
+  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle=g;ctx.fill();
+}
+
+function drawSeeds(slot, count){
+  if(count<=0)return;
+  const {x,y}=pitPos(slot);
+  const isStore=(slot===6||slot===13);
+  const containerR=(isStore?STORE_R:PIT_R)*0.82;
+  const seedR=isStore ? Math.max(PIT_R*0.18, Math.min(PIT_R*0.25, containerR/Math.sqrt(count)*0.7))
+                      : Math.max(PIT_R*0.16, Math.min(PIT_R*0.28, containerR/Math.sqrt(count)*0.75));
+
+  // Arrange seeds in a grid-like pattern
+  const positions=getSeedPositions(count, containerR, seedR);
+  positions.forEach((p,i)=>{
+    drawSeed(x+p.x, y+p.y, SEED_COLORS[i%SEED_COLORS.length], seedR);
+  });
+
+  // Draw count number for larger amounts
+  if(count>=8){
+    ctx.font=`bold ${Math.round(PIT_R*0.45)}px 'Hiragino Sans','Meiryo',sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(count,x+1,y+1);
+    ctx.fillStyle='rgba(255,230,150,0.95)';ctx.fillText(count,x,y);
+  }
+}
+
+function getSeedPositions(n, containerR, seedR){
+  const positions=[];
+  if(n===1) return [{x:0,y:0}];
+  if(n===2) return [{x:-seedR*0.7,y:0},{x:seedR*0.7,y:0}];
+  if(n===3) return [{x:0,y:-seedR*0.8},{x:-seedR*0.8,y:seedR*0.5},{x:seedR*0.8,y:seedR*0.5}];
+  if(n===4) return [{x:-seedR*0.7,y:-seedR*0.7},{x:seedR*0.7,y:-seedR*0.7},{x:-seedR*0.7,y:seedR*0.7},{x:seedR*0.7,y:seedR*0.7}];
+  // Spiral arrangement
+  for(let i=0;i<n;i++){
+    const ring=Math.floor((Math.sqrt(i+1)-0.5));
+    const ringN=Math.max(1,ring*6);
+    const angle=(i/ringN)*Math.PI*2 + ring*0.3;
+    const dist=Math.min(ring*seedR*1.8, containerR-seedR*1.1);
+    positions.push({x:Math.cos(angle)*dist, y:Math.sin(angle)*dist});
+  }
+  return positions;
+}
+
+function drawBoard(){
+  drawBoardBg();
+  const vm=validMoves(seeds,turn);
+
+  // Draw all pits
+  for(let i=0;i<PITS;i++){
+    const canClick=!animating&&!gameOver&&!cpuPending&&(mode==='2p'||(mode==='cpu'&&turn===0));
+    const hl=canClick&&vm.includes(i)&&(highlightPit===i||(highlightPit===-1&&vm.includes(i)));
+    drawPit(i, hl&&vm.includes(i));
+  }
+  for(let i=7;i<7+PITS;i++){
+    const canClick2=!animating&&!gameOver&&!cpuPending&&(mode==='2p');
+    const hl2=canClick2&&vm.includes(i);
+    drawPit(i, hl2);
+  }
+  drawPit(6,false);
+  drawPit(13,false);
+
+  // Draw seeds on board (not animating ones)
+  const animSlots=new Set(animQueue.map(a=>a.slot));
+  // Actually for simplicity, draw all seeds from seeds[] and overlay animations
+  for(let i=0;i<14;i++){
+    if(i===6||i===13) drawSeeds(i,seeds[i]);
+    else drawSeeds(i, seeds[i]);
+  }
+
+  // Labels: player side indicators
+  const p1Y=BY+BH-PIT_R-PIT_GAP;
+  const p2Y=BY+PIT_R+PIT_GAP;
+  const labelX=BX+STORE_R+PIT_GAP+PIT_R*0.5;
+  ctx.font=`bold ${Math.round(PIT_R*0.38)}px 'Hiragino Sans','Meiryo',sans-serif`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+
+  const p1n=mode==='cpu'?t('you'):t('p1');
+  const p2n=mode==='cpu'?t('cpu'):t('p2');
+  ctx.fillStyle=turn===0&&!gameOver?'rgba(255,220,80,0.95)':'rgba(255,200,100,0.5)';
+  ctx.fillText('▲',labelX+BW*0.5-PIT_R*2.5,p1Y);
+  ctx.fillStyle=turn===0&&!gameOver?'rgba(255,220,80,0.9)':'rgba(200,160,80,0.5)';
+  ctx.fillText(p1n, labelX+BW*0.5-PIT_R*2.5, p1Y+PIT_R*0.7);
+
+  ctx.fillStyle=turn===1&&!gameOver?'rgba(255,120,80,0.95)':'rgba(255,120,80,0.45)';
+  ctx.fillText('▲', labelX+BW*0.5-PIT_R*2.5, p2Y);
+  ctx.fillStyle=turn===1&&!gameOver?'rgba(255,120,80,0.9)':'rgba(200,100,60,0.5)';
+  ctx.fillText(p2n, labelX+BW*0.5-PIT_R*2.5, p2Y-PIT_R*0.7);
+}
+
+function drawAnimSeeds(){
+  for(const a of animQueue){
+    if(a.done||a.cx===undefined)continue;
+    drawSeed(a.cx,a.cy,a.color,PIT_R*0.24*(0.8+0.4*(1-Math.abs(a.progress-0.5)*2)));
+  }
+}
+
+function drawUI(){
+  const cx=CW/2;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+
+  // Title
+  ctx.font=`bold ${Math.round(PIT_R*0.85)}px 'Hiragino Sans','Meiryo',sans-serif`;
+  ctx.fillStyle='#e2d4b0';
+  ctx.fillText(t('title'), cx, BY-PIT_R*1.5);
+
+  // Scores
+  ctx.font=`${Math.round(PIT_R*0.6)}px 'Hiragino Sans','Meiryo',sans-serif`;
+  const p1n=mode==='cpu'?t('you'):t('p1');
+  const p2n=mode==='cpu'?t('cpu'):t('p2');
+  ctx.textAlign='right';ctx.fillStyle='rgba(255,220,80,0.9)';
+  ctx.fillText(`${p1n}  ${scores.p1}`, cx-PIT_R*0.3, BY-PIT_R*0.7);
+  ctx.textAlign='center';ctx.fillStyle='rgba(150,120,70,0.7)';
+  ctx.fillText('—',cx,BY-PIT_R*0.7);
+  ctx.textAlign='left';ctx.fillStyle='rgba(255,120,80,0.9)';
+  ctx.fillText(`${scores.p2}  ${p2n}`, cx+PIT_R*0.3, BY-PIT_R*0.7);
+  ctx.textAlign='center';
+
+  // Seed count display on stores
+  const s0=seeds[6], s1=seeds[13];
+  ctx.font=`bold ${Math.round(PIT_R*0.5)}px 'Hiragino Sans','Meiryo',sans-serif`;
+  const {x:sx0,y:sy0}=pitPos(6);
+  const {x:sx1,y:sy1}=pitPos(13);
+  ctx.fillStyle='rgba(255,220,80,0.9)';
+  ctx.fillText(`${s0}`, sx0, sy0+STORE_R*1.35);
+  ctx.fillStyle='rgba(255,120,80,0.9)';
+  ctx.fillText(`${s1}`, sx1, sy1+STORE_R*1.35);
+
+  // Status
+  const sy=BY+BH+PIT_R*0.85;
+  ctx.font=`bold ${Math.round(PIT_R*0.65)}px 'Hiragino Sans','Meiryo',sans-serif`;
+
+  if(gameOver){
+    let msg,col;
+    if(winner===0){msg=mode==='cpu'?t('youWin'):t('p1Win');col='rgba(255,220,80,0.95)';}
+    else if(winner===1){msg=mode==='cpu'?t('cpuWin'):t('p2Win');col='rgba(255,120,80,0.95)';}
+    else{msg=t('draw');col='rgba(180,160,120,0.9)';}
+    ctx.fillStyle=col;ctx.fillText(msg,cx,sy);
+    ctx.font=`${Math.round(PIT_R*0.42)}px 'Hiragino Sans','Meiryo',sans-serif`;
+    ctx.fillStyle='rgba(150,120,70,0.7)';ctx.fillText(t('tap'),cx,sy+PIT_R*0.85);
+  }else if(freeTurnMsg>0){
+    freeTurnMsg--;
+    ctx.fillStyle='rgba(255,220,80,0.95)';ctx.fillText(statusMsg,cx,sy);
+  }else{
+    let msg,col;
+    if(cpuPending){msg=t('cpuTurn');col='rgba(255,120,80,0.9)';}
+    else if(animating){msg='';col='transparent';}
+    else if(turn===0){msg=mode==='cpu'?t('yourTurn'):t('p1Turn');col='rgba(255,220,80,0.9)';}
+    else{msg=mode==='cpu'?t('cpuTurn'):t('p2Turn');col='rgba(255,120,80,0.9)';}
+    ctx.fillStyle=col;ctx.fillText(msg,cx,sy);
+  }
+
+  // Hint
+  ctx.font=`${Math.round(PIT_R*0.32)}px 'Hiragino Sans','Meiryo',sans-serif`;
+  ctx.fillStyle='rgba(150,120,60,0.65)';
+  ctx.fillText(t('rules'),cx,BY+BH+PIT_R*1.75);
+}
+
+// ── Game loop ─────────────────────────────────────────────────────
+function gameLoop(ts){
+  if(!lastTs)lastTs=ts;
+  const dt=Math.min((ts-lastTs)/1000,.05);
+  lastTs=ts;
+  pulse+=0.1;
+  updateAnims(dt);
+
+  drawBg();
+  drawBoard();
+  drawAnimSeeds();
+  drawUI();
+  requestAnimationFrame(gameLoop);
+}
+
+// ── Input ─────────────────────────────────────────────────────────
+function pitFromXY(x,y){
+  const slots=[0,1,2,3,4,5,7,8,9,10,11,12];
+  for(const s of slots){
+    const p=pitPos(s);
+    const dx=x-p.x,dy=y-p.y;
+    if(dx*dx+dy*dy<=PIT_R*PIT_R) return s;
+  }
+  return -1;
+}
+
+canvas.addEventListener('mousemove',e=>{
+  const s=pitFromXY(e.clientX,e.clientY);
+  highlightPit=s;
+});
+canvas.addEventListener('mouseleave',()=>{highlightPit=-1;});
+canvas.addEventListener('click',e=>{
+  if(gameOver){initBoard();SND.startBGM?.('mahjong');return;}
+  const s=pitFromXY(e.clientX,e.clientY);
+  if(s>=0) playerMove(s);
+});
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  const t0=e.touches[0];
+  if(gameOver){initBoard();SND.startBGM?.('mahjong');return;}
+  const s=pitFromXY(t0.clientX,t0.clientY);
+  if(s>=0) playerMove(s);
+},{passive:false});
+window.addEventListener('resize',()=>{resize();});
+
+// ── Buttons ──────────────────────────────────────────────────────
+function addBtn(label,style,cb){
+  const b=document.createElement('button');
+  b.textContent=label;
+  b.style.cssText=`position:fixed;font-size:14px;font-weight:bold;border:none;border-radius:8px;cursor:pointer;padding:7px 15px;${style}`;
+  b.addEventListener('click',cb);
+  document.body.appendChild(b);
+  return b;
+}
+
+addBtn(t('back'),'background:#374151;color:#fff;top:10px;left:10px;',()=>{location.href='index.html';});
+const modeBtn=addBtn(t('modeVs'),'background:#7c3aed;color:#fff;bottom:18px;right:10px;',()=>{
+  mode=mode==='cpu'?'2p':'cpu';
+  modeBtn.textContent=mode==='cpu'?t('modeVs'):t('modeCpu');
+  initBoard();SND.startBGM?.('mahjong');
+});
+
+// ── Init ─────────────────────────────────────────────────────────
+resize();initBoard();
+
+if(typeof SND!=='undefined'){
+  SND.createBtn(document.body);
+  SND.startBGM('mahjong');
+}
+
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
