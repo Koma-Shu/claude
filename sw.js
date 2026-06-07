@@ -1,4 +1,4 @@
-const CACHE = 'arcade-v1.9';
+const CACHE = 'arcade-v2.0';
 
 // Base path of the SW (e.g. '/claude/' on GitHub Pages, '/' on root)
 const BASE = self.location.pathname.replace(/sw\.js$/, '');
@@ -25,7 +25,12 @@ const GAME_FILES = [
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(GAME_FILES))
+    caches.open(CACHE).then(c => Promise.all(
+      // Bypass HTTP cache on pre-cache so the very first stored copy is fresh
+      GAME_FILES.map(f => fetch(new Request(f, { cache: 'reload' }))
+        .then(res => res && res.status === 200 ? c.put(f, res) : null)
+        .catch(() => null))
+    ))
   );
   self.skipWaiting();
 });
@@ -46,10 +51,12 @@ self.addEventListener('fetch', e => {
   if (url.hostname !== self.location.hostname) return;
 
   // Game & static files → network first (always fresh when online),
-  // fall back to cache when offline. This guarantees updates show up
-  // immediately instead of being pinned to a stale cached copy.
+  // fall back to cache when offline. `cache: 'reload'` bypasses the browser's
+  // HTTP cache so we never get a stale copy (GitHub Pages sets max-age=600);
+  // this guarantees updates show up immediately instead of being pinned to an
+  // old cached file.
   e.respondWith(
-    fetch(e.request).then(res => {
+    fetch(e.request, { cache: 'reload' }).then(res => {
       if (res && res.status === 200) {
         const clone = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, clone));
