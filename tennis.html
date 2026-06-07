@@ -754,12 +754,9 @@ function updateBall() {
     }
   }
 
-  // Ball way out (only before first bounce — after valid bounce, double-bounce handles the point)
-  if (ball.yh > 0 && ballBounces === 0 && (ball.cx < -1.0 || ball.cx > 1.0)) {
-    if (serveInFlight) { serveInFlight = false; serveFault(); return; }
-    endPoint((lastHitBy === 0) ? 1 : 0, T('out'));
-    return;
-  }
+  // Sideline out is judged only on bounce (see lateral check above), not in
+  // mid-air — a ball crossing cx=±1 while airborne may still be playable / land
+  // back in. Depth checks below remain airborne since those balls can't return.
   if (ball.cz > 1.05 && ball.yh > 0 && ballBounces === 0) {
     if (serveInFlight) { serveInFlight = false; serveFault(); return; }
     endPoint(lastHitBy === 0 ? 1 : 0, T('out'));
