@@ -2,8 +2,11 @@
 (function(w) {
   'use strict';
 
-  let _ctx = null, _master = null;
-  let _muted = localStorage.getItem('snd_muted') === '1';
+  let _ctx = null, _master = null, _bgmGain = null, _sfxGain = null;
+  // Separate mute states for BGM and SFX (migrate legacy combined key)
+  const _legacy = localStorage.getItem('snd_muted') === '1';
+  let _bgmMuted = (localStorage.getItem('snd_bgm_muted') ?? (_legacy ? '1' : '0')) === '1';
+  let _sfxMuted = (localStorage.getItem('snd_sfx_muted') ?? (_legacy ? '1' : '0')) === '1';
   let _bgmRunning = false, _bgmTimer = null, _bgmTheme = 'title';
 
   const N = {
@@ -18,19 +21,25 @@
       try {
         _ctx = new (window.AudioContext || window.webkitAudioContext)();
         _master = _ctx.createGain();
-        _master.gain.value = _muted ? 0 : 0.55;
+        _master.gain.value = 0.55;
         _master.connect(_ctx.destination);
+        _bgmGain = _ctx.createGain();
+        _bgmGain.gain.value = _bgmMuted ? 0 : 1;
+        _bgmGain.connect(_master);
+        _sfxGain = _ctx.createGain();
+        _sfxGain.gain.value = _sfxMuted ? 0 : 1;
+        _sfxGain.connect(_master);
       } catch(e) { return null; }
     }
     if (_ctx.state === 'suspended') _ctx.resume();
     return _ctx;
   }
 
-  function _osc(freq, t0, dur, type, vol, atk, rel) {
+  function _osc(freq, t0, dur, type, vol, atk, rel, bus) {
     const c = _ac(); if (!c || !freq) return;
     const osc = c.createOscillator();
     const g   = c.createGain();
-    osc.connect(g); g.connect(_master);
+    osc.connect(g); g.connect(bus || _sfxGain);
     osc.type = type;
     osc.frequency.setValueAtTime(freq, t0);
     g.gain.setValueAtTime(0, t0);
@@ -40,7 +49,7 @@
     osc.start(t0);
     osc.stop(t0 + dur + 0.02);
   }
-  function _b(f,t,d,type='square',v=0.18,a=0.005,r=0.04){_osc(f,t,d,type,v,a,r);}
+  function _b(f,t,d,type='square',v=0.18,a=0.005,r=0.04,bus){_osc(f,t,d,type,v,a,r,bus);}
 
   const sfx = {
     place() {
@@ -353,9 +362,16 @@
   function _scheduleSeq(seq, key, t0, vol, waveType) {
     const beat = 60 / seq.bpm;
     let t = t0, total = 0;
+    // Bass uses a softer sine voice with gentle envelope so it sits smoothly
+    // behind the melody instead of buzzing; melody keeps its brighter wave.
+    const isBass = key === 'bass';
+    const wave = isBass ? 'sine' : waveType;
+    const atk  = isBass ? 0.02 : 0.004;
+    const rel  = isBass ? 0.08 : 0.04;
+    const tail = isBass ? 0.96 : 0.88;
     for (const [f, d] of seq[key]) {
       const dur = d * beat;
-      if (f) _b(f, t, dur * 0.88, waveType, vol, 0.004, 0.04);
+      if (f) _b(f, t, dur * tail, wave, vol, atk, rel, _bgmGain);
       t += dur; total += dur;
     }
     return total;
@@ -365,13 +381,13 @@
     if (!_bgmRunning || !_ctx) return;
     const seq = THEMES[_bgmTheme] || THEMES.title;
     const now = _ctx.currentTime;
-    const dur = _scheduleSeq(seq, 'mel',  now, 0.14, 'square');
-    _scheduleSeq(seq, 'bass', now, 0.11, 'triangle');
+    const dur = _scheduleSeq(seq, 'mel',  now, 0.13, 'square');
+    _scheduleSeq(seq, 'bass', now, 0.075, 'sine');
     _bgmTimer = setTimeout(_scheduleLoop, Math.max(50, (dur - 0.25) * 1000));
   }
 
   function startBGM(theme) {
-    if (_muted) return;
+    if (_bgmMuted) return;
     _bgmTheme = theme || _bgmTheme;
     _bgmRunning = true;
     if (_bgmTimer) { clearTimeout(_bgmTimer); _bgmTimer = null; }
@@ -384,47 +400,75 @@
     if (_bgmTimer) { clearTimeout(_bgmTimer); _bgmTimer = null; }
   }
 
-  function setMuted(v) {
-    _muted = v;
-    localStorage.setItem('snd_muted', v ? '1' : '0');
+  function setBgmMuted(v) {
+    _bgmMuted = v;
+    localStorage.setItem('snd_bgm_muted', v ? '1' : '0');
     _ac();
-    if (_master) {
-      _master.gain.cancelScheduledValues(_ctx.currentTime);
-      _master.gain.setTargetAtTime(v ? 0 : 0.55, _ctx.currentTime, 0.1);
+    if (_bgmGain) {
+      _bgmGain.gain.cancelScheduledValues(_ctx.currentTime);
+      _bgmGain.gain.setTargetAtTime(v ? 0 : 1, _ctx.currentTime, 0.05);
     }
-    if (v) stopBGM();
+    if (v) stopBGM(); else startBGM();
   }
 
-  function toggleMute() { setMuted(!_muted); return _muted; }
-  function isMuted() { return _muted; }
+  function setSfxMuted(v) {
+    _sfxMuted = v;
+    localStorage.setItem('snd_sfx_muted', v ? '1' : '0');
+    _ac();
+    if (_sfxGain) {
+      _sfxGain.gain.cancelScheduledValues(_ctx.currentTime);
+      _sfxGain.gain.setTargetAtTime(v ? 0 : 1, _ctx.currentTime, 0.05);
+    }
+  }
+
+  function toggleBgm() { setBgmMuted(!_bgmMuted); return _bgmMuted; }
+  function toggleSfx() { setSfxMuted(!_sfxMuted); return _sfxMuted; }
+  // Back-compat: isMuted reflects BGM state; toggleMute toggles both together
+  function isMuted() { return _bgmMuted && _sfxMuted; }
+  function isBgmMuted() { return _bgmMuted; }
+  function isSfxMuted() { return _sfxMuted; }
+  function toggleMute() { const m = !isMuted(); setBgmMuted(m); setSfxMuted(m); return m; }
 
   function createBtn(parent) {
-    if (document.getElementById('snd-btn')) return;
-    const btn = document.createElement('button');
-    btn.id = 'snd-btn';
-    btn.style.cssText = [
+    if (document.getElementById('snd-btns')) return;
+    const wrap = document.createElement('div');
+    wrap.id = 'snd-btns';
+    wrap.style.cssText = [
       'position:fixed','bottom:14px','right:14px',
-      'background:#1e1e2e','border:1px solid #444','border-radius:6px',
-      'color:#888','font-size:0.85rem','padding:5px 10px',
-      'cursor:pointer','z-index:999','font-family:monospace',
-      'letter-spacing:1px','transition:color .15s,border-color .15s'
+      'display:flex','gap:6px','z-index:999'
     ].join(';');
-    const upd = () => {
-      const m = _muted;
-      btn.textContent = m ? '🔇' : '♪';
-      btn.title = m ? 'Unmute' : 'Mute';
-      btn.style.color = m ? '#555' : '#00d4aa';
-      btn.style.borderColor = m ? '#333' : '#00d4aa';
-    };
-    upd();
-    btn.addEventListener('click', () => {
-      const m = toggleMute();
+
+    function mkBtn(id, label, getMuted, onToggle) {
+      const btn = document.createElement('button');
+      btn.id = id;
+      btn.style.cssText = [
+        'background:#1e1e2e','border:1px solid #444','border-radius:6px',
+        'color:#888','font-size:0.72rem','padding:5px 9px',
+        'cursor:pointer','font-family:monospace',
+        'letter-spacing:1px','transition:color .15s,border-color .15s'
+      ].join(';');
+      const upd = () => {
+        const m = getMuted();
+        btn.textContent = (m ? '🔇 ' : '♪ ') + label;
+        btn.title = (m ? 'Unmute ' : 'Mute ') + label;
+        btn.style.color = m ? '#555' : '#00d4aa';
+        btn.style.borderColor = m ? '#333' : '#00d4aa';
+      };
       upd();
-      if (!m) startBGM();
-    });
-    (parent || document.body).appendChild(btn);
-    return btn;
+      btn.addEventListener('click', () => { onToggle(); upd(); });
+      wrap.appendChild(btn);
+      return upd;
+    }
+
+    mkBtn('snd-btn-bgm', 'BGM', isBgmMuted, toggleBgm);
+    mkBtn('snd-btn-sfx', 'SE',  isSfxMuted, toggleSfx);
+    (parent || document.body).appendChild(wrap);
+    return wrap;
   }
 
-  w.SND = { sfx, startBGM, stopBGM, toggleMute, isMuted, createBtn };
+  w.SND = {
+    sfx, startBGM, stopBGM,
+    setBgmMuted, setSfxMuted, toggleBgm, toggleSfx,
+    isBgmMuted, isSfxMuted, isMuted, toggleMute, createBtn
+  };
 })(window);
