@@ -109,7 +109,9 @@ function cmp(a,b){
 function render(){
   $('title').textContent=t('title');$('you-lbl').textContent=t('you');$('cpu-lbl').textContent=t('cpu');
   $('chips').textContent=`💰 ${t('chips')}: ${chips}`;
-  const yEl=$('you'),cEl=$('cpu');yEl.innerHTML='';cEl.innerHTML='';
+  const yEl=$('you'),cEl=$('cpu');
+  if(phase==='dealing'){$('yourrank').textContent='';$('hint').textContent='';return;}
+  yEl.innerHTML='';cEl.innerHTML='';
   you.forEach((c,i)=>{
     const el=C.cardEl(c,true);
     if(phase==='draw'){el.classList.add('playable');if(held[i])el.classList.add('held');
@@ -124,6 +126,8 @@ function render(){
   const ctr=$('controls');ctr.innerHTML='';
   if(phase==='deal'||phase==='over'){
     const b=document.createElement('button');b.className='b-deal';b.textContent=t('deal');b.onclick=deal;ctr.appendChild(b);
+  }else if(phase==='dealing'){
+    // no controls during animation
   }else if(phase==='draw'){
     const b=document.createElement('button');b.className='b-draw';b.textContent=t('draw');b.onclick=drawPhase;ctr.appendChild(b);
   }
@@ -134,9 +138,27 @@ function deal(){
   you=[deck.pop(),deck.pop(),deck.pop(),deck.pop(),deck.pop()];
   cpu=[deck.pop(),deck.pop(),deck.pop(),deck.pop(),deck.pop()];
   held=[false,false,false,false,false];
-  phase='draw';msgKey='';msgCls='';
-  SND.sfx.flip&&SND.sfx.flip();
-  render();
+  phase='dealing';msgKey='';msgCls='';
+  render(); // show empty hands + no controls
+
+  // Staggered deal: 5 CPU face-down, then 5 yours face-down→flip
+  const yEl=$('you'),cEl=$('cpu');
+  yEl.innerHTML='';cEl.innerHTML='';
+  for(let i=0;i<5;i++){
+    const el=C.cardEl(cpu[i],false);
+    cEl.appendChild(el);
+    C.dealIn(el, i*80);
+  }
+  you.forEach((card,i)=>{
+    const el=C.cardEl(card,false);
+    yEl.appendChild(el);
+    C.dealIn(el, 250+i*100, ()=>{
+      C.flipCard(el,card,()=>{
+        SND.sfx.flip&&SND.sfx.flip();
+        if(i===4){ phase='draw'; render(); }
+      });
+    });
+  });
 }
 function cpuDraw(){
   // keep cards in best groups: hold pairs+, hold flush/straight draws simply

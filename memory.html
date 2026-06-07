@@ -17,8 +17,8 @@
   .sc.act{outline:2px solid #d4b0ff;}
   .turn{font-size:.85rem;opacity:.85;margin-bottom:12px;min-height:20px;}
   .grid{display:grid;gap:8px;justify-content:center;}
-  .cell{cursor:pointer;}
-  .cell.matched{opacity:0;pointer-events:none;transition:opacity .4s;}
+  .cell{cursor:pointer;transition:opacity .4s;}
+  .cell.matched{opacity:0;pointer-events:none;}
   .controls{margin-top:16px;display:flex;gap:12px;}
   button{font-family:inherit;font-size:.9rem;font-weight:bold;border:none;border-radius:10px;padding:10px 22px;cursor:pointer;}
   .b-new{background:#d4b0ff;color:#222;}.b-size{background:#7c3aed;color:#fff;}
@@ -54,7 +54,8 @@ let lang=localStorage.getItem('lang')||'ja';
 const t=k=>(L[k]&&L[k][lang])||k;
 const C=window.CARDS,$=id=>document.getElementById(id);
 let cards,flipped,matched,turn,scores,busy,pairsN=8;
-let cpuMem={}; // id->index seen
+let cellEls=[];
+let cpuMem={};
 
 function setup(){
   const deck=C.shuffle(C.makeDeck()).slice(0,pairsN);
@@ -64,10 +65,27 @@ function setup(){
   flipped=[];matched=new Array(cards.length).fill(false);
   turn=0;scores=[0,0];busy=false;cpuMem={};
   $('winmsg').textContent='';
-  render();
+  buildGrid();
+  renderStatus();
 }
+
 function cols(){const n=cards.length;return n<=16?4:(n<=20?5:6);}
-function render(){
+
+function buildGrid(){
+  const g=$('grid');g.innerHTML='';
+  g.style.gridTemplateColumns=`repeat(${cols()},var(--cw))`;
+  cellEls=[];
+  cards.forEach((c,i)=>{
+    const el=C.cardEl(c,false);
+    el.classList.add('cell');
+    el.onclick=()=>pick(i);
+    g.appendChild(el);
+    cellEls.push(el);
+    C.dealIn(el, i*30);
+  });
+}
+
+function renderStatus(){
   $('title').textContent=t('title');
   $('newbtn').textContent=t('newgame');
   $('sizebtn').textContent=`${pairsN} ${t('pairs')}`;
@@ -76,44 +94,59 @@ function render(){
   $('sc-you').classList.toggle('act',turn===0);
   $('sc-cpu').classList.toggle('act',turn===1);
   $('turn').textContent=turn===0?t('yourturn'):t('cputurn');
-  const g=$('grid');g.innerHTML='';g.style.gridTemplateColumns=`repeat(${cols()},var(--cw))`;
-  cards.forEach((c,i)=>{
-    const faceUp=matched[i]||flipped.includes(i);
-    const el=C.cardEl(c,faceUp);
-    el.classList.add('cell');if(matched[i])el.classList.add('matched');
-    if(turn===0&&!busy&&!faceUp&&!matched[i]) el.onclick=()=>pick(i);
-    g.appendChild(el);
+  // update clickability
+  cellEls.forEach((el,i)=>{
+    el.style.cursor=(turn===0&&!busy&&!flipped.includes(i)&&!matched[i])?'pointer':'default';
   });
 }
+
 function pick(i){
-  if(busy||flipped.includes(i)||matched[i])return;
-  flipped.push(i);cpuMem[cards[i].id]=cpuMem[cards[i].id]||[];
-  if(!cpuMem[cards[i].id].includes(i))cpuMem[cards[i].id].push(i);
-  SND.sfx.flip&&SND.sfx.flip();render();
-  if(flipped.length===2)resolve();
+  if(busy||flipped.includes(i)||matched[i]||turn!==0)return;
+  flipOpen(i,()=>{
+    if(flipped.length===2) resolve();
+  });
 }
+
+function flipOpen(i, cb){
+  flipped.push(i);
+  remember(i);
+  SND.sfx.flip&&SND.sfx.flip();
+  C.flipCard(cellEls[i],cards[i],cb);
+}
+
 function resolve(){
   busy=true;
   const[a,b]=flipped;
   if(cards[a].id===cards[b].id){
+    // Match
     setTimeout(()=>{
-      matched[a]=matched[b]=true;scores[turn]++;flipped=[];busy=false;
-      SND.sfx.pointWin&&SND.sfx.pointWin();render();
+      matched[a]=matched[b]=true;
+      scores[turn]++;
+      flipped=[];busy=false;
+      cellEls[a].classList.add('matched');
+      cellEls[b].classList.add('matched');
+      SND.sfx.pointWin&&SND.sfx.pointWin();
+      renderStatus();
       if(matched.every(x=>x)){endGame();return;}
-      if(turn===1)setTimeout(cpuTurn,600); // CPU goes again
+      if(turn===1) setTimeout(cpuTurn,600);
     },550);
   }else{
+    // No match — flip both back
     setTimeout(()=>{
       flipped=[];turn=1-turn;busy=false;
-      SND.sfx.discard&&SND.sfx.discard();render();
-      if(turn===1)setTimeout(cpuTurn,600);
+      SND.sfx.discard&&SND.sfx.discard();
+      C.flipBack(cellEls[a]);
+      C.flipBack(cellEls[b]);
+      renderStatus();
+      if(turn===1) setTimeout(cpuTurn,700);
     },900);
   }
 }
+
 function cpuTurn(){
   if(matched.every(x=>x))return;
   busy=true;
-  // Find a known pair
+  renderStatus();
   let known=null;
   for(const id in cpuMem){
     const idxs=cpuMem[id].filter(i=>!matched[i]);
@@ -124,15 +157,21 @@ function cpuTurn(){
   if(known){[a,b]=known;}
   else{
     a=avail[Math.floor(Math.random()*avail.length)];
-    // try to match a with memory
     const memMatch=(cpuMem[cards[a].id]||[]).filter(i=>i!==a&&!matched[i]);
-    if(memMatch.length&&Math.random()<0.85)b=memMatch[0];
+    if(memMatch.length&&Math.random()<0.85) b=memMatch[0];
     else{const rest=avail.filter(i=>i!==a);b=rest[Math.floor(Math.random()*rest.length)];}
   }
-  flipped=[a];remember(a);SND.sfx.flip&&SND.sfx.flip();render();
-  setTimeout(()=>{flipped=[a,b];remember(b);SND.sfx.flip&&SND.sfx.flip();render();setTimeout(resolve,400);},700);
+  flipOpen(a,()=>{
+    setTimeout(()=>{
+      flipOpen(b,()=>{
+        setTimeout(resolve,400);
+      });
+    },700);
+  });
 }
+
 function remember(i){const id=cards[i].id;cpuMem[id]=cpuMem[id]||[];if(!cpuMem[id].includes(i))cpuMem[id].push(i);}
+
 function endGame(){
   SND.stopBGM&&SND.stopBGM();
   const m=$('winmsg');
@@ -140,6 +179,7 @@ function endGame(){
   else if(scores[1]>scores[0]){m.textContent=t('lose');m.className='win-msg l';SND.sfx.lose&&SND.sfx.lose();}
   else{m.textContent=t('draw');m.className='win-msg d';SND.sfx.point&&SND.sfx.point();}
 }
+
 $('newbtn').onclick=()=>{SND.startBGM&&SND.startBGM('game');setup();};
 $('sizebtn').onclick=()=>{pairsN=pairsN===8?12:(pairsN===12?18:8);setup();};
 

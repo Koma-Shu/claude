@@ -52,6 +52,7 @@ const L={
   safe:{ja:'あがり',en:'SAFE'},loser:{ja:'ババを持って負け…',en:'stuck with the Old Maid…'},
   youlose:{ja:'あなたがババ！負け…',en:'You got the Old Maid! You lose…'},
   youwin:{ja:'あがり！勝ち！',en:'You\'re safe — you win!'},finished:{ja:'ゲーム終了',en:'Game Over'},
+  drew:{ja:'が引いた！',en:' drew!'},pair:{ja:'✨ ペア成立！',en:'✨ PAIR!'},
 };
 let lang=localStorage.getItem('lang')||'ja';
 const t=k=>(L[k]&&L[k][lang])||k;
@@ -137,24 +138,42 @@ function cpuDraw(){
 }
 function takeCard(drawer,from,idx){
   const card=hands[from].splice(idx,1)[0];
-  hands[drawer].push(card);
   SND.sfx.draw&&SND.sfx.draw();
-  // check pair formed
-  const match=hands[drawer].find(c=>c.value===card.value&&c.id!==card.id);
-  if(match){
-    hands[drawer].splice(hands[drawer].indexOf(match),1);
-    hands[drawer].splice(hands[drawer].indexOf(card),1);
-    SND.sfx.pointWin&&SND.sfx.pointWin();
-  }
-  shuffleHand(hands[drawer]);
-  phase='turn';victim=-1;
-  render();
-  checkSafe();
-  if(gameOver)return;
-  // advance turn
-  turn=nextActive(turn);
-  render();
-  setTimeout(()=>{ if(turn===0)startTurn(); else {startTurn();} },650);
+
+  // Flash drawn card face-up in draw zone
+  const dz=$('drawzone');dz.innerHTML='';
+  const lbl=document.createElement('div');lbl.className='draw-lbl';
+  lbl.textContent=(drawer===0?t('you'):'CPU '+drawer)+t('drew');
+  dz.appendChild(lbl);
+  const flashEl=C.cardEl(card,true);
+  flashEl.classList.add('glow-gold');
+  flashEl.style.setProperty('--cw','56px');flashEl.style.setProperty('--ch','80px');
+  dz.appendChild(flashEl);
+
+  setTimeout(()=>{
+    hands[drawer].push(card);
+    const match=hands[drawer].find(c=>c.value===card.value&&c.id!==card.id);
+
+    const afterPair=()=>{
+      shuffleHand(hands[drawer]);
+      phase='turn';victim=-1;
+      render();
+      checkSafe();
+      if(gameOver)return;
+      turn=nextActive(turn);
+      render();
+      setTimeout(startTurn,650);
+    };
+
+    if(match){
+      hands[drawer].splice(hands[drawer].indexOf(match),1);
+      hands[drawer].splice(hands[drawer].indexOf(card),1);
+      SND.sfx.pointWin&&SND.sfx.pointWin();
+      C.showOverlay(t('pair'),[card,match],'#7dffb0',1400,afterPair);
+    } else {
+      afterPair();
+    }
+  },650);
 }
 function checkSafe(){
   let changed=false;

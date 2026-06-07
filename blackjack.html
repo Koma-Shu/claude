@@ -68,6 +68,7 @@ let lang=localStorage.getItem('lang')||'ja';
 const t=k=>(L[k]&&L[k][lang])||k;
 const C=window.CARDS;
 let deck,player,dealer,chips=500,bet=100,phase='bet',msgKey='',msgCls='';
+let holeEl=null, dealing=false;
 const $=id=>document.getElementById(id);
 
 function handValue(h){
@@ -78,77 +79,143 @@ function handValue(h){
 }
 function isBJ(h){return h.length===2&&handValue(h)===21;}
 
-function render(){
+function renderControls(){
   $('title').textContent=t('title');$('dealer-lbl').textContent=t('dealer');$('player-lbl').textContent=t('player');
   $('chips').textContent=`💰 ${t('chips')}: ${chips}`;
   $('betamt').textContent=bet;
-  // hands
-  const dEl=$('dealer'),pEl=$('player');dEl.innerHTML='';pEl.innerHTML='';
-  dealer.forEach((c,i)=>{ const faceUp=(phase!=='player')||i===0; dEl.appendChild(C.cardEl(c,faceUp)); });
-  player.forEach(c=>pEl.appendChild(C.cardEl(c,true)));
   $('pscore').textContent=player.length?handValue(player):'–';
   if(phase==='player'&&dealer.length) $('dscore').textContent=handValue([dealer[0]])+' +?';
   else $('dscore').textContent=dealer.length?handValue(dealer):'–';
-  // msg
   const m=$('msg');m.textContent=msgKey?t(msgKey):'';m.className='msg '+msgCls;
-  // controls
   const ctr=$('controls');ctr.innerHTML='';
-  $('betrow').style.display=phase==='bet'?'flex':'none';
+  $('betrow').style.display=(phase==='bet')?'flex':'none';
   if(phase==='bet'){
     const b=document.createElement('button');b.className='b-deal';b.textContent=t('deal');
     b.onclick=startRound;ctr.appendChild(b);
-  }else if(phase==='player'){
+  } else if(phase==='player'&&!dealing){
     const h=document.createElement('button');h.className='b-hit';h.textContent=t('hit');h.onclick=hit;
     const s=document.createElement('button');s.className='b-stand';s.textContent=t('stand');s.onclick=stand;
     ctr.appendChild(h);ctr.appendChild(s);
-  }else if(phase==='over'){
+  } else if(phase==='over'){
     const b=document.createElement('button');b.className='b-deal';b.textContent=t('deal');
-    b.onclick=()=>{phase='bet';msgKey='';render();};ctr.appendChild(b);
+    b.onclick=()=>{phase='bet';msgKey='';renderControls();};ctr.appendChild(b);
   }
 }
 
-function changeBet(d){ bet=Math.max(50,Math.min(chips,bet+d)); render(); }
+function changeBet(d){ bet=Math.max(50,Math.min(chips,bet+d)); renderControls(); }
+
+function dealOneCard(container, card, faceUp, onDone){
+  const el=C.cardEl(card,false);
+  container.appendChild(el);
+  C.dealIn(el, 0, ()=>{
+    if(faceUp){ C.flipCard(el,card,()=>{ SND.sfx.flip&&SND.sfx.flip(); if(onDone)onDone(el); }); }
+    else { if(onDone)onDone(el); }
+  });
+}
 
 function startRound(){
+  if(dealing)return;
   if(chips<bet)bet=chips;
-  if(chips<=0){chips=500;}
+  if(chips<=0)chips=500;
   deck=C.shuffle(C.makeDeck());
-  player=[deck.pop(),deck.pop()];dealer=[deck.pop(),deck.pop()];
-  phase='player';msgKey='';msgCls='';
-  SND.sfx.flip&&SND.sfx.flip();
-  if(isBJ(player)||isBJ(dealer)){ phase='dealer'; setTimeout(dealerPlay,300); }
-  render();
-}
-function hit(){
-  player.push(deck.pop());SND.sfx.flip&&SND.sfx.flip();
-  if(handValue(player)>21){ finish(); } else render();
-}
-function stand(){ phase='dealer'; render(); setTimeout(dealerPlay,350); }
-function dealerPlay(){
-  if(handValue(dealer)<17 && handValue(player)<=21 && !isBJ(player)){
-    dealer.push(deck.pop());SND.sfx.flip&&SND.sfx.flip();render();setTimeout(dealerPlay,500);
-  } else finish();
-}
-function finish(){
-  phase='over';
-  const pv=handValue(player),dv=handValue(dealer);
-  const pbj=isBJ(player),dbj=isBJ(dealer);
-  let outcome; // 1 win, 0 push, -1 lose; payout multiplier
-  if(pv>21){outcome=-1;msgKey='bust';}
-  else if(pbj&&!dbj){outcome=1.5;msgKey='bj';}
-  else if(dbj&&!pbj){outcome=-1;msgKey='lose';}
-  else if(dv>21){outcome=1;msgKey='dbust';}
-  else if(pv>dv){outcome=1;msgKey='win';}
-  else if(pv<dv){outcome=-1;msgKey='lose';}
-  else {outcome=0;msgKey='push';}
-  if(outcome>0){chips+=Math.floor(bet*outcome);msgCls='win';SND.sfx.win&&SND.sfx.win();}
-  else if(outcome<0){chips-=bet;msgCls='lose';SND.sfx.lose&&SND.sfx.lose();}
-  else {msgCls='push';SND.sfx.point&&SND.sfx.point();}
-  bet=Math.min(bet,Math.max(50,chips));
-  render();
+  player=[deck.pop(),deck.pop()];
+  dealer=[deck.pop(),deck.pop()];
+  phase='player'; msgKey=''; msgCls='';
+  dealing=true;
+  renderControls();
+
+  const dEl=$('dealer'),pEl=$('player');
+  const oldEls=[...Array.from(dEl.children),...Array.from(pEl.children)];
+  holeEl=null;
+
+  const doNewDeal=()=>{
+    dEl.innerHTML='';pEl.innerHTML='';
+    // P1 → D1 → P2 → D2(hole, face-down)
+    dealOneCard(pEl,player[0],true,()=>{
+      dealOneCard(dEl,dealer[0],true,()=>{
+        dealOneCard(pEl,player[1],true,()=>{
+          dealOneCard(dEl,dealer[1],false,el=>{
+            holeEl=el;
+            dealing=false;
+            if(isBJ(player)||isBJ(dealer)){phase='dealer';setTimeout(dealerPlay,300);}
+            renderControls();
+          });
+        });
+      });
+    });
+  };
+
+  if(oldEls.length===0){ doNewDeal(); return; }
+  let exited=0;
+  oldEls.forEach(el=>C.exitCard(el,()=>{
+    exited++;
+    if(exited===oldEls.length) setTimeout(doNewDeal,80);
+  }));
 }
 
-player=[];dealer=[];render();
+function hit(){
+  if(dealing||phase!=='player')return;
+  dealing=true;
+  renderControls();
+  const card=deck.pop();player.push(card);
+  dealOneCard($('player'),card,true,()=>{
+    dealing=false;
+    $('pscore').textContent=handValue(player);
+    if(handValue(player)>21){ finish(); } else renderControls();
+  });
+}
+
+function stand(){
+  if(dealing||phase!=='player')return;
+  phase='dealer';
+  renderControls();
+  // Reveal hole card
+  C.flipCard(holeEl,dealer[1],()=>{
+    SND.sfx.flip&&SND.sfx.flip();
+    $('dscore').textContent=handValue(dealer);
+    setTimeout(dealerPlay,450);
+  });
+}
+
+function dealerPlay(){
+  if(handValue(dealer)<17&&handValue(player)<=21&&!isBJ(player)){
+    dealing=true;
+    const card=deck.pop();dealer.push(card);
+    dealOneCard($('dealer'),card,true,()=>{
+      dealing=false;
+      $('dscore').textContent=handValue(dealer);
+      setTimeout(dealerPlay,500);
+    });
+  } else finish();
+}
+
+function finish(){
+  // Reveal hole if still face-down (e.g. player bust before stand)
+  const doFinish=()=>{
+    phase='over';
+    const pv=handValue(player),dv=handValue(dealer);
+    const pbj=isBJ(player),dbj=isBJ(dealer);
+    let outcome;
+    if(pv>21){outcome=-1;msgKey='bust';}
+    else if(pbj&&!dbj){outcome=1.5;msgKey='bj';}
+    else if(dbj&&!pbj){outcome=-1;msgKey='lose';}
+    else if(dv>21){outcome=1;msgKey='dbust';}
+    else if(pv>dv){outcome=1;msgKey='win';}
+    else if(pv<dv){outcome=-1;msgKey='lose';}
+    else{outcome=0;msgKey='push';}
+    if(outcome>0){chips+=Math.floor(bet*outcome);msgCls='win';SND.sfx.win&&SND.sfx.win();}
+    else if(outcome<0){chips-=bet;msgCls='lose';SND.sfx.lose&&SND.sfx.lose();}
+    else{msgCls='push';SND.sfx.point&&SND.sfx.point();}
+    bet=Math.min(bet,Math.max(50,chips));
+    $('dscore').textContent=handValue(dealer);
+    renderControls();
+  };
+  if(holeEl&&holeEl.classList.contains('back')){
+    C.flipCard(holeEl,dealer[1],()=>{ SND.sfx.flip&&SND.sfx.flip(); doFinish(); });
+  } else doFinish();
+}
+
+player=[];dealer=[];renderControls();
 if(typeof SND!=='undefined'){SND.createBtn(document.body);SND.startBGM('game');}
 </script>
 </body>
