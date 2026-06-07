@@ -1,4 +1,4 @@
-const CACHE = 'arcade-v1.7';
+const CACHE = 'arcade-v1.8';
 
 // Base path of the SW (e.g. '/claude/' on GitHub Pages, '/' on root)
 const BASE = self.location.pathname.replace(/sw\.js$/, '');
@@ -45,14 +45,16 @@ self.addEventListener('fetch', e => {
   // Supabase / external API → network only
   if (url.hostname !== self.location.hostname) return;
 
-  // Game & static files → cache first, update in background
+  // Game & static files → network first (always fresh when online),
+  // fall back to cache when offline. This guarantees updates show up
+  // immediately instead of being pinned to a stale cached copy.
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
+    fetch(e.request).then(res => {
       if (res && res.status === 200) {
         const clone = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, clone));
       }
       return res;
-    }))
+    }).catch(() => caches.match(e.request))
   );
 });
