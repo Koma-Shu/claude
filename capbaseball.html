@@ -614,9 +614,7 @@ function startPitchAnim(zone,pt,onArrive){
   cancelAnim();
   const p=PITCHES[pt];
   const actual=clampPos(zonePos(zone));
-  // Apparent: shifted opposite to actual break
-  const apparent=clampPos({x:actual.x+p.aC*ZW,y:actual.y+p.aR*ZH});
-  pitchActualPos=actual; pitchApparentPos=apparent;
+  pitchActualPos=actual; pitchApparentPos=actual;
   animDur=900/p.spd;
   animStart=performance.now();
   capAngle=0; capT=0;
@@ -624,20 +622,10 @@ function startPitchAnim(zone,pt,onArrive){
 
   function step(now){
     capT=Math.min((now-animStart)/animDur,1);
-    let px,py;
-    if(capT<BREAK_T){
-      const s=ease(capT/BREAK_T);
-      px=lerp(CAP_START.x,apparent.x,s);
-      py=lerp(CAP_START.y,apparent.y,s);
-    } else {
-      const s=ease((capT-BREAK_T)/(1-BREAK_T));
-      const px1=lerp(CAP_START.x,apparent.x,1);
-      const py1=lerp(CAP_START.y,apparent.y,1);
-      px=lerp(px1,actual.x,s);
-      py=lerp(py1,actual.y,s);
-    }
-    capAngle+=0.28; // spin speed around horizontal axis
-    // Axis tilt per pitch type: straight=0, curve tilts CCW, slider tilts CW, fork slight
+    const s=ease(capT);
+    const px=lerp(CAP_START.x,actual.x,s);
+    const py=lerp(CAP_START.y,actual.y,s);
+    capAngle+=0.28;
     const axisTilt={straight:0,curve:Math.PI*.18,slider:-Math.PI*.15,fork:Math.PI*.10,sinker:Math.PI*.08}[pt]||0;
     const r=lerp(4,23,ease(capT));
     drawField(px,py,r,true,capAngle,axisTilt);
@@ -651,7 +639,6 @@ function startPitchAnim(zone,pt,onArrive){
     } else {
       arrived=true; animRaf=null;
       drawField(actual.x,actual.y,22,true);
-      // Small delay: lets a last-moment click register before we judge "no swing"
       setTimeout(()=>onArrive(actual.x,actual.y),120);
     }
   }
@@ -767,20 +754,20 @@ function evaluate(pZone,sZone,sT){
     return {type:'miss'};
   }
   const tErr=Math.abs(sT-PERFECT_T);
-  const tScore=Math.min(tErr/.18,1); // slightly wider hit window than before
+  const tScore=Math.min(tErr/.13,1); // narrower timing window
   const dist=zoneDist(pZone,sZone);
   // Same zone
-  if(dist===0&&tScore<.08)  return {type:'HR'};
-  if(dist===0&&tScore<.18)  return {type:'3B'};
-  if(dist===0&&tScore<.34)  return {type:'2B'};
-  if(dist===0&&tScore<.55)  return {type:'1B'};
-  if(dist===0&&tScore<.82)  return {type:'foul'};
+  if(dist===0&&tScore<.06)  return {type:'HR'};
+  if(dist===0&&tScore<.14)  return {type:'3B'};
+  if(dist===0&&tScore<.26)  return {type:'2B'};
+  if(dist===0&&tScore<.44)  return {type:'1B'};
+  if(dist===0&&tScore<.70)  return {type:'foul'};
   // Adjacent zone (±1)
-  if(dist===1&&tScore<.13)  return {type:'2B'};
-  if(dist===1&&tScore<.28)  return {type:'1B'};
-  if(dist===1&&tScore<.62)  return {type:'foul'};
+  if(dist===1&&tScore<.10)  return {type:'2B'};
+  if(dist===1&&tScore<.22)  return {type:'1B'};
+  if(dist===1&&tScore<.50)  return {type:'foul'};
   // 2 zones away
-  if(dist===2&&tScore<.12)  return {type:'foul'};
+  if(dist===2&&tScore<.09)  return {type:'foul'};
   // Everything else
   return {type:'miss'};
 }
@@ -834,9 +821,7 @@ function resolve(fx,fy){
             else SE.hitBall(); }
   }
 
-  // Draw final frame with cap at landing spot + show pitch landing indicator on grid
   drawField(fx,fy,22,true);
-  flashPitchLanding();
   flash(msg,color);
   renderHUD(); renderSB();
 
@@ -899,11 +884,6 @@ function setPitcherPhase(){
   document.getElementById('pitcher-ui').style.display='flex';
   document.getElementById('batter-ui').style.display='none';
   drawField(0,0,0,false);
-  // Draw colored cap at pitcher zone if selected
-  if(selZone>=0){
-    const p=zonePos(selZone);
-    drawBottleCap(p.x,p.y,16,Math.PI*.6,PT_COLORS[selPT]||'#ff6633');
-  }
 }
 
 document.getElementById('throw-btn').addEventListener('click',()=>{
