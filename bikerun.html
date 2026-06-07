@@ -805,6 +805,7 @@ function gameLoop() {
     if (playerY >= GROUND_Y) {
       playerY = GROUND_Y;
       playerVY = 0;
+      if (jumping && typeof SND !== 'undefined') SND.sfx.land();
       jumping = false;
     }
   }
@@ -853,12 +854,14 @@ function startGame() {
   gameStarted = true;
   resetGame();
   document.getElementById('message').textContent = '';
+  if (typeof SND !== 'undefined') SND.startBGM('game');
   raf = requestAnimationFrame(gameLoop);
 }
 
 function endGame() {
   gameRunning = false;
   cancelAnimationFrame(raf);
+  if (typeof SND !== 'undefined') { SND.stopBGM(); SND.sfx.crash(); }
   drawScene();
   drawGameOver();
   document.getElementById('message').textContent = '';
@@ -873,6 +876,7 @@ function jump() {
   if (!jumping && playerY >= GROUND_Y - 2) {
     playerVY = -12;
     jumping = true;
+    if (typeof SND !== 'undefined') SND.sfx.jump();
   }
 }
 

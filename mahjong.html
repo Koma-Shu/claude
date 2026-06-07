@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>麻雀 | ARCADE</title>
+<script src="sound.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0d0d1a;min-height:100vh;font-family:'Courier New',monospace;color:#eee;display:flex;flex-direction:column;align-items:center;padding-top:52px}
@@ -356,6 +357,7 @@ function applyLayout(n){
 function initSoloGame(n){
   mySeat=null;isHost=false;roomId=null;roomSeats={};
   numPlayers=n;
+  if(typeof SND!=='undefined') SND.startBGM('mahjong');
   showScreen('screen-game');
   applyLayout(n);
   const wall=mkDeck(),hands=[[],[],[],[]];
@@ -372,6 +374,7 @@ function playerDraw(){
   if(G.over)return;
   if(!G.wall.length){endDraw();return;}
   G.draw=G.wall.pop();G.turn=0;G.phase='discard';
+  if(typeof SND!=='undefined') SND.sfx.draw();
   const full=[...G.hands[0],G.draw];
   if(isWin(full)){showBtns(['tsumo']);showMsg(T('canTsumo'));}
   else{showBtns([]);const w=getWaits(G.hands[0]);document.getElementById('tenpai-line').textContent=w.length?`${T('tenpaiLabel')} ${w.map(t=>tc(t)).join(' ')}`:''}
@@ -412,6 +415,7 @@ function endDraw(){G.over=true;G.phase='over';showMsg(T('exhaustedDraw'));showBt
 
 function doDiscard(t){
   if(G.phase!=='discard'||G.turn!==0)return;
+  if(typeof SND!=='undefined') SND.sfx.discard();
   if(t===G.draw){G.discards[0].push(G.draw);G.last={tile:G.draw,p:0};G.draw=null;}
   else{const idx=G.hands[0].indexOf(t);if(idx<0)return;G.hands[0].splice(idx,1);G.discards[0].push(t);G.last={tile:t,p:0};if(G.draw){G.hands[0].push(G.draw);G.hands[0]=sortH(G.hands[0]);G.draw=null;}}
   selTile=null;document.getElementById('tenpai-line').textContent='';
@@ -427,8 +431,8 @@ function doDiscard(t){
   showBtns([]);render();const next=nextInOrder(0,numPlayers);G.turn=next;setTimeout(()=>{if(!G.over)aiTurn(next);},600);
 }
 
-function doTsumo(){G.over=true;G.phase='over';G.hands[0]=[...G.hands[0],G.draw];G.draw=null;const gain=2000;G.scores[0]+=gain*(numPlayers-1);turnOrder(numPlayers).filter(p=>p!==0).forEach(p=>G.scores[p]-=gain);showMsg(T('tsumoWin'));showBtns(['ng','menu']);render();}
-function doRon(){if(!G.last)return;G.over=true;G.phase='over';G.hands[0]=[...G.hands[0],G.last.tile];const gain=5800;G.scores[0]+=gain;G.scores[G.last.p]-=gain;showMsg(T('ronWin'));showBtns(['ng','menu']);render();}
+function doTsumo(){G.over=true;G.phase='over';G.hands[0]=[...G.hands[0],G.draw];G.draw=null;const gain=2000;G.scores[0]+=gain*(numPlayers-1);turnOrder(numPlayers).filter(p=>p!==0).forEach(p=>G.scores[p]-=gain);if(typeof SND!=='undefined'){SND.stopBGM();SND.sfx.tsumo();}showMsg(T('tsumoWin'));showBtns(['ng','menu']);render();}
+function doRon(){if(!G.last)return;G.over=true;G.phase='over';G.hands[0]=[...G.hands[0],G.last.tile];const gain=5800;G.scores[0]+=gain;G.scores[G.last.p]-=gain;if(typeof SND!=='undefined'){SND.stopBGM();SND.sfx.ron();}showMsg(T('ronWin'));showBtns(['ng','menu']);render();}
 function doPass(){G.phase='draw';showBtns([]);showMsg('');nextTurnSolo(G.last.p);}
 
 // ── Online game state (object-based) ──────────────────────────
@@ -1189,6 +1193,17 @@ document.getElementById('lang-btn').addEventListener('click',()=>{
   applyLang();
 });
 applyLang();
+
+(function(){
+  let _started=false;
+  function _init(){
+    if(_started)return;_started=true;
+    if(typeof SND!=='undefined'){SND.createBtn();SND.startBGM('title');}
+  }
+  document.addEventListener('click',_init,{once:true});
+  document.addEventListener('keydown',_init,{once:true});
+  document.addEventListener('touchstart',_init,{once:true});
+})();
 </script>
 </body>
 </html>

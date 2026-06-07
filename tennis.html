@@ -197,6 +197,9 @@ function winGame(winner) {
       state = STATE.GAME_OVER;
       ratingShown = false;
       ratingDone = false;
+      SND.stopBGM();
+      if (!mode2p) { winner === 0 ? SND.sfx.win() : SND.sfx.lose(); }
+      else { SND.sfx.win(); }
     }
   }
 }
@@ -365,6 +368,7 @@ function handleTitle() {
 
 // ── Match / Serve Init ────────────────────────────────────────────────────
 function startMatch() {
+  SND.startBGM('tennis');
   score = { pts:[0,0], games:[0,0], sets:[0,0], server:0, deuce:false, advantage:-1 };
   matchWinner = -1;
   ratingShown = false;
@@ -803,8 +807,10 @@ function endPoint(winner, reason) {
   if (pointEndScheduled) return;
   pointEndScheduled = true;
   ball.active = false;
-  // Only overwrite msg if we have a new reason (don't clear double-fault etc already set)
   if (reason) { msg = reason; msgTimer = 120; }
+  if (reason === T('net')) SND.sfx.net();
+  else if (reason === T('out') || reason === T('fault') || reason === T('doubleFault')) SND.sfx.fault();
+  else SND.sfx.point();
   awardPoint(winner);
   if (state !== STATE.GAME_OVER) {
     state = STATE.POINT_END;
@@ -844,9 +850,10 @@ function cpuHitBall() {
   if (lastHitBy === 1) return;
   cpuSwing = 8;
   lastHitBy = 1;
-  serveInFlight = false;  // CPU hitting always ends serve phase
+  serveInFlight = false;
   ballBounces = 0;
   lastBounceSide = -1;
+  SND.sfx.hit();
   const err = CPU_ERROR[difficulty];
   // Extra error for deep balls (ball landing near CPU's baseline)
   const depthFactor = Math.max(0, (ball.cz - 0.65) / 0.35);
@@ -971,6 +978,7 @@ function handleP1Action(charge) {
     p1Swing = 8;
     state = STATE.RALLY;
     msg = '';
+    SND.sfx.serve();
     return;
   }
   if (state === STATE.RALLY) {
@@ -981,6 +989,7 @@ function handleP1Action(charge) {
     if (ball.cz < 0.48 && ball.cz > -0.55 && dist < 110 && ball.yh < 0.20 && lastHitBy !== 0) {
       p1Swing = 8;
       lastHitBy = 0;
+      SND.sfx.hit();
       serveInFlight = false;  // clear regardless — player hit means serve phase is over
       ballBounces = 0;
       lastBounceSide = -1;
@@ -1278,6 +1287,19 @@ loop();
   // Patch into animation frame
   const _loop = window.requestAnimationFrame;
   setInterval(updateHitLabel, 200);
+})();
+</script>
+<script>
+(function(){
+  let _started = false;
+  function _init() {
+    if (_started) return; _started = true;
+    SND.createBtn();
+    SND.startBGM('title');
+  }
+  document.addEventListener('click', _init, { once: true });
+  document.addEventListener('keydown', _init, { once: true });
+  document.addEventListener('touchstart', _init, { once: true });
 })();
 </script>
 </body>

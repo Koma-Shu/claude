@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>消しバト</title>
+<script src="sound.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -544,6 +545,7 @@ function doFlick(angle,power,erIdx){
   e.vx=Math.cos(angle)*spd; e.vy=Math.sin(angle)*spd;
   e.av=(Math.random()-.5)*.06*(power*2+1);
   phase='sliding';
+  if(typeof SND!=='undefined') SND.sfx.flick();
   if(MODE==='online'&&IS_HOST) broadcastState();
   runPhysics();
 }
@@ -554,6 +556,7 @@ function endRound(winner){
   if(winner>=0&&winner<NUM_PLAYERS) roundWins[winner]=(roundWins[winner]||0)+1;
   const msg=winner>=0?T('round_win',playerNames[winner],roundNum):T('draw');
   setGameMsg(msg);
+  if(typeof SND!=='undefined') SND.sfx.point();
   if(MODE==='online'&&IS_HOST) broadcastState();
   setTimeout(showResult,1000);
 }
@@ -569,6 +572,7 @@ function showResult(){
     btn.textContent=T('play_again');
     btn.onclick=playAgain;
     phase='gameend';
+    if(typeof SND!=='undefined'){SND.stopBGM();SND.sfx.win();}
   } else {
     document.getElementById('result-title').textContent=T('round_n',roundNum);
     btn.textContent=T('next_round');
@@ -620,6 +624,7 @@ function stepPhysics(){
       e.alive=false; e.vx=0; e.vy=0;
       lastFellMsg=T('fell',playerNames[e.player]);
       setGameMsg(lastFellMsg);
+      if(typeof SND!=='undefined') SND.sfx.fallOff();
     }
   }
   for(let i=0;i<erasers.length;i++){
@@ -640,6 +645,7 @@ function collide(a,b){
   const dvx=b.vx-a.vx, dvy=b.vy-a.vy;
   const vn=dvx*nx+dvy*ny;
   if(vn>=0) return;
+  if(typeof SND!=='undefined') SND.sfx.bump();
   const imp=(1+REST)*vn/2;
   a.vx+=imp*nx; a.vy+=imp*ny;
   b.vx-=imp*nx; b.vy-=imp*ny;
@@ -941,6 +947,17 @@ function setGameMsg(s){document.getElementById('game-msg').textContent=s;}
 // ═══════════════════════════════════════════════════
 applyLang();
 render();
+
+(function(){
+  let _started=false;
+  function _init(){
+    if(_started)return;_started=true;
+    if(typeof SND!=='undefined'){SND.createBtn();SND.startBGM('game');}
+  }
+  document.addEventListener('click',_init,{once:true});
+  document.addEventListener('keydown',_init,{once:true});
+  document.addEventListener('touchstart',_init,{once:true});
+})();
 </script>
 </body>
 </html>

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
 <title>CAP BASEBALL</title>
+<script src="sound.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:#0d0d1a;min-height:100vh;font-family:'Courier New',monospace;color:#eee;display:flex;flex-direction:column;align-items:center;user-select:none;-webkit-user-select:none;}
@@ -804,18 +805,21 @@ function resolve(fx,fy){
   let hit=false;
   if(res.type==='ball'){
     balls++; msg=T('rBall'); color='#88aaff';
+    if(typeof SND!=='undefined') SND.sfx.click();
     if(balls>=4){advanceRunners(1);balls=0;strikes=0;msg=T('rWalk');color='#00d4aa';delay=1400;}
   } else if(res.type==='called_strike'||res.type==='miss'){
     strikes++; msg=res.type==='miss'?T('rMiss'):T('rStr'); color='#ff4444';
-    if(strikes>=3){outs++;balls=0;strikes=0;msg+='\n'+T('rOut');delay=1500;}
+    if(typeof SND!=='undefined') SND.sfx.strike();
+    if(strikes>=3){outs++;balls=0;strikes=0;msg+='\n'+T('rOut');delay=1500;if(typeof SND!=='undefined')SND.sfx.lose();}
   } else if(res.type==='foul'){
     if(strikes<2) strikes++; msg=T('rFoul'); color='#ffaa00';
+    if(typeof SND!=='undefined') SND.sfx.flip();
   } else {
     hit=true;
-    if(res.type==='HR'){advanceRunners(4);msg=T('rHR');color='#ffd700';}
-    else if(res.type==='3B'){advanceRunners(3);msg=T('r3b');color='#ff9933';}
-    else if(res.type==='2B'){advanceRunners(2);msg=T('r2b');color='#00d4aa';}
-    else {advanceRunners(1);msg=T('r1b');color='#88ff88';}
+    if(res.type==='HR'){advanceRunners(4);msg=T('rHR');color='#ffd700';if(typeof SND!=='undefined')SND.sfx.homerun();}
+    else if(res.type==='3B'){advanceRunners(3);msg=T('r3b');color='#ff9933';if(typeof SND!=='undefined')SND.sfx.hitBall();}
+    else if(res.type==='2B'){advanceRunners(2);msg=T('r2b');color='#00d4aa';if(typeof SND!=='undefined')SND.sfx.hitBall();}
+    else {advanceRunners(1);msg=T('r1b');color='#88ff88';if(typeof SND!=='undefined')SND.sfx.hitBall();}
     balls=0;strikes=0;
   }
 
@@ -854,6 +858,7 @@ function isPitchHuman(){return MODE==='2p'||(half===1);}
 
 function startHalf(){
   outs=0;balls=0;strikes=0;runners=[false,false,false];innScore=0;
+  if(typeof SND!=='undefined'&&!SND.isMuted()&&inning===1&&half===0) SND.startBGM('baseball');
   renderHUD(); renderInn(); renderSB(); drawField(0,0,0,true);
   const t=half===0?T('intro_top',inning):T('intro_bot',inning);
   let sub;
@@ -899,6 +904,7 @@ document.getElementById('throw-btn').addEventListener('click',()=>{
 function executePitch(){
   pitchZone=selZone; pitchPT=selPT;
   document.getElementById('pitcher-ui').style.display='none';
+  if(typeof SND!=='undefined') SND.sfx.pitch();
 
   if(isBatHuman()){
     if(MODE==='2p'){
@@ -948,6 +954,7 @@ function endHalf(){
 }
 function endGame(){
   phase='over';
+  if(typeof SND!=='undefined'){SND.stopBGM();SND.sfx.win();}
   const ta=scores.a.reduce((s,v)=>s+(v||0),0);
   const tb=scores.b.reduce((s,v)=>s+(v||0),0);
   const sc=MODE==='2p'?T('sc_2p',ta,tb):T('sc_1p',ta,tb);
@@ -1192,6 +1199,17 @@ resize(); window.addEventListener('resize',resize);
 // Init
 applyLang();
 document.getElementById('screen-game').style.display='none';
+
+(function(){
+  let _started=false;
+  function _init(){
+    if(_started)return;_started=true;
+    if(typeof SND!=='undefined'){SND.createBtn();SND.startBGM('title');}
+  }
+  document.addEventListener('click',_init,{once:true});
+  document.addEventListener('keydown',_init,{once:true});
+  document.addEventListener('touchstart',_init,{once:true});
+})();
 </script>
 </body>
 </html>
