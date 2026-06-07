@@ -136,7 +136,7 @@
     jump() {
       const c=_ac();if(!c)return;const t=c.currentTime;
       const osc=c.createOscillator(),g=c.createGain();
-      osc.connect(g);g.connect(_master);
+      osc.connect(g);g.connect(_sfxGain||_master);
       osc.type='sine';osc.frequency.setValueAtTime(220,t);
       osc.frequency.linearRampToValueAtTime(440,t+.15);
       g.gain.setValueAtTime(.2,t);g.gain.linearRampToValueAtTime(0,.25+t);
@@ -150,11 +150,26 @@
       const c=_ac();if(!c)return;const t=c.currentTime;
       [180,140,100,70].forEach((f,i)=>_b(f,t+i*.04,.14,'sawtooth',.28,.002,.08));
     },
+    coin() {
+      const c=_ac();if(!c)return;const t=c.currentTime;
+      _b(N.E5,t,.05,'square',.2,.002,.03);
+      _b(N.B5,t+.05,.08,'square',.18,.002,.04);
+    },
+    dash() {
+      const c=_ac();if(!c)return;const t=c.currentTime;
+      const osc=c.createOscillator(),g=c.createGain();
+      osc.connect(g);g.connect(_sfxGain||_master);
+      osc.type='sawtooth';osc.frequency.setValueAtTime(200,t);
+      osc.frequency.exponentialRampToValueAtTime(900,t+.3);
+      g.gain.setValueAtTime(.22,t);g.gain.linearRampToValueAtTime(0,t+.35);
+      osc.start(t);osc.stop(t+.36);
+      [N.C5,N.E5,N.G5,N.C5*2].forEach((f,i)=>_b(f,t+.1+i*.06,.12,'square',.16,.003,.05));
+    },
     // Cap baseball
     pitch() {
       const c=_ac();if(!c)return;const t=c.currentTime;
       const osc=c.createOscillator(),g=c.createGain();
-      osc.connect(g);g.connect(_master);
+      osc.connect(g);g.connect(_sfxGain||_master);
       osc.type='sine';osc.frequency.setValueAtTime(600,t);
       osc.frequency.linearRampToValueAtTime(300,t+.18);
       g.gain.setValueAtTime(.18,t);g.gain.linearRampToValueAtTime(0,t+.2);
@@ -178,7 +193,7 @@
     flick() {
       const c=_ac();if(!c)return;const t=c.currentTime;
       const osc=c.createOscillator(),g=c.createGain();
-      osc.connect(g);g.connect(_master);
+      osc.connect(g);g.connect(_sfxGain||_master);
       osc.type='sine';osc.frequency.setValueAtTime(800,t);
       osc.frequency.linearRampToValueAtTime(200,t+.12);
       g.gain.setValueAtTime(.22,t);g.gain.linearRampToValueAtTime(0,t+.14);
@@ -192,7 +207,7 @@
     fallOff() {
       const c=_ac();if(!c)return;const t=c.currentTime;
       const osc=c.createOscillator(),g=c.createGain();
-      osc.connect(g);g.connect(_master);
+      osc.connect(g);g.connect(_sfxGain||_master);
       osc.type='sawtooth';osc.frequency.setValueAtTime(440,t);
       osc.frequency.linearRampToValueAtTime(80,t+.4);
       g.gain.setValueAtTime(.2,t);g.gain.linearRampToValueAtTime(0,t+.45);

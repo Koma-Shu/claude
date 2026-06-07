@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>チャリ走 - BIKE RUSH</title>
+  <title>ニャンダッシュ - NYAN DASH</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -72,7 +72,7 @@
   <button id="lang-btn">EN</button>
   <a id="back-btn" href="index.html">← ARCADE</a>
 
-  <h1 id="game-title">チャリ走</h1>
+  <h1 id="game-title">ニャンダッシュ</h1>
   <div id="info">
     <span id="lbl-score">スコア:</span> <span id="score">0</span>
     &nbsp;<span id="lbl-hi">ハイスコア:</span> <span id="hi">0</span>
@@ -124,7 +124,7 @@ const GAME = 'bikerun';
 // ── i18n ─────────────────────────────────────────────────────
 const LANG = {
   ja: {
-    title: 'チャリ走', score: 'スコア:', hi: 'ハイスコア:',
+    title: 'ニャンダッシュ', score: 'スコア:', hi: 'ハイスコア:',
     tap: 'タップまたはSPACEでスタート', restart: 'スペース/タップでリスタート',
     submit: '登録', skip: 'スキップ', name: '名前（任意）', sending: '送信中...',
     rateGame: 'このゲームを評価する', noRatings: 'まだ評価がありません',
@@ -135,7 +135,7 @@ const LANG = {
     loading: '読み込み中...',
   },
   en: {
-    title: 'BIKE RUSH', score: 'Score:', hi: 'Hi-Score:',
+    title: 'NYAN DASH', score: 'Score:', hi: 'Hi-Score:',
     tap: 'Space or Tap to Start', restart: 'Space/Tap to Restart',
     submit: 'Submit', skip: 'Skip', name: 'Name (optional)', sending: 'Sending...',
     rateGame: 'Rate this game', noRatings: 'No ratings yet',
@@ -275,6 +275,14 @@ let obstacles = [];
 let speed = 4;
 let nextObstacleFrame = 80;
 
+// Original element: collectible fish → BOOST gauge → invincible DASH
+let coins = [];
+let particles = [];
+let boost = 0;          // 0..100
+let dashTimer = 0;      // frames remaining in dash
+let nextCoinFrame = 120;
+const DASH_FRAMES = 150;
+
 // Parallax layers
 let bgOffset1 = 0; // buildings (slow)
 let bgOffset2 = 0; // trees (medium)
@@ -297,7 +305,38 @@ function resetGame() {
   roadOffset = 0;
   wheelAngle = 0;
   legPhase = 0;
+  coins = [];
+  particles = [];
+  boost = 0;
+  dashTimer = 0;
+  nextCoinFrame = 120;
   document.getElementById('score').textContent = '0';
+}
+
+function spawnCoin() {
+  const heights = [GROUND_Y - 46, GROUND_Y - 78];
+  const baseY = heights[Math.floor(Math.random() * heights.length)];
+  const n = 1 + Math.floor(Math.random() * 3); // 1..3 fish in a row
+  for (let i = 0; i < n; i++) {
+    coins.push({ x: W + 20 + i * 26, y: baseY, bob: Math.random() * Math.PI * 2 });
+  }
+}
+
+function spawnParticles(x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 6,
+      vy: (Math.random() - 1.1) * 5,
+      life: 26, color
+    });
+  }
+}
+
+function startDash() {
+  dashTimer = DASH_FRAMES;
+  boost = 0;
+  if (typeof SND !== 'undefined' && SND.sfx.dash) SND.sfx.dash();
 }
 
 function spawnObstacle() {
@@ -417,213 +456,151 @@ function drawRoad() {
   ctx.setLineDash([]);
 }
 
-function drawBike(x, y, wheelAng, legPh) {
-  const s = 1; // scale
+// Cute original mascot: a cat riding a simple bike (flat, solid shapes)
+function drawRider(x, y, wheelAng, legPh, dashing) {
   ctx.save();
   ctx.translate(x, y);
 
-  // Wheel radius
-  const wr = 18;
-  const frameColor = '#00d4aa';
-  const spokeColor = 'rgba(0,212,170,0.5)';
-  const wheelColor = '#555';
-  const rimColor = '#00d4aa';
-  const seatColor = '#8b4513';
+  const accent = dashing ? '#ffd700' : '#00d4aa';
+  const wr = 14;
+  const wheels = [-18, 18];
 
-  // Rear wheel
-  const rwx = -20, rwy = 0;
-  ctx.strokeStyle = wheelColor;
+  // ── Bike (simple & clean) ──
+  // Frame: rear axle → bottom bracket → front axle, + seat/head posts
+  ctx.strokeStyle = accent;
   ctx.lineWidth = 4;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.arc(rwx, rwy, wr, 0, Math.PI * 2);
+  ctx.moveTo(-18, 0); ctx.lineTo(0, -3); ctx.lineTo(18, 0);
+  ctx.moveTo(0, -3); ctx.lineTo(-7, -19);     // seat post
+  ctx.moveTo(13, -1); ctx.lineTo(15, -19);     // head tube
+  ctx.lineTo(21, -21);                         // handlebar
   ctx.stroke();
-  ctx.strokeStyle = rimColor;
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.arc(rwx, rwy, wr, 0, Math.PI * 2);
-  ctx.stroke();
-  // Spokes rear
-  ctx.strokeStyle = spokeColor;
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 8; i++) {
-    const a = wheelAng + (i * Math.PI / 4);
-    ctx.beginPath();
-    ctx.moveTo(rwx, rwy);
-    ctx.lineTo(rwx + Math.cos(a) * wr, rwy + Math.sin(a) * wr);
-    ctx.stroke();
+
+  // Wheels: solid tire + clean rim + a single rotating spoke pair
+  for (const wx of wheels) {
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(wx, 0, wr, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(wx, 0, wr - 2, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(200,200,200,0.45)';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 2; i++) {
+      const a = wheelAng + i * Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(wx + Math.cos(a) * (wr - 2), Math.sin(a) * (wr - 2));
+      ctx.lineTo(wx - Math.cos(a) * (wr - 2), -Math.sin(a) * (wr - 2));
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#999';
+    ctx.beginPath(); ctx.arc(wx, 0, 2.5, 0, Math.PI * 2); ctx.fill();
   }
-  // Rear hub
-  ctx.fillStyle = '#00d4aa';
+
+  // ── Cat rider ──
+  const fur = '#ff9d4d', belly = '#ffe2c4';
+
+  // Fluttering scarf (motion element)
+  ctx.fillStyle = '#ff5252';
+  const sf = Math.sin(legPh * 2) * 3;
   ctx.beginPath();
-  ctx.arc(rwx, rwy, 3, 0, Math.PI * 2);
+  ctx.moveTo(2, -28);
+  ctx.quadraticCurveTo(-10, -30 + sf, -18, -24 + sf * 1.4);
+  ctx.lineTo(-15, -19 + sf * 1.4);
+  ctx.quadraticCurveTo(-8, -24, 2, -23);
+  ctx.closePath();
   ctx.fill();
 
-  // Front wheel
-  const fwx = 20, fwy = 0;
-  ctx.strokeStyle = wheelColor;
-  ctx.lineWidth = 4;
+  // Tail
+  ctx.strokeStyle = fur; ctx.lineWidth = 5; ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.arc(fwx, fwy, wr, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.strokeStyle = rimColor;
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.arc(fwx, fwy, wr, 0, Math.PI * 2);
-  ctx.stroke();
-  // Spokes front
-  ctx.strokeStyle = spokeColor;
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 8; i++) {
-    const a = wheelAng + (i * Math.PI / 4);
-    ctx.beginPath();
-    ctx.moveTo(fwx, fwy);
-    ctx.lineTo(fwx + Math.cos(a) * wr, fwy + Math.sin(a) * wr);
-    ctx.stroke();
-  }
-  ctx.fillStyle = '#00d4aa';
-  ctx.beginPath();
-  ctx.arc(fwx, fwy, 3, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Chain ring (at rear axle area, pedal center)
-  ctx.strokeStyle = '#ffd700';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(-8, -2, 8, 0, Math.PI * 2);
+  ctx.moveTo(-11, -20);
+  ctx.quadraticCurveTo(-25, -22, -23, -34 + Math.sin(legPh) * 2);
   ctx.stroke();
 
-  // Frame: bottom bracket to rear axle
-  ctx.strokeStyle = frameColor;
-  ctx.lineWidth = 3;
-  // Chain stays: BB to rear axle
-  ctx.beginPath();
-  ctx.moveTo(-8, -2);
-  ctx.lineTo(rwx, rwy);
-  ctx.stroke();
-  // Down tube: head tube to BB
-  ctx.beginPath();
-  ctx.moveTo(fwx - 4, -22);
-  ctx.lineTo(-8, -2);
-  ctx.stroke();
-  // Seat tube: BB to seat
-  ctx.beginPath();
-  ctx.moveTo(-8, -2);
-  ctx.lineTo(-6, -32);
-  ctx.stroke();
-  // Top tube: seat to head
-  ctx.beginPath();
-  ctx.moveTo(-6, -32);
-  ctx.lineTo(fwx - 4, -22);
-  ctx.stroke();
-  // Seat stays: seat to rear axle
-  ctx.beginPath();
-  ctx.moveTo(-6, -32);
-  ctx.lineTo(rwx, rwy);
-  ctx.stroke();
-  // Fork: head to front axle
-  ctx.beginPath();
-  ctx.moveTo(fwx - 4, -22);
-  ctx.lineTo(fwx, fwy);
-  ctx.stroke();
-
-  // Handlebars
-  ctx.strokeStyle = frameColor;
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.moveTo(fwx - 4, -22);
-  ctx.lineTo(fwx - 2, -30);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(fwx - 2, -30);
-  ctx.lineTo(fwx + 8, -28);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(fwx - 2, -30);
-  ctx.lineTo(fwx - 10, -28);
-  ctx.stroke();
-  // Handlebar grips
-  ctx.fillStyle = '#333';
-  ctx.beginPath(); ctx.arc(fwx + 8, -28, 3, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(fwx - 10, -28, 3, 0, Math.PI * 2); ctx.fill();
-
-  // Seat
-  ctx.fillStyle = seatColor;
-  ctx.beginPath();
-  ctx.ellipse(-6, -35, 10, 4, -0.1, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Rider
   // Pedaling legs
-  const kneeLX = -8 + Math.cos(legPh) * 10;
-  const kneeLY = -2 + Math.sin(legPh) * 10;
-  const kneeLX2 = -8 + Math.cos(legPh + Math.PI) * 10;
-  const kneeLY2 = -2 + Math.sin(legPh + Math.PI) * 10;
-  const footLX = -8 + Math.cos(legPh) * 18;
-  const footLY = -2 + Math.sin(legPh) * 18;
-  const footLX2 = -8 + Math.cos(legPh + Math.PI) * 18;
-  const footLY2 = -2 + Math.sin(legPh + Math.PI) * 18;
-
-  // Back leg
-  ctx.strokeStyle = '#ffcc88';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(-6, -35);
-  ctx.lineTo(kneeLX2, kneeLY2);
-  ctx.lineTo(footLX2, footLY2);
-  ctx.stroke();
-  ctx.fillStyle = '#cc8844';
-  ctx.beginPath(); ctx.arc(footLX2, footLY2, 3, 0, Math.PI * 2); ctx.fill();
+  const pr = 7;
+  const lx1 = Math.cos(legPh) * pr, ly1 = -3 + Math.sin(legPh) * pr;
+  const lx2 = Math.cos(legPh + Math.PI) * pr, ly2 = -3 + Math.sin(legPh + Math.PI) * pr;
+  ctx.strokeStyle = fur; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(-4, -15); ctx.lineTo(lx2, ly2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-4, -15); ctx.lineTo(lx1, ly1); ctx.stroke();
 
   // Body
-  ctx.strokeStyle = '#4488ff';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(-6, -35);
-  ctx.lineTo(-4, -52);
-  ctx.stroke();
+  ctx.fillStyle = fur;
+  ctx.beginPath(); ctx.ellipse(-2, -23, 11, 9, -0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = belly;
+  ctx.beginPath(); ctx.ellipse(3, -20, 4.5, 6, -0.3, 0, Math.PI * 2); ctx.fill();
 
-  // Arms to handlebar
-  ctx.strokeStyle = '#ffcc88';
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.moveTo(-4, -50);
-  ctx.lineTo(fwx - 2, -30);
-  ctx.stroke();
-
-  // Front leg
-  ctx.strokeStyle = '#ffcc88';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(-6, -35);
-  ctx.lineTo(kneeLX, kneeLY);
-  ctx.lineTo(footLX, footLY);
-  ctx.stroke();
-  ctx.fillStyle = '#cc8844';
-  ctx.beginPath(); ctx.arc(footLX, footLY, 3, 0, Math.PI * 2); ctx.fill();
+  // Front paws → handlebar
+  ctx.strokeStyle = fur; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(4, -25); ctx.lineTo(19, -21); ctx.stroke();
 
   // Head
-  ctx.fillStyle = '#ffcc88';
+  const hx = 10, hy = -35;
+  ctx.fillStyle = fur;
+  ctx.beginPath(); ctx.arc(hx, hy, 9, 0, Math.PI * 2); ctx.fill();
+  // Ears
+  ctx.beginPath(); ctx.moveTo(hx - 8, hy - 5); ctx.lineTo(hx - 10, hy - 14); ctx.lineTo(hx - 2, hy - 9); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(hx + 8, hy - 5); ctx.lineTo(hx + 10, hy - 14); ctx.lineTo(hx + 2, hy - 9); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ffc6a0';
+  ctx.beginPath(); ctx.moveTo(hx - 7, hy - 7); ctx.lineTo(hx - 8.5, hy - 12); ctx.lineTo(hx - 4, hy - 9); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(hx + 7, hy - 7); ctx.lineTo(hx + 8.5, hy - 12); ctx.lineTo(hx + 4, hy - 9); ctx.closePath(); ctx.fill();
+  // Face
+  ctx.fillStyle = '#222';
+  ctx.beginPath(); ctx.arc(hx + 3.5, hy - 1, 1.7, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(hx + 8.5, hy - 1, 1.7, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ff8866';
+  ctx.beginPath(); ctx.arc(hx + 6, hy + 2.5, 1.4, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 0.8;
   ctx.beginPath();
-  ctx.arc(-4, -58, 8, 0, Math.PI * 2);
-  ctx.fill();
-  // Helmet
-  ctx.fillStyle = '#ff4444';
-  ctx.beginPath();
-  ctx.ellipse(-4, -63, 9, 6, 0, Math.PI, 0);
-  ctx.fill();
-  // Helmet strap
-  ctx.strokeStyle = '#cc2222';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(-4, -58, 8, 0.3, Math.PI - 0.3);
+  ctx.moveTo(hx + 6, hy + 2); ctx.lineTo(hx + 17, hy + 1);
+  ctx.moveTo(hx + 6, hy + 3.5); ctx.lineTo(hx + 17, hy + 6);
   ctx.stroke();
-  // Eye
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  ctx.arc(2, -58, 1.5, 0, Math.PI * 2);
-  ctx.fill();
 
   ctx.restore();
+}
+
+function drawCoin(co) {
+  const yy = co.y + Math.sin(frameCount * 0.1 + co.bob) * 3;
+  ctx.save();
+  ctx.translate(co.x, yy);
+  ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 8;
+  ctx.fillStyle = '#ffd24a';
+  ctx.beginPath(); ctx.ellipse(0, 0, 9, 6, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+  // tail fin
+  ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(14, -5); ctx.lineTo(14, 5); ctx.closePath(); ctx.fill();
+  // eye
+  ctx.fillStyle = '#333';
+  ctx.beginPath(); ctx.arc(-4, -1, 1.3, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    ctx.globalAlpha = Math.max(0, p.life / 26);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, 3, 3);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawBoostGauge() {
+  const gx = 12, gy = 12, gw = 116, gh = 12;
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(gx - 2, gy - 2, gw + 4, gh + 4);
+  ctx.fillStyle = '#2a2a2a';
+  ctx.fillRect(gx, gy, gw, gh);
+  const f = dashTimer > 0 ? dashTimer / DASH_FRAMES : boost / 100;
+  ctx.fillStyle = dashTimer > 0 ? '#ffd700' : '#00d4aa';
+  ctx.fillRect(gx, gy, gw * f, gh);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 9px Courier New';
+  ctx.textAlign = 'left';
+  ctx.fillText(dashTimer > 0 ? 'DASH!' : 'BOOST', gx + 4, gy + gh - 2.5);
 }
 
 function drawObstacle(obs) {
@@ -730,18 +707,39 @@ function drawObstacle(obs) {
 }
 
 function drawScene() {
-  // Sky
   drawSky();
-  // Background buildings
   drawBuildings(bgOffset1);
-  // Trees (mid-ground)
   drawTrees(bgOffset2);
-  // Road
   drawRoad();
+  // Dash speed-lines
+  if (dashTimer > 0) {
+    ctx.strokeStyle = 'rgba(255,215,0,0.45)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 6; i++) {
+      const ly = 30 + ((i * 41 + frameCount * 14) % (GROUND_Y - 30));
+      ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(44, ly); ctx.stroke();
+    }
+  }
+  // Fish collectibles
+  for (let co of coins) drawCoin(co);
   // Obstacles
   for (let obs of obstacles) drawObstacle(obs);
-  // Player bike
-  drawBike(PLAYER_X, playerY, wheelAngle, legPhase);
+  // Glow aura while dashing
+  if (dashTimer > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.25 + 0.15 * Math.sin(frameCount * 0.4);
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(PLAYER_X, playerY - 22, 34, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  // Player
+  drawRider(PLAYER_X, playerY, wheelAngle, legPhase, dashTimer > 0);
+  // Particles on top
+  drawParticles();
+  // HUD gauge
+  drawBoostGauge();
 }
 
 function drawStartScreen() {
@@ -749,7 +747,7 @@ function drawStartScreen() {
   drawBuildings(0);
   drawTrees(0);
   drawRoad();
-  drawBike(PLAYER_X, GROUND_Y, 0, 0);
+  drawRider(PLAYER_X, GROUND_Y, 0, 0, false);
 }
 
 function drawGameOver() {
@@ -765,38 +763,38 @@ function drawGameOver() {
   ctx.textAlign = 'left';
 }
 
-function checkCollision() {
+// Returns index of the first colliding obstacle, or -1
+function collidingObstacle() {
   const bx = PLAYER_X - 16, bw = 32;
   const by = playerY - 60, bh = 60;
-
-  for (let obs of obstacles) {
-    let ox = obs.x, ow = obs.w, oy = obs.y, oh;
-    // Generous hitbox reduction
-    const margin = 6;
+  const margin = 6;
+  for (let k = 0; k < obstacles.length; k++) {
+    const obs = obstacles[k];
+    const ox = obs.x, ow = obs.w, oy = obs.y, oh = obs.h;
     if (obs.type === 'pothole') {
-      // Pothole: only collide if bike is on ground
-      if (playerY >= GROUND_Y - 2) {
-        oh = obs.h;
-        if (bx + bw - margin > ox + margin && bx + margin < ox + ow - margin &&
-            by + bh > oy && by < oy + oh + 2) return true;
-      }
+      if (playerY >= GROUND_Y - 2 &&
+          bx + bw - margin > ox + margin && bx + margin < ox + ow - margin &&
+          by + bh > oy && by < oy + oh + 2) return k;
     } else {
-      oh = obs.h;
       if (bx + bw - margin > ox + margin && bx + margin < ox + ow - margin &&
-          by + bh - margin > oy + margin && by + margin < oy + oh - margin) return true;
+          by + bh - margin > oy + margin && by + margin < oy + oh - margin) return k;
     }
   }
-  return false;
+  return -1;
 }
 
 function gameLoop() {
   frameCount++;
   speed = 4 + frameCount * 0.001;
+  // Effective scroll speed (faster during dash)
+  const dashing = dashTimer > 0;
+  const eff = dashing ? speed * 1.6 : speed;
+  if (dashing) dashTimer--;
 
   // Parallax scroll
-  bgOffset1 += speed * 0.3;
-  bgOffset2 += speed * 0.6;
-  roadOffset = (roadOffset + speed) % 40;
+  bgOffset1 += eff * 0.3;
+  bgOffset2 += eff * 0.6;
+  roadOffset = (roadOffset + eff) % 40;
 
   // Jump physics
   if (jumping || playerY < GROUND_Y) {
@@ -809,27 +807,52 @@ function gameLoop() {
       jumping = false;
     }
   }
-  // Hold-jump boost: while space held and just started jumping, allow a bit more impulse
-  // (handled in input)
 
   // Wheel/pedal animation
-  wheelAngle += speed * 0.06;
-  legPhase += speed * 0.06;
+  wheelAngle += eff * 0.06;
+  legPhase += eff * 0.06;
 
   // Spawn obstacles
   if (frameCount >= nextObstacleFrame) {
     spawnObstacle();
-    // Gap between obstacles decreases with speed
     const gap = Math.max(60, 120 - Math.floor(speed * 5));
     nextObstacleFrame = frameCount + gap + Math.floor(Math.random() * 40);
   }
+  // Spawn fish collectibles
+  if (frameCount >= nextCoinFrame) {
+    spawnCoin();
+    nextCoinFrame = frameCount + 110 + Math.floor(Math.random() * 130);
+  }
 
-  // Move obstacles
-  for (let obs of obstacles) obs.x -= speed;
+  // Move obstacles & coins
+  for (let obs of obstacles) obs.x -= eff;
   obstacles = obstacles.filter(o => o.x + o.w + 10 > 0);
+  for (let co of coins) co.x -= eff;
+  coins = coins.filter(c => c.x > -20);
+
+  // Update particles
+  for (let p of particles) { p.x += p.vx; p.y += p.vy; p.vy += 0.3; p.life--; }
+  particles = particles.filter(p => p.life > 0);
+
+  // Collect fish
+  for (let co of coins) {
+    if (co.collected) continue;
+    const dx = co.x - PLAYER_X, dy = co.y - (playerY - 26);
+    if (Math.hypot(dx, dy) < 26) {
+      co.collected = true;
+      score += 30;
+      spawnParticles(co.x, co.y, '#ffd700', 6);
+      if (typeof SND !== 'undefined' && SND.sfx.coin) SND.sfx.coin();
+      if (!dashing) {
+        boost = Math.min(100, boost + 25);
+        if (boost >= 100) startDash();
+      }
+    }
+  }
+  coins = coins.filter(c => !c.collected);
 
   // Score
-  score += Math.floor(speed);
+  score += Math.floor(speed) + (dashing ? 3 : 0);
   document.getElementById('score').textContent = score;
   if (score > hiScore) {
     hiScore = score;
@@ -838,9 +861,19 @@ function gameLoop() {
   }
 
   // Collision
-  if (checkCollision()) {
-    endGame();
-    return;
+  const hit = collidingObstacle();
+  if (hit >= 0) {
+    if (dashing) {
+      // Smash through during dash
+      const o = obstacles[hit];
+      spawnParticles(o.x + o.w / 2, o.y + o.h / 2, '#ff8800', 12);
+      score += 100;
+      obstacles.splice(hit, 1);
+      if (typeof SND !== 'undefined') SND.sfx.crash();
+    } else {
+      endGame();
+      return;
+    }
   }
 
   drawScene();

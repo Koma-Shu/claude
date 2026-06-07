@@ -330,7 +330,7 @@
     <canvas class="preview" id="bikerunPreview" width="320" height="200"></canvas>
     <div class="card-body">
       <div class="card-header">
-        <div class="card-title" style="color:#00d4aa" id="bikerun-title">チャリ走</div>
+        <div class="card-title" style="color:#00d4aa" id="bikerun-title">ニャンダッシュ</div>
         <div class="avg-badge" id="avg-bikerun"></div>
       </div>
       <p class="card-desc" id="desc-bikerun"></p>
@@ -435,8 +435,8 @@ const ITEXT = {
     descKeshibato: '消しゴムをドラッグして相手を場外へ弾き出せ！1〜4人対応。CPU対戦・ローカル・オンラインに対応。',
     cbClick: 'クリック / タップ',
     cbSwing: 'スイング！',
-    descBikerun: '自転車で障害物を飛び越えろ！スペースキーでジャンプしながら、加速し続けるコースをどこまで走れるか挑戦しよう。',
-    bikerunTitle: 'チャリ走',
+    descBikerun: 'ネコが自転車で疾走！ジャンプで障害物をかわしつつ、魚を集めてブーストを満タンにすると無敵のダッシュが発動。障害物を粉砕して突き進め！',
+    bikerunTitle: 'ニャンダッシュ',
     bikerunJump: 'ジャンプ',
     bikerunTap: 'ジャンプ',
     descTennis: '本格テニスゲーム。左右移動とスイングでラリーを制せ。CPU 対戦（難易度3段階）＆ローカル 2P 対応。',
@@ -480,8 +480,8 @@ const ITEXT = {
     descKeshibato: 'Drag your eraser to knock opponents off the table! 1–4 players. CPU, local, and online play.',
     cbClick: 'Click / Tap',
     cbSwing: 'Swing!',
-    descBikerun: 'Endless bike runner! Press Space to jump over obstacles and see how far you can ride as the speed keeps increasing.',
-    bikerunTitle: 'BIKE RUSH',
+    descBikerun: 'A cat sprints on a bike! Jump over obstacles and collect fish to fill your BOOST — then unleash an invincible DASH that smashes everything in your path.',
+    bikerunTitle: 'NYAN DASH',
     bikerunJump: 'Jump',
     bikerunTap: 'Jump',
     descTennis: 'Full-featured tennis game. Move and swing to win the rally. VS CPU (3 difficulty levels) & local 2P supported.',
@@ -609,7 +609,7 @@ const GAME_NAMES = {
   mahjong:     {ja:'麻雀',           en:'MAHJONG'},
   capbaseball: {ja:'キャップ野球',   en:'CAP BASEBALL'},
   keshibato:   {ja:'消しバト',       en:'ERASER BATTLE'},
-  bikerun:     {ja:'チャリ走',       en:'BIKE RUSH'},
+  bikerun:     {ja:'ニャンダッシュ',  en:'NYAN DASH'},
   tennis:      {ja:'テニス',         en:'TENNIS'},
 };
 
@@ -1085,22 +1085,33 @@ document.addEventListener('keydown', function startAudioKey() {
   ctx.strokeStyle='#00d4aa';ctx.lineWidth=2.5;ctx.setLineDash([]);
   [bx-18,bx+18].forEach(wx=>{ctx.beginPath();ctx.arc(wx,by,14,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(wx,by-14);ctx.lineTo(wx,by+14);ctx.moveTo(wx-14,by);ctx.lineTo(wx+14,by);ctx.stroke();});
   // Frame
-  ctx.strokeStyle='#00aaff';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(bx-18,by);ctx.lineTo(bx,by-18);ctx.lineTo(bx+18,by);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(bx,by-18);ctx.lineTo(bx-6,by-10);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(bx,by-18);ctx.lineTo(bx+5,by-28);ctx.stroke();// handlebar
-  // Rider
-  ctx.strokeStyle='#eee';ctx.lineWidth=2;
-  ctx.beginPath();ctx.arc(bx+5,by-40,7,0,Math.PI*2);ctx.fillStyle='#f90';ctx.fill();ctx.stroke();// head/helmet
-  ctx.beginPath();ctx.moveTo(bx+5,by-33);ctx.lineTo(bx+3,by-20);ctx.stroke();// body
-  ctx.beginPath();ctx.moveTo(bx+3,by-28);ctx.lineTo(bx+5,by-28);ctx.stroke();// arm to handlebar
+  ctx.strokeStyle='#00d4aa';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(bx-18,by);ctx.lineTo(bx,by-3);ctx.lineTo(bx+18,by);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(bx,by-3);ctx.lineTo(bx-7,by-19);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(bx+13,by-1);ctx.lineTo(bx+15,by-19);ctx.lineTo(bx+21,by-21);ctx.stroke();// handlebar
+  // Cat rider
+  const fur='#ff9d4d';
+  ctx.fillStyle='#ff5252';ctx.beginPath();ctx.moveTo(bx+2,by-28);ctx.quadraticCurveTo(bx-10,by-30,bx-18,by-24);ctx.lineTo(bx-15,by-19);ctx.quadraticCurveTo(bx-8,by-24,bx+2,by-23);ctx.closePath();ctx.fill();// scarf
+  ctx.strokeStyle=fur;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(bx-11,by-20);ctx.quadraticCurveTo(bx-25,by-22,bx-23,by-33);ctx.stroke();// tail
+  ctx.fillStyle=fur;ctx.beginPath();ctx.ellipse(bx-2,by-23,11,9,-0.3,0,Math.PI*2);ctx.fill();// body
+  const hx=bx+10,hy=by-35;
+  ctx.beginPath();ctx.arc(hx,hy,9,0,Math.PI*2);ctx.fill();// head
+  ctx.beginPath();ctx.moveTo(hx-8,hy-5);ctx.lineTo(hx-10,hy-14);ctx.lineTo(hx-2,hy-9);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(hx+8,hy-5);ctx.lineTo(hx+10,hy-14);ctx.lineTo(hx+2,hy-9);ctx.closePath();ctx.fill();// ears
+  ctx.fillStyle='#222';ctx.beginPath();ctx.arc(hx+3.5,hy-1,1.7,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(hx+8.5,hy-1,1.7,0,Math.PI*2);ctx.fill();// eyes
+  // Fish collectible
+  const fx=W*0.58,fy=H*0.42;
+  ctx.fillStyle='#ffd24a';ctx.shadowColor='#ffd700';ctx.shadowBlur=8;
+  ctx.beginPath();ctx.ellipse(fx,fy,9,6,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+  ctx.beginPath();ctx.moveTo(fx+7,fy);ctx.lineTo(fx+14,fy-5);ctx.lineTo(fx+14,fy+5);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#333';ctx.beginPath();ctx.arc(fx-4,fy-1,1.3,0,Math.PI*2);ctx.fill();
   // Speed lines
-  ctx.strokeStyle='rgba(0,212,170,0.3)';ctx.lineWidth=1;
+  ctx.strokeStyle='rgba(255,215,0,0.35)';ctx.lineWidth=1.5;
   [[0,H*0.55,60],[0,H*0.60,40],[0,H*0.58,80]].forEach(([x,y,l])=>{ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+l,y);ctx.stroke();});
   // Label
   ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,H-26,W,26);
   ctx.fillStyle='#00d4aa';ctx.font='10px Courier New';ctx.textAlign='left';
-  ctx.fillText('チャリ走  BIKE RUSH  ENDLESS',10,H-8);
+  ctx.fillText('ニャンダッシュ  NYAN DASH',10,H-8);
 })();
 
 // ── Tennis Preview ────────────────────────────────────────────────
@@ -1173,7 +1184,7 @@ document.addEventListener('keydown', function startAudioKey() {
 </script>
 
 <footer style="margin-top:48px;padding:16px 0 32px;text-align:center;font-family:'Courier New',monospace;font-size:0.7rem;color:#333;letter-spacing:2px;">
-  v2.4
+  v2.5
 </footer>
 <script>
 if ('serviceWorker' in navigator) {
