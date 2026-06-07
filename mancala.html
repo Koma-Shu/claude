@@ -660,7 +660,7 @@ function addBtn(label,style,cb){
 }
 
 addBtn(t('back'),'background:#374151;color:#fff;top:10px;left:10px;',()=>{location.href='index.html';});
-const modeBtn=addBtn(t('modeVs'),'background:#7c3aed;color:#fff;bottom:18px;right:10px;',()=>{
+const modeBtn=addBtn(t('modeVs'),'background:#7c3aed;color:#fff;top:10px;right:10px;',()=>{
   mode=mode==='cpu'?'2p':'cpu';
   modeBtn.textContent=mode==='cpu'?t('modeVs'):t('modeCpu');
   initBoard();SND.startBGM?.('mahjong');

@@ -155,9 +155,10 @@ function minimax(b,depth,a,be,max){
 }
 
 // ── Game flow ────────────────────────────────────────────────────
-function placePiece(col){
-  if(dropping||gameOver||cpuPending)return;
-  if(mode==='cpu'&&turn===P2)return;
+function placePiece(col,isCpu){
+  if(dropping||gameOver)return;
+  if(!isCpu&&cpuPending)return;
+  if(!isCpu&&mode==='cpu'&&turn===P2)return;
   const row=getDropRow(col);
   if(row<0)return;
   dropCol=col;dropRow=row;
@@ -187,12 +188,14 @@ function onLand(col,row,p){
     if(mode==='cpu'&&turn===P2&&!gameOver){
       cpuPending=true;
       setTimeout(()=>{
-        cpuPending=false;
         if(!gameOver){
-          const[col]=minimax(board,7,-Infinity,Infinity,true);
-          if(col!=null)placePiece(col);
+          const[col]=minimax(board,6,-Infinity,Infinity,true);
+          cpuPending=false;
+          if(col!=null)placePiece(col,true);
+        }else{
+          cpuPending=false;
         }
-      },300);
+      },220);
     }
   }
 }
@@ -380,7 +383,7 @@ function addBtn(label,style,cb){
 }
 
 addBtn(t('back'),'background:#374151;top:10px;left:10px;',()=>{location.href='index.html';});
-const modeBtn=addBtn(t('modeVs'),'background:#7c3aed;bottom:18px;right:10px;',()=>{
+const modeBtn=addBtn(t('modeVs'),'background:#7c3aed;top:10px;right:10px;',()=>{
   mode=mode==='cpu'?'2p':'cpu';
   modeBtn.textContent=mode==='cpu'?t('modeVs'):t('modeCpu');
   initBoard();SND.startBGM?.('game');
