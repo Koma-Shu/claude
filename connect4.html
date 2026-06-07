@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>四目並べ</title>
+  <script src="sound.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0f172a;overflow:hidden;font-family:'Hiragino Sans','Meiryo','Segoe UI',sans-serif}
+    canvas{display:block}
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const COLS=7,ROWS=6,P1=1,P2=2;
+let board,turn,gameOver,winner,winCells;
+let dropping=false,dropCol=-1,dropRow=-1,dropAnimY=0,dropTargetY=0,dropVy=0;
+let hoverCol=-1,pulse=0,lastTs=0;
+let scores={p1:0,p2:0},mode='cpu',cpuPending=false;
+let lang=localStorage.getItem('lang')||'ja';
+
+const STR={
+  title:{ja:'四目並べ',en:'Connect Four'},
+  you:{ja:'あなた',en:'You'},
+  cpu:{ja:'CPU',en:'CPU'},
+  p1:{ja:'プレイヤー1',en:'Player 1'},
+  p2:{ja:'プレイヤー2',en:'Player 2'},
+  yourTurn:{ja:'あなたのターン',en:'Your turn'},
+  cpuTurn:{ja:'CPU思考中…',en:'CPU thinking…'},
+  p1Turn:{ja:'プレイヤー1のターン',en:'Player 1\'s turn'},
+  p2Turn:{ja:'プレイヤー2のターン',en:'Player 2\'s turn'},
+  youWin:{ja:'あなたの勝ち！',en:'You Win!'},
+  cpuWin:{ja:'CPUの勝ち！',en:'CPU Wins!'},
+  p1Win:{ja:'プレイヤー1の勝ち！',en:'Player 1 Wins!'},
+  p2Win:{ja:'プレイヤー2の勝ち！',en:'Player 2 Wins!'},
+  draw:{ja:'引き分け',en:'Draw'},
+  tap:{ja:'タップして再スタート',en:'Tap to restart'},
+  modeVs:{ja:'2人対戦',en:'2P Mode'},
+  modeCpu:{ja:'CPU対戦',en:'vs CPU'},
+  back:{ja:'戻る',en:'Back'},
+};
+const t=k=>(STR[k]?.[lang])||k;
+
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+let CW,CH,CELL,BX,BY;
+
+function resize(){
+  CW=canvas.width=window.innerWidth;
+  CH=canvas.height=window.innerHeight;
+  CELL=Math.min(Math.floor(CW*0.9/COLS),Math.floor(CH*0.62/ROWS),110);
+  BX=Math.floor((CW-COLS*CELL)/2);
+  BY=Math.floor((CH-ROWS*CELL)/2)+Math.floor(CELL*0.7);
+}
+
+function initBoard(){
+  board=Array.from({length:ROWS},()=>new Array(COLS).fill(0));
+  turn=P1;gameOver=false;winner=0;winCells=null;
+  dropping=false;dropVy=0;cpuPending=false;pulse=0;
+}
+
+function getDropRow(col){
+  for(let r=ROWS-1;r>=0;r--)if(board[r][col]===0)return r;
+  return -1;
+}
+
+function checkWin(b,r,c,p){
+  const dirs=[[0,1],[1,0],[1,1],[1,-1]];
+  for(const[dr,dc]of dirs){
+    const cells=[[r,c]];
+    for(let i=1;i<4;i++){
+      const nr=r+dr*i,nc=c+dc*i;
+      if(nr<0||nr>=ROWS||nc<0||nc>=COLS||b[nr][nc]!==p)break;
+      cells.push([nr,nc]);
+    }
+    for(let i=1;i<4;i++){
+      const nr=r-dr*i,nc=c-dc*i;
+      if(nr<0||nr>=ROWS||nc<0||nc>=COLS||b[nr][nc]!==p)break;
+      cells.push([nr,nc]);
+    }
+    if(cells.length>=4)return cells;
+  }
+  return null;
+}
+
+// ── AI ──────────────────────────────────────────────────────────
+function w4(w,p){
+  const o=p===P1?P2:P1;
+  const pc=w.filter(x=>x===p).length,ec=w.filter(x=>x===0).length,oc=w.filter(x=>x===o).length;
+  if(oc&&pc)return 0;
+  if(pc===4)return 1000;
+  if(pc===3&&ec===1)return 10;
+  if(pc===2&&ec===2)return 3;
+  if(oc===3&&ec===1)return -50;
+  if(oc===2&&ec===2)return -3;
+  return 0;
+}
+
+function evalB(b,p){
+  let s=0;
+  for(let r=0;r<ROWS;r++)if(b[r][3]===p)s+=4;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<=COLS-4;c++)s+=w4([b[r][c],b[r][c+1],b[r][c+2],b[r][c+3]],p);
+  for(let c=0;c<COLS;c++)for(let r=0;r<=ROWS-4;r++)s+=w4([b[r][c],b[r+1][c],b[r+2][c],b[r+3][c]],p);
+  for(let r=0;r<=ROWS-4;r++)for(let c=0;c<=COLS-4;c++)s+=w4([b[r][c],b[r+1][c+1],b[r+2][c+2],b[r+3][c+3]],p);
+  for(let r=3;r<ROWS;r++)for(let c=0;c<=COLS-4;c++)s+=w4([b[r][c],b[r-1][c+1],b[r-2][c+2],b[r-3][c+3]],p);
+  return s;
+}
+
+function terminal(b){
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(b[r][c]&&checkWin(b,r,c,b[r][c]))return true;
+  return b[0].every(x=>x!==0);
+}
+
+function validCols(b){return Array.from({length:COLS},(_,c)=>c).filter(c=>b[0][c]===0);}
+
+function dropClone(b,col,p){
+  const nb=b.map(r=>[...r]);
+  for(let r=ROWS-1;r>=0;r--){if(nb[r][col]===0){nb[r][col]=p;return nb;}}
+  return nb;
+}
+
+function minimax(b,depth,a,be,max){
+  if(depth===0||terminal(b)){
+    if(terminal(b)){
+      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+        if(b[r][c]===P2&&checkWin(b,r,c,P2))return[null,1e6+depth];
+        if(b[r][c]===P1&&checkWin(b,r,c,P1))return[null,-1e6-depth];
+      }
+      return[null,0];
+    }
+    return[null,evalB(b,P2)-evalB(b,P1)];
+  }
+  const vc=validCols(b).sort((x,y)=>Math.abs(x-3)-Math.abs(y-3));
+  if(max){
+    let best=-Infinity,bc=vc[0];
+    for(const col of vc){
+      const[,s]=minimax(dropClone(b,col,P2),depth-1,a,be,false);
+      if(s>best){best=s;bc=col;}
+      a=Math.max(a,s);
+      if(a>=be)break;
+    }
+    return[bc,best];
+  }else{
+    let best=Infinity,bc=vc[0];
+    for(const col of vc){
+      const[,s]=minimax(dropClone(b,col,P1),depth-1,a,be,true);
+      if(s<best){best=s;bc=col;}
+      be=Math.min(be,s);
+      if(a>=be)break;
+    }
+    return[bc,best];
+  }
+}
+
+// ── Game flow ────────────────────────────────────────────────────
+function placePiece(col){
+  if(dropping||gameOver||cpuPending)return;
+  if(mode==='cpu'&&turn===P2)return;
+  const row=getDropRow(col);
+  if(row<0)return;
+  dropCol=col;dropRow=row;
+  dropAnimY=BY-CELL*0.3;
+  dropTargetY=BY+row*CELL+CELL/2;
+  dropVy=0;dropping=true;
+}
+
+function onLand(col,row,p){
+  board[row][col]=p;
+  SND.sfx.land?.();
+  const wc=checkWin(board,row,col,p);
+  if(wc){
+    winCells=wc;gameOver=true;winner=p;
+    SND.stopBGM?.();
+    if(mode==='cpu'){
+      if(p===P1){scores.p1++;SND.sfx.win?.();}
+      else{scores.p2++;SND.sfx.lose?.();}
+    }else{
+      if(p===P1)scores.p1++;else scores.p2++;
+      SND.sfx.pointWin?.();
+    }
+  }else if(board[0].every(x=>x!==0)){
+    gameOver=true;winner=0;SND.stopBGM?.();SND.sfx.point?.();
+  }else{
+    turn=turn===P1?P2:P1;
+    if(mode==='cpu'&&turn===P2&&!gameOver){
+      cpuPending=true;
+      setTimeout(()=>{
+        cpuPending=false;
+        if(!gameOver){
+          const[col]=minimax(board,7,-Infinity,Infinity,true);
+          if(col!=null)placePiece(col);
+        }
+      },300);
+    }
+  }
+}
+
+// ── Drawing ──────────────────────────────────────────────────────
+function drawBg(){
+  const g=ctx.createLinearGradient(0,0,0,CH);
+  g.addColorStop(0,'#0f172a');g.addColorStop(1,'#0c2340');
+  ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);
+  ctx.fillStyle='rgba(255,255,255,0.45)';
+  for(let i=0;i<90;i++){
+    const sx=((i*137.5+23)%CW),sy=((i*79.3+11)%(CH*0.5));
+    ctx.beginPath();ctx.arc(sx,sy,i%7===0?1.5:0.7,0,Math.PI*2);ctx.fill();
+  }
+}
+
+function drawBoard(){
+  const pad=CELL*0.1;
+  ctx.shadowBlur=28;ctx.shadowColor='rgba(29,78,216,0.55)';
+  ctx.fillStyle='#1e40af';
+  ctx.beginPath();
+  if(ctx.roundRect)ctx.roundRect(BX-pad,BY-pad,COLS*CELL+pad*2,ROWS*CELL+pad*2,CELL*0.22);
+  else ctx.rect(BX-pad,BY-pad,COLS*CELL+pad*2,ROWS*CELL+pad*2);
+  ctx.fill();
+  ctx.shadowBlur=0;
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const x=BX+c*CELL+CELL/2,y=BY+r*CELL+CELL/2,rad=CELL*0.42;
+      ctx.beginPath();ctx.arc(x+1,y+2,rad,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fill();
+      ctx.beginPath();ctx.arc(x,y,rad,0,Math.PI*2);
+      ctx.fillStyle='#040d1f';ctx.fill();
+    }
+  }
+}
+
+function drawDisc(x,y,rad,player,alpha){
+  alpha=alpha??1;
+  const c1=player===P1?'#fde047':'#fca5a5';
+  const c2=player===P1?'#eab308':'#ef4444';
+  const c3=player===P1?'#92400e':'#991b1b';
+  ctx.save();ctx.globalAlpha=alpha;
+  const g=ctx.createRadialGradient(x-rad*0.3,y-rad*0.3,rad*0.05,x+rad*0.15,y+rad*0.15,rad);
+  g.addColorStop(0,c1);g.addColorStop(0.5,c2);g.addColorStop(1,c3);
+  ctx.beginPath();ctx.arc(x,y,rad,0,Math.PI*2);
+  ctx.fillStyle=g;ctx.fill();
+  ctx.beginPath();ctx.arc(x-rad*0.28,y-rad*0.3,rad*0.22,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.32)';ctx.fill();
+  ctx.restore();
+}
+
+function drawPieces(){
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      if(!board[r][c])continue;
+      if(dropping&&r===dropRow&&c===dropCol)continue;
+      drawDisc(BX+c*CELL+CELL/2,BY+r*CELL+CELL/2,CELL*0.42,board[r][c]);
+    }
+  }
+}
+
+function drawHover(){
+  if(hoverCol<0||gameOver||dropping||cpuPending)return;
+  if(mode==='cpu'&&turn===P2)return;
+  ctx.fillStyle='rgba(255,255,255,0.05)';
+  ctx.fillRect(BX+hoverCol*CELL,BY,CELL,ROWS*CELL);
+  const cx=BX+hoverCol*CELL+CELL/2,cy=BY-CELL*0.52;
+  ctx.fillStyle=turn===P1?'#fde047':'#ef4444';
+  ctx.beginPath();
+  ctx.moveTo(cx,cy+CELL*0.3);ctx.lineTo(cx-CELL*0.2,cy);ctx.lineTo(cx+CELL*0.2,cy);
+  ctx.closePath();ctx.fill();
+}
+
+function drawWinHighlight(){
+  if(!winCells)return;
+  const a=0.5+0.5*Math.sin(pulse);
+  ctx.save();
+  ctx.strokeStyle=`rgba(255,255,255,${a})`;
+  ctx.lineWidth=CELL*0.1;
+  for(const[r,c]of winCells){
+    ctx.beginPath();
+    ctx.arc(BX+c*CELL+CELL/2,BY+r*CELL+CELL/2,CELL*0.43,0,Math.PI*2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawUI(){
+  const cx=CW/2;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+
+  // Title
+  ctx.font=`bold ${Math.round(CELL*0.5)}px 'Hiragino Sans','Meiryo','Segoe UI',sans-serif`;
+  ctx.fillStyle='#e2e8f0';
+  ctx.fillText(t('title'),cx,BY-CELL*1.6);
+
+  // Scores
+  const sf=Math.round(CELL*0.38);
+  ctx.font=`${sf}px 'Hiragino Sans','Meiryo','Segoe UI',sans-serif`;
+  const p1n=mode==='cpu'?t('you'):t('p1');
+  const p2n=mode==='cpu'?t('cpu'):t('p2');
+  ctx.textAlign='right';ctx.fillStyle='#fde047';
+  ctx.fillText(`${p1n}  ${scores.p1}`,cx-CELL*0.25,BY-CELL*0.95);
+  ctx.textAlign='center';ctx.fillStyle='#475569';
+  ctx.fillText('—',cx,BY-CELL*0.95);
+  ctx.textAlign='left';ctx.fillStyle='#ef4444';
+  ctx.fillText(`${scores.p2}  ${p2n}`,cx+CELL*0.25,BY-CELL*0.95);
+  ctx.textAlign='center';
+
+  // Status
+  const sy=BY+ROWS*CELL+CELL*0.85;
+  ctx.font=`bold ${Math.round(CELL*0.42)}px 'Hiragino Sans','Meiryo','Segoe UI',sans-serif`;
+  if(gameOver){
+    let msg,col;
+    if(winner===P1){msg=mode==='cpu'?t('youWin'):t('p1Win');col='#fde047';}
+    else if(winner===P2){msg=mode==='cpu'?t('cpuWin'):t('p2Win');col='#ef4444';}
+    else{msg=t('draw');col='#94a3b8';}
+    ctx.fillStyle=col;ctx.fillText(msg,cx,sy);
+    ctx.font=`${Math.round(CELL*0.28)}px 'Hiragino Sans','Meiryo','Segoe UI',sans-serif`;
+    ctx.fillStyle='#475569';ctx.fillText(t('tap'),cx,sy+CELL*0.55);
+  }else{
+    let msg,col;
+    if(cpuPending){msg=t('cpuTurn');col='#ef4444';}
+    else if(turn===P1){msg=mode==='cpu'?t('yourTurn'):t('p1Turn');col='#fde047';}
+    else{msg=mode==='cpu'?t('cpuTurn'):t('p2Turn');col='#ef4444';}
+    ctx.fillStyle=col;ctx.fillText(msg,cx,sy);
+  }
+}
+
+// ── Game loop ────────────────────────────────────────────────────
+function gameLoop(ts){
+  if(!lastTs)lastTs=ts;
+  const dt=Math.min((ts-lastTs)/1000,.05);
+  lastTs=ts;
+
+  if(dropping){
+    dropVy+=2400*dt;
+    dropAnimY+=dropVy*dt;
+    if(dropAnimY>=dropTargetY){
+      dropAnimY=dropTargetY;
+      dropping=false;dropVy=0;
+      onLand(dropCol,dropRow,turn);
+    }
+  }
+  pulse+=0.1;
+
+  drawBg();
+  drawHover();
+  drawBoard();
+  drawPieces();
+  if(dropping)drawDisc(BX+dropCol*CELL+CELL/2,dropAnimY,CELL*0.42,turn);
+  drawWinHighlight();
+  drawUI();
+  requestAnimationFrame(gameLoop);
+}
+
+// ── Events ───────────────────────────────────────────────────────
+function colFromX(x){
+  if(x<BX||x>BX+COLS*CELL)return -1;
+  return Math.floor((x-BX)/CELL);
+}
+
+canvas.addEventListener('mousemove',e=>{hoverCol=colFromX(e.clientX);});
+canvas.addEventListener('mouseleave',()=>{hoverCol=-1;});
+canvas.addEventListener('click',e=>{
+  if(gameOver){initBoard();SND.startBGM?.('game');return;}
+  placePiece(colFromX(e.clientX));
+});
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  const t0=e.touches[0];
+  if(gameOver){initBoard();SND.startBGM?.('game');return;}
+  placePiece(colFromX(t0.clientX));
+},{passive:false});
+window.addEventListener('resize',resize);
+
+// ── Buttons ──────────────────────────────────────────────────────
+function addBtn(label,style,cb){
+  const b=document.createElement('button');
+  b.textContent=label;
+  b.style.cssText=`position:fixed;font-size:14px;font-weight:bold;border:none;border-radius:8px;cursor:pointer;color:#fff;padding:7px 15px;${style}`;
+  b.addEventListener('click',cb);
+  document.body.appendChild(b);
+  return b;
+}
+
+addBtn(t('back'),'background:#374151;top:10px;left:10px;',()=>{location.href='index.html';});
+const modeBtn=addBtn(t('modeVs'),'background:#7c3aed;bottom:18px;right:10px;',()=>{
+  mode=mode==='cpu'?'2p':'cpu';
+  modeBtn.textContent=mode==='cpu'?t('modeVs'):t('modeCpu');
+  initBoard();SND.startBGM?.('game');
+});
+
+// ── Init ─────────────────────────────────────────────────────────
+resize();initBoard();
+
+if(typeof SND!=='undefined'){
+  SND.createBtn(document.body);
+  SND.startBGM('game');
+}
+
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
