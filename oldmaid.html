@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ババ抜き</title>
+<script src="sound.js"></script>
+<script src="cards.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:radial-gradient(circle at 50% 28%,#4a2a1a,#241008);min-height:100vh;
+    font-family:'Hiragino Sans','Meiryo','Segoe UI',sans-serif;color:#ffeede;
+    display:flex;flex-direction:column;align-items:center;padding:46px 8px 20px;--cw:46px;--ch:65px;}
+  h1{font-size:1.3rem;letter-spacing:4px;color:#ffb87a;margin-bottom:6px;}
+  .cpus{display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap;justify-content:center;}
+  .cpu{background:rgba(0,0,0,.3);border-radius:10px;padding:6px 14px;font-size:.8rem;text-align:center;min-width:78px;}
+  .cpu.act{outline:2px solid #ffb87a;}.cpu.victim{outline:2px solid #ff5050;}
+  .cpu.safe{opacity:.5;}.cpu .n{font-weight:bold;}
+  .draw-zone{min-height:calc(var(--ch)+30px);display:flex;flex-direction:column;align-items:center;gap:6px;
+    background:rgba(0,0,0,.2);border-radius:12px;padding:10px 16px;margin-bottom:8px;}
+  .draw-lbl{font-size:.78rem;opacity:.8;}
+  .draw-cards{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;max-width:680px;}
+  .turn{font-size:.88rem;margin:6px 0;min-height:20px;text-align:center;}
+  .myhand{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;max-width:820px;margin-top:6px;}
+  .controls{margin-top:14px;display:flex;gap:12px;}
+  button{font-family:inherit;font-size:.9rem;font-weight:bold;border:none;border-radius:9px;padding:10px 22px;cursor:pointer;}
+  .b-new{background:#ffb87a;color:#222;}
+  .topbtn{position:fixed;top:12px;left:12px;background:#374151;color:#fff;border-radius:8px;padding:7px 14px;font-size:.8rem;cursor:pointer;border:none;}
+  .win-msg{font-size:1.15rem;font-weight:bold;margin-top:12px;text-align:center;}
+  .rank-list{font-size:.8rem;opacity:.85;margin-top:4px;text-align:center;}
+  .pcard.draw-pick{cursor:pointer;}
+  .pcard.draw-pick:hover{transform:translateY(-10px);box-shadow:0 8px 16px rgba(0,0,0,.5);}
+</style>
+</head>
+<body>
+<button class="topbtn" onclick="location.href='index.html'">戻る</button>
+<h1 id="title">ババ抜き</h1>
+<div class="cpus" id="cpus"></div>
+<div class="draw-zone" id="drawzone"></div>
+<div class="turn" id="turn"></div>
+<div class="myhand" id="myhand"></div>
+<div class="win-msg" id="winmsg"></div>
+<div class="rank-list" id="ranklist"></div>
+<div class="controls"><button class="b-new" id="newbtn"></button></div>
+
+<script>
+const L={
+  title:{ja:'ババ抜き',en:'Old Maid'},you:{ja:'あなた',en:'You'},
+  yourdraw:{ja:'から1枚引く — カードをタップ',en:': draw a card — tap one'},
+  drawing:{ja:'が引いています…',en:' is drawing…'},
+  cputurn:{ja:'の番…',en:'\'s turn…'},newgame:{ja:'新しいゲーム',en:'New Game'},
+  safe:{ja:'あがり',en:'SAFE'},loser:{ja:'ババを持って負け…',en:'stuck with the Old Maid…'},
+  youlose:{ja:'あなたがババ！負け…',en:'You got the Old Maid! You lose…'},
+  youwin:{ja:'あがり！勝ち！',en:'You\'re safe — you win!'},finished:{ja:'ゲーム終了',en:'Game Over'},
+};
+let lang=localStorage.getItem('lang')||'ja';
+const t=k=>(L[k]&&L[k][lang])||k;
+const C=window.CARDS,$=id=>document.getElementById(id);
+const NP=4;
+let hands,turn,safeOrder,gameOver,phase,victim;
+
+function setup(){
+  let deck=C.shuffle(C.makeDeck());
+  deck.pop(); // remove one card → creates the lone "Old Maid"
+  hands=[[],[],[],[]];
+  deck.forEach((c,i)=>hands[i%NP].push(c));
+  hands.forEach((h,p)=>{discardPairs(h);shuffleHand(h);});
+  turn=0;safeOrder=[];gameOver=false;phase='turn';victim=-1;
+  $('winmsg').textContent='';$('ranklist').textContent='';
+  render();
+  if(checkSafe())return;
+  setTimeout(startTurn,500);
+}
+function shuffleHand(h){C.shuffle(h);}
+function discardPairs(h){
+  const byVal={};h.forEach(c=>{(byVal[c.value]=byVal[c.value]||[]).push(c);});
+  for(const v in byVal){
+    let g=byVal[v];
+    while(g.length>=2){
+      const a=g.pop(),b=g.pop();
+      h.splice(h.indexOf(a),1);h.splice(h.indexOf(b),1);
+    }
+  }
+}
+function nextActive(from){let n=from;for(let i=0;i<NP;i++){n=(n+1)%NP;if(hands[n].length>0&&!safeOrder.includes(n))break;}return n;}
+
+function render(){
+  $('title').textContent=t('title');$('newbtn').textContent=t('newgame');
+  const cE=$('cpus');cE.innerHTML='';
+  for(let p=1;p<NP;p++){
+    const d=document.createElement('div');
+    let cls='cpu';if(turn===p&&!gameOver)cls+=' act';if(victim===p)cls+=' victim';if(safeOrder.includes(p))cls+=' safe';
+    d.className=cls;
+    let st=safeOrder.includes(p)?'✅'+t('safe'):`${hands[p].length}枚`;
+    d.innerHTML=`<div class="n">CPU ${p}</div><div>${st}</div>`;
+    cE.appendChild(d);
+  }
+  // draw zone
+  const dz=$('drawzone');dz.innerHTML='';
+  if(phase==='pick'&&turn===0&&victim>=0){
+    const lbl=document.createElement('div');lbl.className='draw-lbl';
+    lbl.textContent=(victim===0?t('you'):'CPU '+victim)+t('yourdraw');
+    dz.appendChild(lbl);
+    const dc=document.createElement('div');dc.className='draw-cards';
+    hands[victim].forEach((c,i)=>{
+      const el=C.cardEl(c,false);el.classList.add('draw-pick');
+      el.onclick=()=>playerDraw(i);dc.appendChild(el);
+    });
+    dz.appendChild(dc);
+  }else if(phase==='cpudraw'&&victim>=0){
+    const lbl=document.createElement('div');lbl.className='draw-lbl';
+    lbl.textContent=`CPU ${turn} → ${victim===0?t('you'):'CPU '+victim}${t('drawing')}`;
+    dz.appendChild(lbl);
+    const dc=document.createElement('div');dc.className='draw-cards';
+    hands[victim].forEach(c=>dc.appendChild(C.cardEl(c,victim===0?true:false)));
+    dz.appendChild(dc);
+  }
+  $('turn').textContent=gameOver?t('finished'):(turn===0?'':`CPU ${turn}${t('cputurn')}`);
+  const mh=$('myhand');mh.innerHTML='';
+  hands[0].forEach(c=>mh.appendChild(C.cardEl(c,true)));
+}
+
+function startTurn(){
+  if(gameOver)return;
+  victim=nextActive(turn);
+  if(victim===turn){checkSafe();return;}
+  if(turn===0){phase='pick';render();}
+  else{phase='cpudraw';render();setTimeout(()=>cpuDraw(),900);}
+}
+function playerDraw(i){
+  if(phase!=='pick'||turn!==0)return;
+  takeCard(0,victim,i);
+}
+function cpuDraw(){
+  const i=Math.floor(Math.random()*hands[victim].length);
+  takeCard(turn,victim,i);
+}
+function takeCard(drawer,from,idx){
+  const card=hands[from].splice(idx,1)[0];
+  hands[drawer].push(card);
+  SND.sfx.draw&&SND.sfx.draw();
+  // check pair formed
+  const match=hands[drawer].find(c=>c.value===card.value&&c.id!==card.id);
+  if(match){
+    hands[drawer].splice(hands[drawer].indexOf(match),1);
+    hands[drawer].splice(hands[drawer].indexOf(card),1);
+    SND.sfx.pointWin&&SND.sfx.pointWin();
+  }
+  shuffleHand(hands[drawer]);
+  phase='turn';victim=-1;
+  render();
+  checkSafe();
+  if(gameOver)return;
+  // advance turn
+  turn=nextActive(turn);
+  render();
+  setTimeout(()=>{ if(turn===0)startTurn(); else {startTurn();} },650);
+}
+function checkSafe(){
+  let changed=false;
+  for(let p=0;p<NP;p++){
+    if(hands[p].length===0&&!safeOrder.includes(p)){safeOrder.push(p);changed=true;
+      if(p===0)SND.sfx.win&&SND.sfx.win();}
+  }
+  const active=[];for(let p=0;p<NP;p++)if(!safeOrder.includes(p))active.push(p);
+  if(active.length<=1){
+    if(active.length===1)safeOrder.push(active[0]); // loser last
+    endGame();return true;
+  }
+  if(changed)render();
+  return false;
+}
+function endGame(){
+  gameOver=true;SND.stopBGM&&SND.stopBGM();
+  const loser=safeOrder[safeOrder.length-1];
+  const m=$('winmsg');
+  if(loser===0){m.textContent='😱 '+t('youlose');m.style.color='#ff9090';SND.sfx.lose&&SND.sfx.lose();}
+  else{m.textContent='🎉 '+t('youwin');m.style.color='#7dffb0';SND.sfx.win&&SND.sfx.win();}
+  $('ranklist').textContent=safeOrder.map((p,i)=>
+    `${i<safeOrder.length-1?'✅':'💀'} ${p===0?t('you'):'CPU '+p}`).join('   ');
+  victim=-1;phase='turn';render();
+}
+$('newbtn').onclick=()=>{SND.startBGM&&SND.startBGM('game');setup();};
+
+setup();
+if(typeof SND!=='undefined'){SND.createBtn(document.body);SND.startBGM('game');}
+</script>
+</body>
+</html>

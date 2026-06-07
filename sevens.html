@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>七並べ</title>
+<script src="sound.js"></script>
+<script src="cards.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:radial-gradient(circle at 50% 30%,#0a4c5c,#052230);min-height:100vh;
+    font-family:'Hiragino Sans','Meiryo','Segoe UI',sans-serif;color:#eafaff;
+    display:flex;flex-direction:column;align-items:center;padding:48px 8px 20px;--cw:40px;--ch:56px;}
+  h1{font-size:1.3rem;letter-spacing:4px;color:#7fe9ff;margin-bottom:6px;}
+  .cpus{display:flex;gap:14px;margin-bottom:8px;flex-wrap:wrap;justify-content:center;}
+  .cpu{background:rgba(0,0,0,.3);border-radius:10px;padding:5px 12px;font-size:.8rem;text-align:center;}
+  .cpu.act{outline:2px solid #7fe9ff;}
+  .cpu .n{font-weight:bold;}
+  .board{display:flex;flex-direction:column;gap:4px;background:rgba(0,0,0,.22);
+    padding:8px;border-radius:10px;margin-bottom:10px;}
+  .brow{display:flex;gap:3px;align-items:center;}
+  .slot{width:var(--cw);height:var(--ch);border-radius:5px;border:1px dashed rgba(255,255,255,.12);flex:0 0 auto;}
+  .slot.seven{border-color:rgba(255,226,122,.4);}
+  .turn{font-size:.9rem;margin:6px 0;min-height:22px;text-align:center;}
+  .myhand{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;max-width:760px;margin-top:6px;}
+  .controls{margin-top:12px;display:flex;gap:12px;}
+  button{font-family:inherit;font-size:.88rem;font-weight:bold;border:none;border-radius:9px;padding:9px 20px;cursor:pointer;}
+  button:disabled{opacity:.4;cursor:default;}
+  .b-pass{background:#ef4444;color:#fff;}.b-new{background:#7fe9ff;color:#063;}
+  .topbtn{position:fixed;top:12px;left:12px;background:#374151;color:#fff;border-radius:8px;padding:7px 14px;font-size:.8rem;cursor:pointer;border:none;}
+  .win-msg{font-size:1.15rem;font-weight:bold;margin-top:12px;text-align:center;}
+  .rank-list{font-size:.82rem;opacity:.85;margin-top:4px;text-align:center;}
+</style>
+</head>
+<body>
+<button class="topbtn" onclick="location.href='index.html'">戻る</button>
+<h1 id="title">七並べ</h1>
+<div class="cpus" id="cpus"></div>
+<div class="board" id="board"></div>
+<div class="turn" id="turn"></div>
+<div class="myhand" id="myhand"></div>
+<div class="win-msg" id="winmsg"></div>
+<div class="rank-list" id="ranklist"></div>
+<div class="controls">
+  <button class="b-pass" id="passbtn"></button>
+  <button class="b-new" id="newbtn"></button>
+</div>
+
+<script>
+const L={
+  title:{ja:'七並べ',en:'Sevens'},you:{ja:'あなた',en:'You'},
+  yourturn:{ja:'あなたの番 — カードを置くかパス',en:'Your turn — play a card or pass'},
+  cputurn:{ja:'の番…',en:'\'s turn…'},pass:{ja:'パス',en:'Pass'},passes:{ja:'残パス',en:'passes'},
+  newgame:{ja:'新しいゲーム',en:'New Game'},out:{ja:'上がり！',en:'OUT!'},
+  finished:{ja:'ゲーム終了',en:'Game Over'},cards:{ja:'枚',en:'cards'},
+  bust:{ja:'脱落',en:'BUST'},
+};
+let lang=localStorage.getItem('lang')||'ja';
+const t=k=>(L[k]&&L[k][lang])||k;
+const C=window.CARDS,$=id=>document.getElementById(id);
+const SUITS=['S','H','D','C'],SCH={S:'♠',H:'♥',D:'♦',C:'♣'};
+let hands,placed,passesLeft,turn,finishOrder,busted,gameOver;
+const NP=4;
+
+function setup(){
+  const deck=C.shuffle(C.makeDeck());
+  hands=[[],[],[],[]];
+  deck.forEach((c,i)=>hands[i%NP].push(c));
+  hands.forEach(h=>h.sort((a,b)=>a.suit.localeCompare(b.suit)||a.value-b.value));
+  placed={S:new Set(),H:new Set(),D:new Set(),C:new Set()};
+  passesLeft=[3,3,3,3];finishOrder=[];busted=[false,false,false,false];gameOver=false;
+  // start with holder of D7
+  turn=hands.findIndex(h=>h.some(c=>c.id==='D7'));
+  if(turn<0)turn=0;
+  $('winmsg').textContent='';$('ranklist').textContent='';
+  render();
+  if(turn!==0)setTimeout(cpuTurn,700);
+}
+
+function playable(card){
+  const s=placed[card.suit];
+  if(card.value===7)return true;
+  if(s.size===0)return false;
+  return s.has(card.value-1)||s.has(card.value+1);
+}
+function hasMove(p){return hands[p].some(playable);}
+
+function render(){
+  $('title').textContent=t('title');$('newbtn').textContent=t('newgame');
+  // cpus
+  const cE=$('cpus');cE.innerHTML='';
+  for(let p=1;p<NP;p++){
+    const d=document.createElement('div');d.className='cpu'+(turn===p&&!gameOver?' act':'');
+    let status=`${hands[p].length}${t('cards')}`;
+    if(busted[p])status=t('bust');
+    if(finishOrder.includes(p))status='👑'+(finishOrder.indexOf(p)+1);
+    d.innerHTML=`<div class="n">CPU ${p}</div><div>${status}</div>`;
+    cE.appendChild(d);
+  }
+  // board
+  const b=$('board');b.innerHTML='';
+  SUITS.forEach(s=>{
+    const row=document.createElement('div');row.className='brow';
+    for(let v=1;v<=13;v++){
+      if(placed[s].has(v)){
+        const card={suit:s,rank:C.RANKS[v-1],value:v,id:s+C.RANKS[v-1]};
+        row.appendChild(C.cardEl(card,true));
+      }else{
+        const sl=document.createElement('div');sl.className='slot'+(v===7?' seven':'');
+        if(v===7)sl.textContent='';
+        row.appendChild(sl);
+      }
+    }
+    b.appendChild(row);
+  });
+  // turn
+  $('turn').textContent=gameOver?t('finished'):(turn===0?t('yourturn'):`CPU ${turn}${t('cputurn')}`);
+  // my hand
+  const mh=$('myhand');mh.innerHTML='';
+  hands[0].forEach((c)=>{
+    const el=C.cardEl(c,true);
+    const canPlay=turn===0&&!gameOver&&playable(c);
+    if(canPlay){el.classList.add('playable');el.onclick=()=>playCard(0,c);}
+    else el.classList.add('dim');
+    mh.appendChild(el);
+  });
+  // pass button
+  const pb=$('passbtn');
+  pb.textContent=`${t('pass')} (${t('passes')} ${passesLeft[0]})`;
+  pb.disabled=!(turn===0&&!gameOver&&passesLeft[0]>0);
+  pb.onclick=()=>doPass(0);
+}
+
+function playCard(p,card){
+  if(turn!==p||gameOver||!playable(card))return;
+  placed[card.suit].add(card.value);
+  hands[p]=hands[p].filter(c=>c.id!==card.id);
+  SND.sfx.discard&&SND.sfx.discard();
+  if(hands[p].length===0){finishOrder.push(p);SND.sfx.pointWin&&SND.sfx.pointWin();}
+  next();
+}
+function doPass(p){
+  if(turn!==p||gameOver)return;
+  passesLeft[p]--;
+  SND.sfx.click&&SND.sfx.click();
+  if(passesLeft[p]<0)passesLeft[p]=0;
+  next();
+}
+function bust(p){
+  // dump all remaining cards onto board, player eliminated
+  busted[p]=true;
+  hands[p].forEach(c=>placed[c.suit].add(c.value));
+  hands[p]=[];
+  SND.sfx.fallOff&&SND.sfx.fallOff();
+}
+function next(){
+  render();
+  // check end: only one active player left or all but one finished
+  const active=[];
+  for(let p=0;p<NP;p++) if(!finishOrder.includes(p)&&!busted[p])active.push(p);
+  if(active.length<=1){
+    active.forEach(p=>finishOrder.push(p));
+    endGame();return;
+  }
+  // advance turn
+  let nt=turn;
+  do{ nt=(nt+1)%NP; }while(finishOrder.includes(nt)||busted[nt]);
+  turn=nt;
+  render();
+  if(turn===0){
+    // if player has no move and no passes, auto-bust
+    if(!hasMove(0)&&passesLeft[0]<=0){bust(0);setTimeout(next,500);return;}
+  }else{
+    setTimeout(cpuTurn,650);
+  }
+}
+function cpuTurn(){
+  if(gameOver||turn===0)return;
+  const p=turn;
+  const moves=hands[p].filter(playable);
+  if(moves.length===0){
+    if(passesLeft[p]>0)doPass(p);
+    else {bust(p);setTimeout(next,500);}
+    return;
+  }
+  // Strategy: avoid playing 6/8 near 7 too early if holding edge cards; simple: play card that
+  // releases fewest, but mostly play furthest-from-7 to keep flexibility. Prefer playing edges.
+  // If have a card that's far end (A,K, or extreme), play it. Else play random valid.
+  // Also: hold a "key" card (one that blocks others) sometimes by passing.
+  let pick;
+  // play the move whose value is most extreme (closest to A or K) to dump safely
+  moves.sort((a,b)=>Math.max(Math.abs(b.value-7))-Math.max(Math.abs(a.value-7)));
+  moves.sort((a,b)=>Math.abs(b.value-7)-Math.abs(a.value-7));
+  pick=moves[0];
+  // occasionally strategic pass to hold a 7 if has passes & few cards already low
+  if(passesLeft[p]>0 && pick.value===7 && hands[p].length>6 && Math.random()<0.4){doPass(p);return;}
+  playCard(p,pick);
+}
+function endGame(){
+  gameOver=true;SND.stopBGM&&SND.stopBGM();
+  // remaining ordering: add busted at end
+  for(let p=0;p<NP;p++)if(!finishOrder.includes(p))finishOrder.push(p);
+  const myRank=finishOrder.indexOf(0)+1;
+  const m=$('winmsg');
+  if(myRank===1){m.textContent='🏆 '+t('you')+' 1st!';m.style.color='#7dffb0';SND.sfx.win&&SND.sfx.win();}
+  else{m.textContent=`${t('you')}: ${myRank}${lang==='ja'?'位':'th'}`;m.style.color='#ffe27a';SND.sfx.lose&&SND.sfx.lose();}
+  const names=finishOrder.map((p,i)=>`${i+1}. ${p===0?t('you'):'CPU '+p}${busted[p]?'('+t('bust')+')':''}`);
+  $('ranklist').textContent=names.join('   ');
+  render();
+}
+$('newbtn').onclick=()=>{SND.startBGM&&SND.startBGM('game');setup();};
+
+setup();
+if(typeof SND!=='undefined'){SND.createBtn(document.body);SND.startBGM('game');}
+</script>
+</body>
+</html>

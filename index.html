@@ -86,6 +86,12 @@
     .btn-bikerun { background: linear-gradient(135deg, #00d4aa, #00aa88); color: #000; font-weight: bold; }
     .btn-connect4 { background: linear-gradient(135deg, #2563eb, #1e3a8a); color: #fff; font-weight: bold; }
     .btn-mancala { background: linear-gradient(135deg, #92400e, #5c2a06); color: #fff; font-weight: bold; }
+    .btn-blackjack { background: linear-gradient(135deg, #0a5c3a, #053522); color: #ffe27a; font-weight: bold; }
+    .btn-poker { background: linear-gradient(135deg, #1a3a5c, #0a1a30); color: #ffe27a; font-weight: bold; }
+    .btn-daifugo { background: linear-gradient(135deg, #7c3aed, #3a1a4c); color: #fff; font-weight: bold; }
+    .btn-sevens { background: linear-gradient(135deg, #0a8ca8, #052230); color: #fff; font-weight: bold; }
+    .btn-memory { background: linear-gradient(135deg, #7c3aed, #120a24); color: #fff; font-weight: bold; }
+    .btn-oldmaid { background: linear-gradient(135deg, #d97706, #7a3a08); color: #fff; font-weight: bold; }
     .btn-tennis { background: linear-gradient(135deg, #aadd00, #77aa00); color: #000; font-weight: bold; }
     #lang-btn { position:fixed; top:14px; left:14px; background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; z-index:10; }
     #auth-area { position:fixed; top:14px; right:14px; display:flex; gap:8px; z-index:10; }
@@ -393,6 +399,96 @@
     </div>
   </div>
 
+  <!-- Blackjack -->
+  <div class="card" data-game="blackjack">
+    <canvas class="preview" id="blackjackPreview" width="320" height="200"></canvas>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-title" style="color:#10b981" id="blackjack-title">ブラックジャック</div>
+        <div class="avg-badge" id="avg-blackjack"></div>
+      </div>
+      <p class="card-desc" id="desc-blackjack"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
+      <div class="card-tags"><span class="tag">1 PLAYER</span><span class="tag">VS DEALER</span><span class="tag">CARD</span></div>
+      <a href="blackjack.html" class="play-btn btn-blackjack">▶ PLAY</a>
+    </div>
+  </div>
+
+  <!-- Poker -->
+  <div class="card" data-game="poker">
+    <canvas class="preview" id="pokerPreview" width="320" height="200"></canvas>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-title" style="color:#60a5fa" id="poker-title">ポーカー</div>
+        <div class="avg-badge" id="avg-poker"></div>
+      </div>
+      <p class="card-desc" id="desc-poker"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
+      <div class="card-tags"><span class="tag">1 PLAYER</span><span class="tag">VS CPU</span><span class="tag">CARD</span></div>
+      <a href="poker.html" class="play-btn btn-poker">▶ PLAY</a>
+    </div>
+  </div>
+
+  <!-- Daifugo -->
+  <div class="card" data-game="daifugo">
+    <canvas class="preview" id="daifugoPreview" width="320" height="200"></canvas>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-title" style="color:#c084fc" id="daifugo-title">大富豪</div>
+        <div class="avg-badge" id="avg-daifugo"></div>
+      </div>
+      <p class="card-desc" id="desc-daifugo"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
+      <div class="card-tags"><span class="tag">1 PLAYER</span><span class="tag">VS 3 CPU</span><span class="tag">CARD</span></div>
+      <a href="daifugo.html" class="play-btn btn-daifugo">▶ PLAY</a>
+    </div>
+  </div>
+
+  <!-- Sevens -->
+  <div class="card" data-game="sevens">
+    <canvas class="preview" id="sevensPreview" width="320" height="200"></canvas>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-title" style="color:#7fe9ff" id="sevens-title">七並べ</div>
+        <div class="avg-badge" id="avg-sevens"></div>
+      </div>
+      <p class="card-desc" id="desc-sevens"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
+      <div class="card-tags"><span class="tag">1 PLAYER</span><span class="tag">VS 3 CPU</span><span class="tag">CARD</span></div>
+      <a href="sevens.html" class="play-btn btn-sevens">▶ PLAY</a>
+    </div>
+  </div>
+
+  <!-- Memory -->
+  <div class="card" data-game="memory">
+    <canvas class="preview" id="memoryPreview" width="320" height="200"></canvas>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-title" style="color:#d4b0ff" id="memory-title">神経衰弱</div>
+        <div class="avg-badge" id="avg-memory"></div>
+      </div>
+      <p class="card-desc" id="desc-memory"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
+      <div class="card-tags"><span class="tag">1 PLAYER</span><span class="tag">VS CPU</span><span class="tag">CARD</span></div>
+      <a href="memory.html" class="play-btn btn-memory">▶ PLAY</a>
+    </div>
+  </div>
+
+  <!-- Old Maid -->
+  <div class="card" data-game="oldmaid">
+    <canvas class="preview" id="oldmaidPreview" width="320" height="200"></canvas>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-title" style="color:#ffb87a" id="oldmaid-title">ババ抜き</div>
+        <div class="avg-badge" id="avg-oldmaid"></div>
+      </div>
+      <p class="card-desc" id="desc-oldmaid"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
+      <div class="card-tags"><span class="tag">1 PLAYER</span><span class="tag">VS 3 CPU</span><span class="tag">CARD</span></div>
+      <a href="oldmaid.html" class="play-btn btn-oldmaid">▶ PLAY</a>
+    </div>
+  </div>
+
   <!-- Mancala -->
   <div class="card" data-game="mancala">
     <canvas class="preview" id="mancalaPreview" width="320" height="200"></canvas>
@@ -489,6 +585,18 @@ const ITEXT = {
     descKeshibato: '消しゴムをドラッグして相手を場外へ弾き出せ！1〜4人対応。CPU対戦・ローカル・オンラインに対応。',
     cbClick: 'クリック / タップ',
     cbSwing: 'スイング！',
+    descBlackjack: 'カジノの定番！21を超えずにディーラーより高い手を作れ。ヒットとスタンドを駆使してチップを稼ごう。ブラックジャックは配当1.5倍。',
+    blackjackTitle: 'ブラックジャック',
+    descPoker: '5枚のカードで役を競うファイブカード・ドロー。残すカードを選んで交換し、CPUより強い役を作れ。ロイヤルフラッシュを狙え！',
+    pokerTitle: 'ポーカー',
+    descDaifugo: 'みんな大好き大富豪！3人のCPUとカードを出し合い、いち早く手札をなくせ。8切りルール搭載。大富豪を目指せ！',
+    daifugoTitle: '大富豪',
+    descSevens: '7を起点にカードを並べていくトランプの定番。3人のCPUと対戦。パスは3回まで。最初に手札をなくした人が勝ち！',
+    sevensTitle: '七並べ',
+    descMemory: '裏向きのカードを2枚めくってペアを揃えよう。CPUの記憶力と勝負！ペアを多く取った方の勝ち。8〜18ペアで難易度調整可能。',
+    memoryTitle: '神経衰弱',
+    descOldmaid: 'ペアを捨てて、最後にババ（孤独な1枚）を持っていた人が負け。3人のCPUとドキドキの心理戦！相手の手札から1枚引こう。',
+    oldmaidTitle: 'ババ抜き',
     descMancala: '古代から伝わる種まきゲーム！穴から種を拾い、反時計回りに一粒ずつ蒔こう。自分の倉に種を多く集めた方の勝ち。ボーナスターンと奪取を駆使してCPUを倒せ。',
     mancalaTitle: 'マンカラ',
     mancalaPit: '穴を選んで種を蒔く',
@@ -540,6 +648,18 @@ const ITEXT = {
     descKeshibato: 'Drag your eraser to knock opponents off the table! 1–4 players. CPU, local, and online play.',
     cbClick: 'Click / Tap',
     cbSwing: 'Swing!',
+    descBlackjack: 'The casino classic! Beat the dealer\'s hand without going over 21. Hit or stand to win chips. Blackjack pays 1.5×.',
+    blackjackTitle: 'BLACKJACK',
+    descPoker: 'Five-card draw poker. Choose which cards to keep, swap the rest, and build a hand stronger than the CPU. Go for the royal flush!',
+    pokerTitle: 'POKER',
+    descDaifugo: 'The beloved Japanese card game! Play cards against 3 CPUs and be first to empty your hand. Includes the 8-cut rule. Become the Daifugo!',
+    daifugoTitle: 'DAIFUGO',
+    descSevens: 'A card classic — build runs out from each 7. Play against 3 CPUs. Up to 3 passes. First to empty their hand wins!',
+    sevensTitle: 'SEVENS',
+    descMemory: 'Flip two face-down cards to find matching pairs. Battle the CPU\'s memory! Most pairs wins. Adjustable 8–18 pairs.',
+    memoryTitle: 'MEMORY',
+    descOldmaid: 'Discard pairs — whoever is left holding the Old Maid (the lone card) loses. A tense psychological battle vs 3 CPUs!',
+    oldmaidTitle: 'OLD MAID',
     descMancala: 'An ancient seed-sowing strategy game! Pick a pit, sow seeds one by one counterclockwise, and fill your store. Land in your store for a free turn — land in an empty pit to capture. Most seeds wins.',
     mancalaTitle: 'MANCALA',
     mancalaPit: 'Choose a pit to sow',
@@ -596,6 +716,18 @@ function applyLang() {
   document.getElementById('desc-shogi').textContent = T('descShogi');
   document.getElementById('desc-capbaseball').textContent = T('descCapbaseball');
   document.getElementById('desc-keshibato').textContent = T('descKeshibato');
+  document.getElementById('desc-blackjack').textContent = T('descBlackjack');
+  document.getElementById('blackjack-title').textContent = T('blackjackTitle');
+  document.getElementById('desc-poker').textContent = T('descPoker');
+  document.getElementById('poker-title').textContent = T('pokerTitle');
+  document.getElementById('desc-daifugo').textContent = T('descDaifugo');
+  document.getElementById('daifugo-title').textContent = T('daifugoTitle');
+  document.getElementById('desc-sevens').textContent = T('descSevens');
+  document.getElementById('sevens-title').textContent = T('sevensTitle');
+  document.getElementById('desc-memory').textContent = T('descMemory');
+  document.getElementById('memory-title').textContent = T('memoryTitle');
+  document.getElementById('desc-oldmaid').textContent = T('descOldmaid');
+  document.getElementById('oldmaid-title').textContent = T('oldmaidTitle');
   document.getElementById('desc-mancala').textContent = T('descMancala');
   document.getElementById('mancala-title').textContent = T('mancalaTitle');
   document.getElementById('mc-pit').textContent = T('mancalaPit');
@@ -682,6 +814,12 @@ const GAME_NAMES = {
   capbaseball: {ja:'キャップ野球',   en:'CAP BASEBALL'},
   keshibato:   {ja:'消しバト',       en:'ERASER BATTLE'},
   mancala:     {ja:'マンカラ',         en:'MANCALA'},
+  blackjack:   {ja:'ブラックジャック', en:'BLACKJACK'},
+  poker:       {ja:'ポーカー',         en:'POKER'},
+  daifugo:     {ja:'大富豪',           en:'DAIFUGO'},
+  sevens:      {ja:'七並べ',           en:'SEVENS'},
+  memory:      {ja:'神経衰弱',         en:'MEMORY'},
+  oldmaid:     {ja:'ババ抜き',         en:'OLD MAID'},
   connect4:    {ja:'四目並べ',        en:'CONNECT FOUR'},
   bikerun:     {ja:'ニャンダッシュ',  en:'NYAN DASH'},
   tennis:      {ja:'テニス',         en:'TENNIS'},
@@ -1034,6 +1172,117 @@ document.addEventListener('keydown', function startAudioKey() {
   ctx.fillText('CAP BASEBALL  9イニング vs CPU', 10, H-8);
 })();
 
+// ── Card-game Previews (shared mini-card renderer) ─────────────────
+(function(){
+  function miniCard(ctx,x,y,w,h,rank,suit,faceUp){
+    ctx.save();
+    if(faceUp===false){
+      ctx.fillStyle='#1e3a8a';roundRectP(ctx,x,y,w,h,5);ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.2)';ctx.lineWidth=1;
+      roundRectP(ctx,x+3,y+3,w-6,h-6,3);ctx.stroke();
+      ctx.restore();return;
+    }
+    ctx.fillStyle='#fff';roundRectP(ctx,x,y,w,h,5);ctx.fill();
+    ctx.strokeStyle='#cbd2dc';ctx.lineWidth=1;roundRectP(ctx,x,y,w,h,5);ctx.stroke();
+    const red=(suit==='♥'||suit==='♦');
+    ctx.fillStyle=red?'#d4243a':'#1a1a2a';
+    ctx.textAlign='left';ctx.textBaseline='top';
+    ctx.font=`bold ${Math.round(w*0.32)}px Arial`;
+    ctx.fillText(rank,x+4,y+3);
+    ctx.font=`${Math.round(w*0.28)}px Arial`;
+    ctx.fillText(suit,x+4,y+3+w*0.32);
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`${Math.round(w*0.5)}px Arial`;
+    ctx.fillText(suit,x+w/2,y+h/2);
+    ctx.restore();
+  }
+  function roundRectP(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    if(ctx.roundRect){ctx.roundRect(x,y,w,h,r);}
+    else{ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+      ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+  }
+  function felt(ctx,W,H,c1,c2){
+    const g=ctx.createRadialGradient(W/2,H*0.35,20,W/2,H*0.5,W*0.7);
+    g.addColorStop(0,c1);g.addColorStop(1,c2);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  }
+  function label(ctx,W,H,col,txt){
+    ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,H-26,W,26);
+    ctx.fillStyle=col;ctx.font='10px Courier New';ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    ctx.fillText(txt,10,H-8);
+  }
+
+  function draw(id,fn){
+    const c=document.getElementById(id);if(!c)return;
+    const ctx=c.getContext('2d');fn(ctx,c.width,c.height);
+  }
+
+  // Blackjack
+  draw('blackjackPreview',(ctx,W,H)=>{
+    felt(ctx,W,H,'#0a5c3a','#053522');
+    const cw=46,ch=64;
+    miniCard(ctx,W/2-70,40,cw,ch,'A','♠',true);
+    miniCard(ctx,W/2-10,40,cw,ch,'K','♥',true);
+    miniCard(ctx,W/2+50,40,cw,ch,'','',false);
+    ctx.fillStyle='#ffe27a';ctx.font='bold 22px Arial';ctx.textAlign='center';
+    ctx.fillText('21',W/2,140);
+    label(ctx,W,H,'#10b981','ブラックジャック  BLACKJACK');
+  });
+  // Poker
+  draw('pokerPreview',(ctx,W,H)=>{
+    felt(ctx,W,H,'#1a3a5c','#0a1a30');
+    const cw=42,ch=60,sx=W/2-(cw*5+4*6)/2;
+    const hand=[['10','♥'],['J','♥'],['Q','♥'],['K','♥'],['A','♥']];
+    hand.forEach((c,i)=>miniCard(ctx,sx+i*(cw+6),60,cw,ch,c[0],c[1],true));
+    ctx.fillStyle='#ffe27a';ctx.font='bold 14px Arial';ctx.textAlign='center';
+    ctx.fillText('ROYAL FLUSH',W/2,150);
+    label(ctx,W,H,'#60a5fa','ポーカー  POKER');
+  });
+  // Daifugo
+  draw('daifugoPreview',(ctx,W,H)=>{
+    felt(ctx,W,H,'#3a1a4c','#1a0a28');
+    const cw=44,ch=62;
+    miniCard(ctx,W/2-66,55,cw,ch,'2','♠',true);
+    miniCard(ctx,W/2-22,55,cw,ch,'2','♦',true);
+    miniCard(ctx,W/2+22,55,cw,ch,'8','♣',true);
+    ctx.fillStyle='#e0a0ff';ctx.font='bold 15px Arial';ctx.textAlign='center';
+    ctx.fillText('大富豪 → 大貧民',W/2,150);
+    label(ctx,W,H,'#c084fc','大富豪  DAIFUGO');
+  });
+  // Sevens
+  draw('sevensPreview',(ctx,W,H)=>{
+    felt(ctx,W,H,'#0a4c5c','#052230');
+    const cw=30,ch=42;
+    const row=['6','7','8'];
+    row.forEach((r,i)=>miniCard(ctx,W/2-50+i*(cw+6),50,cw,ch,r,'♦',true));
+    miniCard(ctx,W/2-15,100,cw,ch,'7','♠',true);
+    ctx.fillStyle='#7fe9ff';ctx.font='bold 14px Arial';ctx.textAlign='center';
+    ctx.fillText('7 から並べる',W/2,160);
+    label(ctx,W,H,'#7fe9ff','七並べ  SEVENS');
+  });
+  // Memory
+  draw('memoryPreview',(ctx,W,H)=>{
+    felt(ctx,W,H,'#2a1a4a','#120a24');
+    const cw=36,ch=50,gap=8;
+    for(let r=0;r<2;r++)for(let col=0;col<4;col++){
+      const x=W/2-(cw*4+gap*3)/2+col*(cw+gap),y=44+r*(ch+gap);
+      const up=(r===0&&col===1)||(r===1&&col===2);
+      miniCard(ctx,x,y,cw,ch,up?'Q':'',up?'♥':'',up);
+    }
+    label(ctx,W,H,'#d4b0ff','神経衰弱  MEMORY');
+  });
+  // Old Maid
+  draw('oldmaidPreview',(ctx,W,H)=>{
+    felt(ctx,W,H,'#4a2a1a','#241008');
+    const cw=34,ch=48;
+    for(let i=0;i<5;i++)miniCard(ctx,W/2-95+i*30,55,cw,ch,'','',false);
+    miniCard(ctx,W/2-17,110,cw,ch,'Q','♠',true);
+    ctx.fillStyle='#ffb87a';ctx.font='bold 13px Arial';ctx.textAlign='center';
+    ctx.fillText('ババを引くな！',W/2,165);
+    label(ctx,W,H,'#ffb87a','ババ抜き  OLD MAID');
+  });
+})();
+
 // ── Mancala Preview ───────────────────────────────────────────────
 (function(){
   const c=document.getElementById('mancalaPreview');
@@ -1366,7 +1615,7 @@ document.addEventListener('keydown', function startAudioKey() {
 </script>
 
 <footer style="margin-top:48px;padding:16px 0 32px;text-align:center;font-family:'Courier New',monospace;font-size:0.7rem;color:#333;letter-spacing:2px;">
-  v2.8
+  v2.9
 </footer>
 <script>
 if ('serviceWorker' in navigator) {
