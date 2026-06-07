@@ -556,7 +556,11 @@ function endRound(winner){
   if(winner>=0&&winner<NUM_PLAYERS) roundWins[winner]=(roundWins[winner]||0)+1;
   const msg=winner>=0?T('round_win',playerNames[winner],roundNum):T('draw');
   setGameMsg(msg);
-  if(typeof SND!=='undefined') SND.sfx.point();
+  if(typeof SND!=='undefined'){
+    const me=MODE==='cpu'?0:(MODE==='online'?LOCAL_IDX:-1);
+    if(me<0||winner<0) SND.sfx.point();
+    else SND.sfx[winner===me?'pointWin':'pointLose']();
+  }
   if(MODE==='online'&&IS_HOST) broadcastState();
   setTimeout(showResult,1000);
 }
@@ -572,7 +576,12 @@ function showResult(){
     btn.textContent=T('play_again');
     btn.onclick=playAgain;
     phase='gameend';
-    if(typeof SND!=='undefined'){SND.stopBGM();SND.sfx.win();}
+    if(typeof SND!=='undefined'){
+      SND.stopBGM();
+      const me=MODE==='cpu'?0:(MODE==='online'?LOCAL_IDX:-1);
+      if(me<0) SND.sfx.win();
+      else SND.sfx[roundWins[me]===maxW?'win':'lose']();
+    }
   } else {
     document.getElementById('result-title').textContent=T('round_n',roundNum);
     btn.textContent=T('next_round');

@@ -803,24 +803,35 @@ function resolve(fx,fy){
 
   let msg='',color='#eee',delay=1100;
   let hit=false;
+  // Perspective: in 1P, a hit helps whoever's batting. Out cues flip with it.
+  const SE=(typeof SND!=='undefined')?SND.sfx:null;
+  const twoP=MODE==='2p';
+  const humanBatting=!twoP&&half===0;
+  const humanPitching=!twoP&&half===1;
   if(res.type==='ball'){
     balls++; msg=T('rBall'); color='#88aaff';
-    if(typeof SND!=='undefined') SND.sfx.click();
-    if(balls>=4){advanceRunners(1);balls=0;strikes=0;msg=T('rWalk');color='#00d4aa';delay=1400;}
+    if(SE) SE.click();
+    if(balls>=4){advanceRunners(1);balls=0;strikes=0;msg=T('rWalk');color='#00d4aa';delay=1400;
+      if(SE){ if(humanBatting)SE.pointWin(); else if(humanPitching)SE.pointLose(); }}
   } else if(res.type==='called_strike'||res.type==='miss'){
     strikes++; msg=res.type==='miss'?T('rMiss'):T('rStr'); color='#ff4444';
-    if(typeof SND!=='undefined') SND.sfx.strike();
-    if(strikes>=3){outs++;balls=0;strikes=0;msg+='\n'+T('rOut');delay=1500;if(typeof SND!=='undefined')SND.sfx.lose();}
+    if(SE) SE.strike();
+    if(strikes>=3){outs++;balls=0;strikes=0;msg+='\n'+T('rOut');delay=1500;
+      if(SE){ if(humanPitching)SE.pointWin(); else if(humanBatting)SE.pointLose(); }}
   } else if(res.type==='foul'){
     if(strikes<2) strikes++; msg=T('rFoul'); color='#ffaa00';
-    if(typeof SND!=='undefined') SND.sfx.flip();
+    if(SE) SE.flip();
   } else {
     hit=true;
-    if(res.type==='HR'){advanceRunners(4);msg=T('rHR');color='#ffd700';if(typeof SND!=='undefined')SND.sfx.homerun();}
-    else if(res.type==='3B'){advanceRunners(3);msg=T('r3b');color='#ff9933';if(typeof SND!=='undefined')SND.sfx.hitBall();}
-    else if(res.type==='2B'){advanceRunners(2);msg=T('r2b');color='#00d4aa';if(typeof SND!=='undefined')SND.sfx.hitBall();}
-    else {advanceRunners(1);msg=T('r1b');color='#88ff88';if(typeof SND!=='undefined')SND.sfx.hitBall();}
+    if(res.type==='HR'){advanceRunners(4);msg=T('rHR');color='#ffd700';}
+    else if(res.type==='3B'){advanceRunners(3);msg=T('r3b');color='#ff9933';}
+    else if(res.type==='2B'){advanceRunners(2);msg=T('r2b');color='#00d4aa';}
+    else {advanceRunners(1);msg=T('r1b');color='#88ff88';}
     balls=0;strikes=0;
+    // Opponent connecting off you → negative; you (or 2P batter) connecting → crack/fanfare
+    if(SE){ if(humanPitching) SE.pointLose();
+            else if(res.type==='HR') SE.homerun();
+            else SE.hitBall(); }
   }
 
   // Draw final frame with cap at landing spot + show pitch landing indicator on grid
@@ -954,9 +965,16 @@ function endHalf(){
 }
 function endGame(){
   phase='over';
-  if(typeof SND!=='undefined'){SND.stopBGM();SND.sfx.win();}
   const ta=scores.a.reduce((s,v)=>s+(v||0),0);
   const tb=scores.b.reduce((s,v)=>s+(v||0),0);
+  // In 1P the human is team A (bats first); win/lose by actual result.
+  if(typeof SND!=='undefined'){
+    SND.stopBGM();
+    if(MODE==='2p') SND.sfx.win();
+    else if(ta>tb) SND.sfx.win();
+    else if(tb>ta) SND.sfx.lose();
+    else SND.sfx.point();
+  }
   const sc=MODE==='2p'?T('sc_2p',ta,tb):T('sc_1p',ta,tb);
   let res;
   if(MODE==='2p') res=ta>tb?T('p1_win'):tb>ta?T('p2_win'):T('draw');

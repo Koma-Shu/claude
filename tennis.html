@@ -808,9 +808,11 @@ function endPoint(winner, reason) {
   pointEndScheduled = true;
   ball.active = false;
   if (reason) { msg = reason; msgTimer = 120; }
-  if (reason === T('net')) SND.sfx.net();
-  else if (reason === T('out') || reason === T('fault') || reason === T('doubleFault')) SND.sfx.fault();
-  else SND.sfx.point();
+  // Point outcome cue: positive when the point goes to player 0 (you in 1P),
+  // negative when it goes to the opponent. 2P mode stays neutral.
+  if (mode2p) SND.sfx.point();
+  else if (winner === 0) SND.sfx.pointWin();
+  else SND.sfx.pointLose();
   awardPoint(winner);
   if (state !== STATE.GAME_OVER) {
     state = STATE.POINT_END;

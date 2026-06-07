@@ -123,6 +123,15 @@
       _b(280,t,.08,'sawtooth',.2,.002,.06);
       _b(200,t+.07,.12,'sawtooth',.16,.002,.07);
     },
+    // Point outcome cues — short, win vs lose
+    pointWin() {
+      const c=_ac();if(!c)return;const t=c.currentTime;
+      [N.E5,N.G5,N.C5*2].forEach((f,i)=>_b(f,t+i*.075,.14,'square',.22,.004,.05));
+    },
+    pointLose() {
+      const c=_ac();if(!c)return;const t=c.currentTime;
+      [N.E4,N.D4,N.B3].forEach((f,i)=>_b(f,t+i*.10,.17,'sawtooth',.2,.004,.07));
+    },
     // Bike
     jump() {
       const c=_ac();if(!c)return;const t=c.currentTime;

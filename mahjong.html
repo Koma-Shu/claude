@@ -392,6 +392,7 @@ function aiTurn(p){
       G.over=true;G.phase='over';G.hands[p]=full;
       const gain=2000;G.scores[p]+=gain*3;
       turnOrder(numPlayers).forEach(i=>{if(i!==p)G.scores[i]-=gain;});
+      if(typeof SND!=='undefined'){SND.stopBGM();SND.sfx.pointLose();}
       showMsg(`${seatName(p)}${T('winsByTsumo')}`);showBtns(['ng','menu']);render();return;
     }
     const disc=bestDiscard(full);
@@ -425,6 +426,7 @@ function doDiscard(t){
     if(getWaits(G.hands[p]).some(w=>same(w,G.last.tile))){
       G.over=true;G.phase='over';G.hands[p]=[...G.hands[p],G.last.tile];
       const gain=5800;G.scores[p]+=gain;G.scores[0]-=gain;
+      if(typeof SND!=='undefined'){SND.stopBGM();SND.sfx.pointLose();}
       showMsg(`${seatName(p)}${T('winsByRon')}`);showBtns(['ng','menu']);render();return;
     }
   }
