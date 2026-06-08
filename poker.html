@@ -80,11 +80,13 @@ const L={
   river:{ja:'リバーを見る',en:'See River'},show:{ja:'勝負！',en:'Showdown!'},
   community:{ja:'共通カード',en:'COMMUNITY'},
   hintHoldem:{ja:'手札2枚＋共通5枚で最強の5枚役を作ります',en:'Best 5-card hand from your 2 + 5 community'},
+  easy:{ja:'弱',en:'Easy'},normal:{ja:'普通',en:'Normal'},hard:{ja:'強',en:'Hard'},diff:{ja:'難易度',en:'Difficulty'},
 };
 let lang=localStorage.getItem('lang')||'ja';
 const t=k=>(L[k]&&L[k][lang])||k;
 const C=window.CARDS,$=id=>document.getElementById(id);
 let mode=localStorage.getItem('poker_mode')||'draw'; // 'draw' | 'holdem'
+let difficulty=localStorage.getItem('poker_diff')||'medium';
 let deck,you,cpu,held,phase='deal',chips=500,msgKey='',msgCls='',busy=false;
 let community,street; // holdem: street 0=preflop,1=flop,2=turn,3=river,4=showdown
 const RNAMES=['hc','pair','twopair','trips','straight','flush','fh','quads','sf','rf'];
@@ -286,11 +288,35 @@ function finishDraw(){
   renderCards();renderControls();
 }
 function cpuDraw(){
-  const counts={};cpu.forEach(c=>counts[c.value]=(counts[c.value]||0)+1);
-  const keep=cpu.map(c=>counts[c.value]>=2);
-  if(!keep.some(x=>x)){let hi=0;cpu.forEach(c=>{const v=c.value===1?14:c.value;if(v>hi)hi=v;});
-    cpu.forEach((c,i)=>{keep[i]=((c.value===1?14:c.value)===hi);});}
-  for(let i=0;i<5;i++)if(!keep[i])cpu[i]=deck.pop();
+  const n=cpu.length;
+  let keep=[];
+  if(difficulty==='easy'){
+    // Keep 1-2 random cards
+    const keepN=1+Math.floor(Math.random()*2);
+    const idxs=Array.from({length:n},(_,i)=>i);
+    while(keep.length<keepN&&idxs.length){
+      const ri=Math.floor(Math.random()*idxs.length);
+      keep.push(idxs.splice(ri,1)[0]);
+    }
+  }else if(difficulty==='medium'){
+    // Keep pairs and high cards
+    const vals={};cpu.forEach((c,i)=>{(vals[c.value]=vals[c.value]||[]).push(i);});
+    for(const v in vals){if(vals[v].length>=2)vals[v].forEach(i=>keep.push(i));}
+    if(!keep.length){let best=-1,bi=-1;cpu.forEach((c,i)=>{const v=c.value===1?14:c.value;if(v>best){best=v;bi=i;}});if(bi>=0)keep.push(bi);}
+  }else{
+    // Hard: keep anything contributing to a strong hand (pairs, flush draws, straight draws)
+    const vals={};cpu.forEach((c,i)=>{(vals[c.value]=vals[c.value]||[]).push(i);});
+    // Keep pairs/trips
+    for(const v in vals){if(vals[v].length>=2)vals[v].forEach(i=>keep.push(i));}
+    // Keep flush draw (3+ same suit)
+    const suits={};cpu.forEach((c,i)=>{(suits[c.suit]=suits[c.suit]||[]).push(i);});
+    for(const s in suits){if(suits[s].length>=3)suits[s].forEach(i=>{if(!keep.includes(i))keep.push(i);});}
+    // Keep high cards if no other keeps
+    if(!keep.length){cpu.forEach((c,i)=>{const v=c.value===1?14:c.value;if(v>=11)keep.push(i);});}
+    if(!keep.length){let best=-1,bi=-1;cpu.forEach((c,i)=>{const v=c.value===1?14:c.value;if(v>best){best=v;bi=i;}});if(bi>=0)keep.push(bi);}
+  }
+  const discard=Array.from({length:n},(_,i)=>i).filter(i=>!keep.includes(i));
+  discard.forEach(()=>{cpu.splice(Math.floor(Math.random()*cpu.length),1,deck.pop());});
 }
 
 // ── Texas Hold'em street advance ──────────────────────────────────
@@ -348,6 +374,22 @@ $('modebtn').onclick=()=>{
 
 you=[];cpu=[];community=[];held=[];street=0;
 renderCards();renderControls();
+// Difficulty row for poker
+const pokerDiffRow=document.createElement('div');
+pokerDiffRow.style.cssText='position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;align-items:center;z-index:10;';
+const pokerDiffLbl=document.createElement('span');pokerDiffLbl.style.cssText='font-size:.75rem;color:#aaa;margin-right:4px;';pokerDiffLbl.textContent=t('diff')+':';
+pokerDiffRow.appendChild(pokerDiffLbl);
+['easy','normal','hard'].forEach(d=>{
+  const b=document.createElement('button');
+  b.style.cssText=`font-size:.75rem;font-weight:bold;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;color:#fff;background:${d===difficulty?'#3b82f6':'#374151'};`;
+  b.textContent=t(d);
+  b.onclick=()=>{
+    difficulty=d;localStorage.setItem('poker_diff',d);
+    pokerDiffRow.querySelectorAll('button').forEach((x,i)=>{const ds=['easy','normal','hard'][i];x.style.background=ds===difficulty?'#3b82f6':'#374151';});
+  };
+  pokerDiffRow.appendChild(b);
+});
+document.body.appendChild(pokerDiffRow);
 if(typeof SND!=='undefined'){SND.createBtn(document.body);SND.startBGM('game');}
 </script>
 </body>

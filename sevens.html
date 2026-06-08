@@ -57,6 +57,7 @@ const L={
   p2:{ja:'P2',en:'P2'},opponent:{ja:'相手',en:'Opponent'},
   online:{ja:'オンライン',en:'Online'},local2p:{ja:'ローカル2P',en:'Local 2P'},
   waiting:{ja:'相手の番…',en:'Opponent\'s turn…'},
+  easy:{ja:'弱',en:'Easy'},normal:{ja:'普通',en:'Normal'},hard:{ja:'強',en:'Hard'},diff:{ja:'難易度',en:'Difficulty'},
 };
 let lang=localStorage.getItem('lang')||'ja';
 const t=k=>(L[k]&&L[k][lang])||k;
@@ -64,6 +65,7 @@ const C=window.CARDS,$=id=>document.getElementById(id);
 const SUITS=['S','H','D','C'];
 
 let np=parseInt(localStorage.getItem('sevens_np'))||4;
+let difficulty=localStorage.getItem('sevens_diff')||'medium';
 let gameMode='solo',myIdx=0,onlineRole=null,roomId=null,onlineSeq=-1,sbar=null;
 let hands,placed,passesLeft,turn,finishOrder,busted,gameOver;
 
@@ -214,9 +216,27 @@ function cpuTurn(){
     else{bustPlayer(p);setTimeout(next,500);}
     return;
   }
-  moves.sort((a,b)=>Math.abs(b.value-7)-Math.abs(a.value-7));
-  const pick=moves[0];
-  if(passesLeft[p]>0&&pick.value===7&&hands[p].length>6&&Math.random()<0.4){doPass(p);return;}
+  let pick;
+  if(difficulty==='easy'){
+    // Random move
+    pick=moves[Math.floor(Math.random()*moves.length)];
+    // Random pass
+    if(passesLeft[p]>0&&Math.random()<0.3){doPass(p);return;}
+  }else if(difficulty==='medium'){
+    moves.sort((a,b)=>Math.abs(b.value-7)-Math.abs(a.value-7));
+    pick=moves[0];
+    if(passesLeft[p]>0&&pick.value===7&&hands[p].length>6&&Math.random()<0.4){doPass(p);return;}
+  }else{
+    // Hard: prioritize extending longest runs, avoid blocking own chains
+    moves.sort((a,b)=>{
+      // Prefer cards far from 7 (edges of runs — clears hand faster)
+      const da=Math.abs(a.value-7),db=Math.abs(b.value-7);
+      return db-da;
+    });
+    pick=moves[0];
+    // Hard CPU is stingy with passes — only pass when truly stuck
+    if(passesLeft[p]>0&&hands[p].filter(playable).length<=1&&hands[p].length>8){doPass(p);return;}
+  }
   playCard(p,pick);
 }
 function endGame(){
@@ -302,6 +322,24 @@ $('newbtn').onclick=()=>{
 };
 
 setup();initUI();
+(()=>{
+  const diffRow=document.createElement('div');
+  diffRow.style.cssText='margin-top:6px;display:flex;gap:6px;align-items:center;justify-content:center;';
+  const diffLbl=document.createElement('span');diffLbl.style.cssText='font-size:.78rem;color:#aaa;margin-right:4px;';diffLbl.textContent=t('diff')+':';
+  diffRow.appendChild(diffLbl);
+  ['easy','normal','hard'].forEach(d=>{
+    const b=document.createElement('button');
+    b.style.cssText=`font-size:.75rem;font-weight:bold;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;color:#fff;background:${d===difficulty?'#7c3aed':'#374151'};`;
+    b.textContent=t(d);
+    b.onclick=()=>{
+      difficulty=d;localStorage.setItem('sevens_diff',d);
+      diffRow.querySelectorAll('button').forEach((x,i)=>{const ds=['easy','normal','hard'][i];x.style.background=ds===difficulty?'#7c3aed':'#374151';});
+      if(gameMode==='solo')setup();
+    };
+    diffRow.appendChild(b);
+  });
+  document.querySelector('.controls').insertAdjacentElement('afterend',diffRow);
+})();
 if(typeof SND!=='undefined'){SND.createBtn(document.body);SND.startBGM('game');}
 </script>
 </body>

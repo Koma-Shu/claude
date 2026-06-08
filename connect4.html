@@ -21,6 +21,8 @@ let dropping=false,dropCol=-1,dropRow=-1,dropAnimY=0,dropTargetY=0,dropVy=0;
 let hoverCol=-1,pulse=0,lastTs=0;
 let scores={p1:0,p2:0},cpuPending=false;
 let lang=localStorage.getItem('lang')||'ja';
+let difficulty=localStorage.getItem('connect4_diff')||'medium';
+function cpuDepth(){return difficulty==='easy'?2:difficulty==='medium'?4:6;}
 
 // Multiplayer state
 let gameMode='solo'; // 'solo'|'local2p'|'online'
@@ -52,6 +54,7 @@ const STR={
   leave:{ja:'退出',en:'Leave'},
   waiting:{ja:'相手を待っています…',en:'Waiting for opponent…'},
   back:{ja:'戻る',en:'Back'},
+  easy:{ja:'弱',en:'Easy'},normal:{ja:'普通',en:'Normal'},hard:{ja:'強',en:'Hard'},diff:{ja:'難易度',en:'Difficulty'},
 };
 const t=k=>(STR[k]?.[lang])||k;
 
@@ -181,7 +184,7 @@ function afterTurnChange(){
       cpuPending=true;
       setTimeout(()=>{
         if(!gameOver){
-          const[col]=minimax(board,6,-Infinity,Infinity,true);
+          const[col]=minimax(board,cpuDepth(),-Infinity,Infinity,true);
           cpuPending=false;
           if(col!=null)placePiece(col,true);
         }else cpuPending=false;
@@ -526,6 +529,26 @@ onlineBtn=addBtn(t('online'),'background:#0ea5e9;top:10px;right:110px;',()=>{
     onCancel:()=>{}
   });
 });
+
+// Difficulty buttons (only visible in solo mode)
+const diffWrap=document.createElement('div');
+diffWrap.style.cssText='position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;';
+['easy','normal','hard'].forEach(d=>{
+  const b=document.createElement('button');
+  b.id='diff-'+d;
+  b.style.cssText=`font-size:12px;font-weight:bold;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;color:#fff;background:${d===difficulty?'#3b82f6':'#374151'};`;
+  b.textContent=t(d);
+  b.onclick=()=>{
+    difficulty=d;localStorage.setItem('connect4_diff',d);
+    diffWrap.querySelectorAll('button').forEach((x,i)=>{
+      const ds=['easy','normal','hard'][i];
+      x.style.background=ds===difficulty?'#3b82f6':'#374151';
+    });
+    if(gameMode==='solo')initBoard();
+  };
+  diffWrap.appendChild(b);
+});
+document.body.appendChild(diffWrap);
 
 // ── Init ─────────────────────────────────────────────────────────
 resize();initBoard();

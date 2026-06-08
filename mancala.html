@@ -41,6 +41,8 @@ let seeds, turn, gameOver, winner, animating;
 let movingSeeds=[], captureFlash=0;
 let scores={p1:0,p2:0}, mode='cpu', cpuPending=false;
 let lang=localStorage.getItem('lang')||'ja';
+let difficulty=localStorage.getItem('mancala_diff')||'medium';
+function cpuDepth(){return difficulty==='easy'?3:difficulty==='medium'?5:8;}
 let lastTs=0, pulse=0;
 let highlightPit=-1;
 
@@ -75,6 +77,7 @@ const STR={
   online:{ja:'オンライン',en:'Online'},
   leave:{ja:'退出',en:'Leave'},
   back:{ja:'戻る',en:'Back'},
+  easy:{ja:'弱',en:'Easy'},normal:{ja:'普通',en:'Normal'},hard:{ja:'強',en:'Hard'},diff:{ja:'難易度',en:'Difficulty'},
   rules:{ja:'自分の穴を選んで種を配ろう',en:'Choose a pit to sow seeds'},
 };
 const t=k=>(STR[k]?.[lang])||k;
@@ -428,7 +431,7 @@ function scheduleCPU(){
   setTimeout(()=>{
     cpuPending=false;
     if(gameOver||gameMode!=='solo')return;
-    const[mv]=minimaxM(seeds,8,-Infinity,Infinity,1,false);
+    const[mv]=minimaxM(seeds,cpuDepth(),-Infinity,Infinity,1,false);
     if(mv!=null) executeMove(mv);
   },400);
 }
@@ -781,6 +784,25 @@ onlineBtn=addBtn(t('online'),'background:#0ea5e9;color:#fff;top:10px;right:120px
     onCancel:()=>{}
   });
 });
+
+// Difficulty buttons
+const diffWrap=document.createElement('div');
+diffWrap.style.cssText='position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;';
+['easy','normal','hard'].forEach(d=>{
+  const b=document.createElement('button');
+  b.style.cssText=`font-size:12px;font-weight:bold;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;color:#fff;background:${d===difficulty?'#c2410c':'#374151'};`;
+  b.textContent=t(d);
+  b.onclick=()=>{
+    difficulty=d;localStorage.setItem('mancala_diff',d);
+    diffWrap.querySelectorAll('button').forEach((x,i)=>{
+      const ds=['easy','normal','hard'][i];
+      x.style.background=ds===difficulty?'#c2410c':'#374151';
+    });
+    if(gameMode==='solo')initBoard();
+  };
+  diffWrap.appendChild(b);
+});
+document.body.appendChild(diffWrap);
 
 // ── Init ─────────────────────────────────────────────────────────
 resize();initBoard();
