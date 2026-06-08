@@ -33,7 +33,8 @@
 </style>
 </head>
 <body>
-<button class="topbtn" onclick="location.href='index.html'">戻る</button>
+<button class="topbtn" id="backbtn" onclick="location.href='index.html'">戻る</button>
+<button class="topbtn" id="modebtn" style="left:auto;right:12px;background:#7c3aed;"></button>
 <h1 id="title">ババ抜き</h1>
 <div class="cpus" id="cpus"></div>
 <div class="draw-zone" id="drawzone"></div>
@@ -53,16 +54,26 @@ const L={
   youlose:{ja:'あなたがババ！負け…',en:'You got the Old Maid! You lose…'},
   youwin:{ja:'あがり！勝ち！',en:'You\'re safe — you win!'},finished:{ja:'ゲーム終了',en:'Game Over'},
   drew:{ja:'が引いた！',en:' drew!'},pair:{ja:'✨ ペア成立！',en:'✨ PAIR!'},
+  back:{ja:'戻る',en:'Back'},
+  modeJoker:{ja:'モード: ババ抜き(🃏)',en:'Mode: Joker'},
+  modeOdd:{ja:'モード: ジジ抜き',en:'Mode: Odd-Out'},
 };
 let lang=localStorage.getItem('lang')||'ja';
 const t=k=>(L[k]&&L[k][lang])||k;
 const C=window.CARDS,$=id=>document.getElementById(id);
 const NP=4;
 let hands,turn,safeOrder,gameOver,phase,victim;
+let jokerMode=(localStorage.getItem('oldmaid_joker')==='1'); // true=ババ抜き, false=ジジ抜き
 
 function setup(){
   let deck=C.shuffle(C.makeDeck());
-  deck.pop(); // remove one card → creates the lone "Old Maid"
+  if(jokerMode){
+    // ババ抜き: 52 cards pair perfectly + 1 unpairable Joker
+    deck.push({joker:true,rank:'JOKER',suit:'JOKER',value:-1,id:'JOKER'});
+    C.shuffle(deck);
+  } else {
+    deck.pop(); // ジジ抜き: remove one card → creates a lone unmatched card
+  }
   hands=[[],[],[],[]];
   deck.forEach((c,i)=>hands[i%NP].push(c));
   hands.forEach((h,p)=>{discardPairs(h);shuffleHand(h);});
@@ -87,6 +98,8 @@ function nextActive(from){let n=from;for(let i=0;i<NP;i++){n=(n+1)%NP;if(hands[n
 
 function render(){
   $('title').textContent=t('title');$('newbtn').textContent=t('newgame');
+  $('backbtn').textContent=t('back');
+  $('modebtn').textContent=jokerMode?t('modeJoker'):t('modeOdd');
   const cE=$('cpus');cE.innerHTML='';
   for(let p=1;p<NP;p++){
     const d=document.createElement('div');
@@ -168,7 +181,8 @@ function takeCard(drawer,from,idx){
     if(match){
       hands[drawer].splice(hands[drawer].indexOf(match),1);
       hands[drawer].splice(hands[drawer].indexOf(card),1);
-      SND.sfx.pointWin&&SND.sfx.pointWin();
+      if(drawer===0){ SND.sfx.pointWin&&SND.sfx.pointWin(); }   // 自分のペア
+      else { SND.sfx.discard&&SND.sfx.discard(); }              // 相手のペア
       C.showOverlay(t('pair'),[card,match],'#7dffb0',1400,afterPair);
     } else {
       afterPair();
@@ -200,6 +214,7 @@ function endGame(){
   victim=-1;phase='turn';render();
 }
 $('newbtn').onclick=()=>{SND.startBGM&&SND.startBGM('game');setup();};
+$('modebtn').onclick=()=>{jokerMode=!jokerMode;localStorage.setItem('oldmaid_joker',jokerMode?'1':'0');SND.sfx.click&&SND.sfx.click();setup();};
 
 setup();
 if(typeof SND!=='undefined'){SND.createBtn(document.body);SND.startBGM('game');}

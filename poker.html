@@ -10,28 +10,35 @@
   *{margin:0;padding:0;box-sizing:border-box}
   body{background:radial-gradient(circle at 50% 25%,#1a3a5c,#0a1a30);min-height:100vh;
     font-family:'Hiragino Sans','Meiryo','Segoe UI',sans-serif;color:#eaf4ff;
-    display:flex;flex-direction:column;align-items:center;padding:54px 12px 80px;--cw:62px;--ch:88px;}
-  h1{font-size:1.5rem;letter-spacing:4px;color:#ffe27a;margin-bottom:4px;}
-  .chips{font-size:.9rem;color:#ffe27a;margin-bottom:10px;}
-  .area{width:100%;max-width:560px;margin:6px 0;}
-  .label{font-size:.8rem;letter-spacing:2px;opacity:.85;margin-bottom:6px;}
+    display:flex;flex-direction:column;align-items:center;padding:54px 12px 80px;--cw:60px;--ch:85px;}
+  h1{font-size:1.4rem;letter-spacing:4px;color:#ffe27a;margin-bottom:4px;}
+  .chips{font-size:.9rem;color:#ffe27a;margin-bottom:8px;}
+  .area{width:100%;max-width:580px;margin:5px 0;}
+  .label{font-size:.8rem;letter-spacing:2px;opacity:.85;margin-bottom:5px;}
   .rank-name{color:#7dffb0;font-weight:bold;}
-  .hand{display:flex;gap:8px;min-height:var(--ch);justify-content:center;flex-wrap:wrap;}
-  .msg{min-height:30px;font-size:1.1rem;font-weight:bold;margin:12px 0;text-align:center;}
+  .hand{display:flex;gap:7px;min-height:var(--ch);justify-content:center;flex-wrap:wrap;}
+  .community{display:flex;gap:7px;min-height:var(--ch);justify-content:center;flex-wrap:wrap;
+    background:rgba(0,0,0,.18);border-radius:12px;padding:10px;}
+  .comm-lbl{font-size:.72rem;opacity:.7;text-align:center;margin-bottom:5px;letter-spacing:2px;}
+  .msg{min-height:28px;font-size:1.05rem;font-weight:bold;margin:10px 0;text-align:center;}
   .msg.win{color:#7dffb0;}.msg.lose{color:#ff9090;}.msg.push{color:#ffe27a;}
   .controls{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:6px;}
   button{font-family:inherit;font-size:.95rem;font-weight:bold;border:none;border-radius:10px;
     padding:11px 24px;cursor:pointer;letter-spacing:1px;transition:transform .1s;}
   button:active{transform:scale(.95);}button:disabled{opacity:.4;cursor:default;}
   .b-draw{background:#3b82f6;color:#fff;}.b-deal{background:#ffe27a;color:#222;}
+  .b-next{background:#10b981;color:#fff;}
   .hint{font-size:.78rem;opacity:.7;margin-bottom:8px;text-align:center;}
-  .topbtn{position:fixed;top:12px;left:12px;background:#374151;color:#fff;border-radius:8px;padding:7px 14px;font-size:.8rem;}
+  .topbtn{position:fixed;top:12px;border-radius:8px;padding:7px 14px;font-size:.8rem;cursor:pointer;border:none;}
+  .topbtn.back{left:12px;background:#374151;color:#fff;}
+  .topbtn.mode{right:12px;background:#7c3aed;color:#fff;}
   .pcard.held{outline:3px solid #ffe27a;outline-offset:1px;}
   .held-tag{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:.65rem;color:#ffe27a;font-weight:bold;}
 </style>
 </head>
 <body>
-<button class="topbtn" onclick="location.href='index.html'">戻る</button>
+<button class="topbtn back" id="backbtn" onclick="location.href='index.html'">戻る</button>
+<button class="topbtn mode" id="modebtn"></button>
 <h1 id="title">ポーカー</h1>
 <div class="chips" id="chips"></div>
 
@@ -39,7 +46,14 @@
   <div class="label" id="cpu-lbl">CPU</div>
   <div class="hand" id="cpu"></div>
 </div>
+
+<div class="area" id="comm-area" style="display:none">
+  <div class="comm-lbl" id="comm-lbl">COMMUNITY</div>
+  <div class="community" id="community"></div>
+</div>
+
 <div class="msg" id="msg"></div>
+
 <div class="area">
   <div class="label"><span id="you-lbl">あなた</span> — <span class="rank-name" id="yourrank"></span></div>
   <div class="hint" id="hint"></div>
@@ -50,7 +64,7 @@
 
 <script>
 const L={
-  title:{ja:'ファイブカード・ドロー',en:'5-Card Draw'},you:{ja:'あなた',en:'You'},cpu:{ja:'CPU',en:'CPU'},
+  title:{ja:'ポーカー',en:'Poker'},you:{ja:'あなた',en:'You'},cpu:{ja:'CPU',en:'CPU'},
   chips:{ja:'チップ',en:'Chips'},deal:{ja:'配る',en:'Deal'},draw:{ja:'交換して勝負',en:'Draw & Show'},
   hintHold:{ja:'残したいカードをタップ（交換しないカード）',en:'Tap cards to HOLD (keep them)'},
   win:{ja:'あなたの勝ち！',en:'You win!'},lose:{ja:'CPUの勝ち…',en:'CPU wins…'},push:{ja:'引き分け',en:'Push'},
@@ -59,32 +73,37 @@ const L={
   flush:{ja:'フラッシュ',en:'Flush'},fh:{ja:'フルハウス',en:'Full House'},
   quads:{ja:'フォーカード',en:'Four of a Kind'},sf:{ja:'ストレートフラッシュ',en:'Straight Flush'},
   rf:{ja:'ロイヤルフラッシュ',en:'Royal Flush'},
+  back:{ja:'戻る',en:'Back'},
+  modeDraw:{ja:'モード: ドロー',en:'Mode: 5-Draw'},
+  modeHoldem:{ja:'モード: テキサス',en:'Mode: Hold\'em'},
+  flop:{ja:'フロップを見る',en:'See Flop'},turn:{ja:'ターンを見る',en:'See Turn'},
+  river:{ja:'リバーを見る',en:'See River'},show:{ja:'勝負！',en:'Showdown!'},
+  community:{ja:'共通カード',en:'COMMUNITY'},
+  hintHoldem:{ja:'手札2枚＋共通5枚で最強の5枚役を作ります',en:'Best 5-card hand from your 2 + 5 community'},
 };
 let lang=localStorage.getItem('lang')||'ja';
 const t=k=>(L[k]&&L[k][lang])||k;
 const C=window.CARDS,$=id=>document.getElementById(id);
-let deck,you,cpu,held,phase='deal',chips=500,msgKey='',msgCls='';
+let mode=localStorage.getItem('poker_mode')||'draw'; // 'draw' | 'holdem'
+let deck,you,cpu,held,phase='deal',chips=500,msgKey='',msgCls='',busy=false;
+let community,street; // holdem: street 0=preflop,1=flop,2=turn,3=river,4=showdown
 const RNAMES=['hc','pair','twopair','trips','straight','flush','fh','quads','sf','rf'];
 
-function rv(c){return c.value;} // A=1..K=13; treat A high too in straights
+// ── Hand evaluation ───────────────────────────────────────────────
 function evalHand(h){
-  const vals=h.map(rv).sort((a,b)=>a-b);
+  const vals=h.map(c=>c.value).sort((a,b)=>a-b);
   const suits=h.map(c=>c.suit);
   const counts={};vals.forEach(v=>counts[v]=(counts[v]||0)+1);
   const groups=Object.entries(counts).map(([v,c])=>[c,+v]).sort((a,b)=>b[0]-a[0]||b[1]-a[1]);
   const flush=suits.every(s=>s===suits[0]);
-  // straight (A can be high: 10,J,Q,K,A => 10,11,12,13,1)
   let uniq=[...new Set(vals)];
   let straight=uniq.length===5&&(uniq[4]-uniq[0]===4);
   let high=vals[4];
-  // wheel A2345
-  if(uniq.length===5 && uniq[0]===1 && uniq[4]===13 && JSON.stringify(uniq)===JSON.stringify([1,10,11,12,13])){
-    straight=true;high=13; // royal-ish high
-  }
+  if(uniq.length===5 && JSON.stringify(uniq)===JSON.stringify([1,10,11,12,13])){straight=true;high=13;}
   if(uniq.length===5 && uniq[0]===1 && uniq[1]===2 && uniq[4]===5){straight=true;high=5;}
   let cat,tiebreak;
   const c0=groups[0][0],c1=(groups[1]||[0])[0];
-  if(straight&&flush&&high===13&&uniq.includes(1)){cat=9;} // royal
+  if(straight&&flush&&high===13&&uniq.includes(1)){cat=9;tiebreak=[14];}
   else if(straight&&flush){cat=8;tiebreak=[high];}
   else if(c0===4){cat=7;tiebreak=[groups[0][1],groups[1][1]];}
   else if(c0===3&&c1===2){cat=6;tiebreak=[groups[0][1],groups[1][1]];}
@@ -94,7 +113,6 @@ function evalHand(h){
   else if(c0===2&&c1===2){cat=2;tiebreak=[groups[0][1],groups[1][1],groups[2][1]];}
   else if(c0===2){cat=1;tiebreak=[groups[0][1],...groups.slice(1).map(g=>g[1])];}
   else {cat=0;tiebreak=vals.slice().reverse();}
-  // adjust: aces high tiebreak
   if(tiebreak)tiebreak=tiebreak.map(v=>v===1?14:v);
   return {cat,tiebreak:tiebreak||[high===13?14:high]};
 }
@@ -105,83 +123,231 @@ function cmp(a,b){
   }
   return 0;
 }
+// Best 5-card hand from n cards (n=5..7)
+function bestHand(cards){
+  if(cards.length<5) return null;
+  let best=null;
+  const n=cards.length;
+  const idx=[0,1,2,3,4];
+  const combos=[];
+  (function rec(start,combo){
+    if(combo.length===5){combos.push(combo.slice());return;}
+    for(let i=start;i<n;i++){combo.push(i);rec(i+1,combo);combo.pop();}
+  })(0,[]);
+  for(const cb of combos){
+    const e=evalHand(cb.map(i=>cards[i]));
+    if(!best||cmp(e,best)>0)best=e;
+  }
+  return best;
+}
+function revealedCommunity(){ return street>=4?5:(street===0?0:street+2); }
+function currentRankName(){
+  if(!you||!you.length)return '';
+  if(mode==='draw'){ return you.length===5?t(RNAMES[evalHand(you).cat]):''; }
+  // holdem: need at least 3 community revealed (2 hole + 3 = 5)
+  const avail=you.concat((community||[]).slice(0,revealedCommunity()));
+  if(avail.length<5)return '';
+  return t(RNAMES[bestHand(avail).cat]);
+}
 
-function render(){
+// ── Rendering ─────────────────────────────────────────────────────
+function setStaticText(){
   $('title').textContent=t('title');$('you-lbl').textContent=t('you');$('cpu-lbl').textContent=t('cpu');
+  $('backbtn').textContent=t('back');
+  $('modebtn').textContent=(mode==='draw')?t('modeDraw'):t('modeHoldem');
   $('chips').textContent=`💰 ${t('chips')}: ${chips}`;
-  const yEl=$('you'),cEl=$('cpu');
-  if(phase==='dealing'){$('yourrank').textContent='';$('hint').textContent='';return;}
-  yEl.innerHTML='';cEl.innerHTML='';
-  you.forEach((c,i)=>{
+  $('comm-lbl').textContent=t('community');
+  $('comm-area').style.display=(mode==='holdem')?'block':'none';
+}
+function renderControls(){
+  setStaticText();
+  const m=$('msg');m.textContent=msgKey?t(msgKey):'';m.className='msg '+msgCls;
+  $('yourrank').textContent=currentRankName();
+  const ctr=$('controls');ctr.innerHTML='';
+  if(busy)return;
+  if(mode==='draw'){
+    $('hint').textContent=phase==='draw'?t('hintHold'):'';
+    if(phase==='deal'||phase==='over'){
+      ctr.appendChild(mkBtn('b-deal',t('deal'),deal));
+    }else if(phase==='draw'){
+      ctr.appendChild(mkBtn('b-draw',t('draw'),drawPhase));
+    }
+  }else{ // holdem
+    $('hint').textContent=phase==='play'?t('hintHoldem'):'';
+    if(phase==='deal'||phase==='over'){
+      ctr.appendChild(mkBtn('b-deal',t('deal'),deal));
+    }else if(phase==='play'){
+      const lbls=[t('flop'),t('turn'),t('river'),t('show')];
+      ctr.appendChild(mkBtn('b-next',lbls[street],nextStreet));
+    }
+  }
+}
+function mkBtn(cls,txt,fn){const b=document.createElement('button');b.className=cls;b.textContent=txt;b.onclick=fn;return b;}
+
+// Full static render of card areas (used when not animating)
+function renderCards(){
+  const yEl=$('you'),cEl=$('cpu');yEl.innerHTML='';cEl.innerHTML='';
+  (you||[]).forEach((c,i)=>{
     const el=C.cardEl(c,true);
-    if(phase==='draw'){el.classList.add('playable');if(held[i])el.classList.add('held');
-      el.onclick=()=>{held[i]=!held[i];SND.sfx.click&&SND.sfx.click();render();};
-      if(held[i]){const tag=document.createElement('div');tag.className='held-tag';tag.textContent='KEEP';el.appendChild(tag);}}
+    if(mode==='draw'&&phase==='draw'){
+      el.classList.add('playable');if(held[i])el.classList.add('held');
+      el.onclick=()=>{if(busy)return;held[i]=!held[i];SND.sfx.click&&SND.sfx.click();renderCards();};
+      if(held[i]){const tag=document.createElement('div');tag.className='held-tag';tag.textContent='KEEP';el.appendChild(tag);}
+    }
     yEl.appendChild(el);
   });
-  cpu.forEach(c=>cEl.appendChild(C.cardEl(c,phase==='over')));
-  $('yourrank').textContent=you.length?t(RNAMES[evalHand(you).cat]):'';
-  $('hint').textContent=phase==='draw'?t('hintHold'):'';
-  const m=$('msg');m.textContent=msgKey?t(msgKey):'';m.className='msg '+msgCls;
-  const ctr=$('controls');ctr.innerHTML='';
-  if(phase==='deal'||phase==='over'){
-    const b=document.createElement('button');b.className='b-deal';b.textContent=t('deal');b.onclick=deal;ctr.appendChild(b);
-  }else if(phase==='dealing'){
-    // no controls during animation
-  }else if(phase==='draw'){
-    const b=document.createElement('button');b.className='b-draw';b.textContent=t('draw');b.onclick=drawPhase;ctr.appendChild(b);
+  const cpuFace=(phase==='over');
+  (cpu||[]).forEach(c=>cEl.appendChild(C.cardEl(c,cpuFace)));
+  if(mode==='holdem'){
+    const comEl=$('community');comEl.innerHTML='';
+    const reveal=street>=4?5:(street===0?0:street+2); // flop=3,turn=4,river=5
+    (community||[]).forEach((c,i)=>comEl.appendChild(C.cardEl(c,i<reveal)));
   }
 }
 
+// ── Deal ──────────────────────────────────────────────────────────
 function deal(){
+  if(busy)return;
+  busy=true;
   deck=C.shuffle(C.makeDeck());
-  you=[deck.pop(),deck.pop(),deck.pop(),deck.pop(),deck.pop()];
-  cpu=[deck.pop(),deck.pop(),deck.pop(),deck.pop(),deck.pop()];
-  held=[false,false,false,false,false];
-  phase='dealing';msgKey='';msgCls='';
-  render(); // show empty hands + no controls
-
-  // Staggered deal: 5 CPU face-down, then 5 yours face-down→flip
-  const yEl=$('you'),cEl=$('cpu');
-  yEl.innerHTML='';cEl.innerHTML='';
-  for(let i=0;i<5;i++){
-    const el=C.cardEl(cpu[i],false);
-    cEl.appendChild(el);
-    C.dealIn(el, i*80);
-  }
-  you.forEach((card,i)=>{
-    const el=C.cardEl(card,false);
-    yEl.appendChild(el);
-    C.dealIn(el, 250+i*100, ()=>{
-      C.flipCard(el,card,()=>{
-        SND.sfx.flip&&SND.sfx.flip();
-        if(i===4){ phase='draw'; render(); }
-      });
+  msgKey='';msgCls='';
+  renderControls();
+  const yEl=$('you'),cEl=$('cpu'),comEl=$('community');
+  yEl.innerHTML='';cEl.innerHTML='';comEl.innerHTML='';
+  if(mode==='draw'){
+    you=[deck.pop(),deck.pop(),deck.pop(),deck.pop(),deck.pop()];
+    cpu=[deck.pop(),deck.pop(),deck.pop(),deck.pop(),deck.pop()];
+    held=[false,false,false,false,false];
+    phase='draw';
+    for(let i=0;i<5;i++){const el=C.cardEl(cpu[i],false);cEl.appendChild(el);C.dealIn(el,i*70);}
+    let done=0;
+    you.forEach((card,i)=>{
+      const el=C.cardEl(card,false);yEl.appendChild(el);
+      C.dealIn(el,200+i*90,()=>C.flipCard(el,card,()=>{SND.sfx.flip&&SND.sfx.flip();if(++done===5){busy=false;renderCards();renderControls();}}));
     });
+  }else{
+    you=[deck.pop(),deck.pop()];
+    cpu=[deck.pop(),deck.pop()];
+    community=[deck.pop(),deck.pop(),deck.pop(),deck.pop(),deck.pop()];
+    street=0;phase='play';
+    // CPU hole cards face-down
+    for(let i=0;i<2;i++){const el=C.cardEl(cpu[i],false);cEl.appendChild(el);C.dealIn(el,i*70);}
+    // 5 community face-down
+    for(let i=0;i<5;i++){const el=C.cardEl(community[i],false);comEl.appendChild(el);C.dealIn(el,150+i*60);}
+    // your hole cards face-down → flip
+    let done=0;
+    you.forEach((card,i)=>{
+      const el=C.cardEl(card,false);yEl.appendChild(el);
+      C.dealIn(el,450+i*90,()=>C.flipCard(el,card,()=>{SND.sfx.flip&&SND.sfx.flip();if(++done===2){busy=false;renderControls();}}));
+    });
+  }
+}
+
+// ── 5-Card Draw exchange ──────────────────────────────────────────
+function drawPhase(){
+  if(busy)return;
+  busy=true;renderControls();$('hint').textContent='';
+  const yEl=$('you');
+  for(let i=0;i<5;i++)if(!held[i])you[i]=deck.pop();
+  cpuDraw();
+  const els=Array.from(yEl.children);
+  let pending=0,started=false;
+  // exchange non-held in place (preserves order): shrink out → back → deal in → flip new
+  for(let i=0;i<5;i++){
+    if(held[i])continue;
+    started=true;pending++;
+    const el=els[i];
+    el.style.transition='transform .18s ease-in,opacity .18s';
+    el.style.transform='translateY(-26px) scale(.6) rotateY(80deg)';
+    el.style.opacity='0';
+    setTimeout(()=>{
+      el.className='pcard back';el.innerHTML='<div class="pc-back"></div>';
+      el.style.transition='none';el.style.transform='translateY(-26px) scale(.85)';
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        el.style.transition='transform .2s cubic-bezier(.22,.8,.36,1),opacity .18s';
+        el.style.transform='';el.style.opacity='1';
+        setTimeout(()=>C.flipCard(el,you[i],()=>{SND.sfx.flip&&SND.sfx.flip();if(--pending===0)revealCpu();}),210);
+      }));
+    },190);
+  }
+  if(!started)revealCpu();
+}
+function revealCpu(){
+  const cEl=$('cpu');const els=Array.from(cEl.children);
+  let pending=cpu.length;
+  els.forEach((el,i)=>{
+    setTimeout(()=>C.flipCard(el,cpu[i],()=>{SND.sfx.flip&&SND.sfx.flip();if(--pending===0)finishDraw();}),i*120);
   });
+}
+function finishDraw(){
+  phase='over';busy=false;
+  const r=cmp(evalHand(you),evalHand(cpu));
+  settle(r);
+  renderCards();renderControls();
 }
 function cpuDraw(){
-  // keep cards in best groups: hold pairs+, hold flush/straight draws simply
   const counts={};cpu.forEach(c=>counts[c.value]=(counts[c.value]||0)+1);
   const keep=cpu.map(c=>counts[c.value]>=2);
-  // if nothing kept, keep highest card
-  if(!keep.some(x=>x)){let hi=0;cpu.forEach((c,i)=>{const v=c.value===1?14:c.value;if(v>hi){hi=v;}});
+  if(!keep.some(x=>x)){let hi=0;cpu.forEach(c=>{const v=c.value===1?14:c.value;if(v>hi)hi=v;});
     cpu.forEach((c,i)=>{keep[i]=((c.value===1?14:c.value)===hi);});}
   for(let i=0;i<5;i++)if(!keep[i])cpu[i]=deck.pop();
 }
-function drawPhase(){
-  for(let i=0;i<5;i++)if(!held[i])you[i]=deck.pop();
-  cpuDraw();
-  SND.sfx.flip&&SND.sfx.flip();
-  phase='over';
-  const r=cmp(evalHand(you),evalHand(cpu));
+
+// ── Texas Hold'em street advance ──────────────────────────────────
+function nextStreet(){
+  if(busy)return;
+  busy=true;renderControls();$('hint').textContent='';
+  const comEl=$('community');
+  if(street===0){ // reveal flop (cards 0,1,2)
+    flipCommunity([0,1,2],()=>{street=1;busy=false;renderControls();});
+  }else if(street===1){ // turn (card 3)
+    flipCommunity([3],()=>{street=2;busy=false;renderControls();});
+  }else if(street===2){ // river (card 4)
+    flipCommunity([4],()=>{street=3;busy=false;renderControls();});
+  }else{ // showdown
+    showdownHoldem();
+  }
+}
+function flipCommunity(idxs,done){
+  const comEl=$('community');let pending=idxs.length;
+  idxs.forEach((i,k)=>{
+    setTimeout(()=>{
+      C.flipCard(comEl.children[i],community[i],()=>{SND.sfx.flip&&SND.sfx.flip();if(--pending===0)done();});
+    },k*160);
+  });
+}
+function showdownHoldem(){
+  // reveal CPU hole cards
+  const cEl=$('cpu');let pending=2;
+  Array.from(cEl.children).forEach((el,i)=>{
+    setTimeout(()=>C.flipCard(el,cpu[i],()=>{SND.sfx.flip&&SND.sfx.flip();if(--pending===0)finishHoldem();}),i*150);
+  });
+}
+function finishHoldem(){
+  street=4;phase='over';busy=false;
+  const r=cmp(bestHand(you.concat(community)),bestHand(cpu.concat(community)));
+  $('yourrank').textContent=t(RNAMES[bestHand(you.concat(community)).cat]);
+  settle(r);
+  renderControls();
+}
+
+function settle(r){
   if(r>0){msgKey='win';msgCls='win';chips+=100;SND.sfx.win&&SND.sfx.win();}
   else if(r<0){msgKey='lose';msgCls='lose';chips=Math.max(0,chips-100);SND.sfx.lose&&SND.sfx.lose();}
   else{msgKey='push';msgCls='push';SND.sfx.point&&SND.sfx.point();}
-  render();
 }
 
-you=[];cpu=[];held=[];render();
+$('modebtn').onclick=()=>{
+  if(busy)return;
+  mode=(mode==='draw')?'holdem':'draw';
+  localStorage.setItem('poker_mode',mode);
+  SND.sfx.click&&SND.sfx.click();
+  you=[];cpu=[];community=[];phase='deal';msgKey='';msgCls='';
+  renderCards();renderControls();
+};
+
+you=[];cpu=[];community=[];held=[];street=0;
+renderCards();renderControls();
 if(typeof SND!=='undefined'){SND.createBtn(document.body);SND.startBGM('game');}
 </script>
 </body>

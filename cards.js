@@ -25,6 +25,11 @@
   }
 
   function _faceHTML(card){
+    if (card.joker){
+      return `<div class="pc-corner tl"><span class="pc-rank" style="font-size:.55rem">JOKER</span></div>`+
+        `<div class="pc-center">🃏</div>`+
+        `<div class="pc-corner br"><span class="pc-rank" style="font-size:.55rem">JOKER</span></div>`;
+    }
     const ch = SUIT_CH[card.suit];
     return `<div class="pc-corner tl"><span class="pc-rank">${card.rank}</span><span class="pc-suit">${ch}</span></div>`+
       `<div class="pc-center">${ch}</div>`+
@@ -33,7 +38,8 @@
 
   function cardEl(card, faceUp){
     const el = document.createElement('div');
-    el.className = 'pcard' + (faceUp === false ? ' back' : (isRed(card.suit) ? ' red' : ' black'));
+    const colorCls = card.joker ? ' black' : (isRed(card.suit) ? ' red' : ' black');
+    el.className = 'pcard' + (faceUp === false ? ' back' : colorCls);
     if (faceUp === false){
       el.innerHTML = '<div class="pc-back"></div>';
     } else {
@@ -51,7 +57,7 @@
     el.style.transition = 'transform 0.13s ease-in';
     el.style.transform  = 'perspective(500px) rotateY(90deg)';
     setTimeout(() => {
-      el.className   = 'pcard ' + (isRed(card.suit) ? 'red' : 'black');
+      el.className   = 'pcard ' + (card.joker ? 'black' : (isRed(card.suit) ? 'red' : 'black'));
       el.innerHTML   = _faceHTML(card);
       el.dataset.id  = card.id;
       el.style.transition = 'transform 0.13s ease-out';

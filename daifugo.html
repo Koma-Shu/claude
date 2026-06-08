@@ -32,7 +32,7 @@
 </style>
 </head>
 <body>
-<button class="topbtn" onclick="location.href='index.html'">戻る</button>
+<button class="topbtn" id="backbtn" onclick="location.href='index.html'">戻る</button>
 <h1 id="title">大富豪</h1>
 <div class="cpus" id="cpus"></div>
 <div class="field" id="field"></div>
@@ -55,6 +55,7 @@ const L={
   fieldlbl:{ja:'場のカード',en:'Field'},cut8:{ja:'8切り！',en:'8 cut!'},
   cards:{ja:'枚',en:''},finished:{ja:'ゲーム終了',en:'Game Over'},
   daifugo:{ja:'大富豪',en:'1st'},fugo:{ja:'富豪',en:'2nd'},hinmin:{ja:'貧民',en:'3rd'},daihinmin:{ja:'大貧民',en:'4th'},
+  back:{ja:'戻る',en:'Back'},
 };
 let lang=localStorage.getItem('lang')||'ja';
 const t=k=>(L[k]&&L[k][lang])||k;
@@ -80,7 +81,7 @@ function setup(){
 function sortHand(h){h.sort((a,b)=>strength(a.value)-strength(b.value)||a.suit.localeCompare(b.suit));}
 
 function render(){
-  $('title').textContent=t('title');$('newbtn').textContent=t('newgame');
+  $('title').textContent=t('title');$('newbtn').textContent=t('newgame');$('backbtn').textContent=t('back');
   $('playbtn').textContent=t('play');$('passbtn').textContent=t('pass');
   const cE=$('cpus');cE.innerHTML='';
   for(let p=1;p<NP;p++){
