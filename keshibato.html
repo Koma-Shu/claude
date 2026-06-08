@@ -258,7 +258,7 @@ const FRIC=0.935;                    // per-frame velocity multiplier
 const MIN_V=0.30;                    // stop threshold (px/frame)
 const REST=0.68;                     // eraser-eraser restitution
 const MAX_SPD=20;                    // max flick speed
-const MAX_DRAG=80;                   // drag distance for full power
+const MAX_DRAG=60;                   // drag distance for full power
 
 const PC=['#e84040','#3b82f6','#22c55e','#f59e0b'];       // player colors
 const PD=['#7f1d1d','#1e3a8a','#14532d','#78350f'];       // dark variants
@@ -896,12 +896,15 @@ function onUp(e){
     doFlick(angle,power,erIdx);
   }
 }
+// Pointer down starts on the canvas; move/up listen on window so the drag
+// keeps tracking even when the pointer leaves the canvas — letting edge
+// erasers be pulled to full power.
 canvas.addEventListener('mousedown',onDown);
-canvas.addEventListener('mousemove',onMove);
-canvas.addEventListener('mouseup',onUp);
+window.addEventListener('mousemove',onMove);
+window.addEventListener('mouseup',onUp);
 canvas.addEventListener('touchstart',onDown,{passive:false});
-canvas.addEventListener('touchmove',onMove,{passive:false});
-canvas.addEventListener('touchend',onUp,{passive:false});
+window.addEventListener('touchmove',onMove,{passive:false});
+window.addEventListener('touchend',onUp,{passive:false});
 
 // ═══════════════════════════════════════════════════
 // UI
