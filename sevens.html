@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>七並べ</title>
+<script src="netplay.js"></script>
 <script src="sound.js"></script>
 <script src="cards.js"></script>
 <style>
@@ -14,8 +15,7 @@
   h1{font-size:1.3rem;letter-spacing:4px;color:#7fe9ff;margin-bottom:6px;}
   .cpus{display:flex;gap:14px;margin-bottom:8px;flex-wrap:wrap;justify-content:center;}
   .cpu{background:rgba(0,0,0,.3);border-radius:10px;padding:5px 12px;font-size:.8rem;text-align:center;}
-  .cpu.act{outline:2px solid #7fe9ff;}
-  .cpu .n{font-weight:bold;}
+  .cpu.act{outline:2px solid #7fe9ff;}.cpu .n{font-weight:bold;}
   .board{display:flex;flex-direction:column;gap:4px;background:rgba(0,0,0,.22);
     padding:8px;border-radius:10px;margin-bottom:10px;}
   .brow{display:flex;gap:3px;align-items:center;}
@@ -54,27 +54,55 @@ const L={
   newgame:{ja:'新しいゲーム',en:'New Game'},out:{ja:'上がり！',en:'OUT!'},
   finished:{ja:'ゲーム終了',en:'Game Over'},cards:{ja:'枚',en:'cards'},
   bust:{ja:'脱落',en:'BUST'},back:{ja:'戻る',en:'Back'},
+  p2:{ja:'P2',en:'P2'},opponent:{ja:'相手',en:'Opponent'},
+  online:{ja:'オンライン',en:'Online'},local2p:{ja:'ローカル2P',en:'Local 2P'},
+  waiting:{ja:'相手の番…',en:'Opponent\'s turn…'},
 };
 let lang=localStorage.getItem('lang')||'ja';
 const t=k=>(L[k]&&L[k][lang])||k;
 const C=window.CARDS,$=id=>document.getElementById(id);
-const SUITS=['S','H','D','C'],SCH={S:'♠',H:'♥',D:'♦',C:'♣'};
-let hands,placed,passesLeft,turn,finishOrder,busted,gameOver;
-const NP=4;
+const SUITS=['S','H','D','C'];
 
-function setup(){
+let np=parseInt(localStorage.getItem('sevens_np'))||4;
+let gameMode='solo',myIdx=0,onlineRole=null,roomId=null,onlineSeq=-1,sbar=null;
+let hands,placed,passesLeft,turn,finishOrder,busted,gameOver;
+
+function isHuman(p){return gameMode==='solo'?p===myIdx:(p===0||p===1);}
+function playerLabel(p){
+  if(p===myIdx)return t('you');
+  if(gameMode==='local2p'&&p<2)return t('p2');
+  if(gameMode==='online'&&p<2)return t('opponent');
+  return 'CPU '+p;
+}
+
+function serializePlaced(pl){const o={};SUITS.forEach(s=>o[s]=[...pl[s]]);return o;}
+function deserializePlaced(o){const pl={};SUITS.forEach(s=>pl[s]=new Set(o[s]||[]));return pl;}
+
+function computeInitState(){
   const deck=C.shuffle(C.makeDeck());
-  hands=[[],[],[],[]];
-  deck.forEach((c,i)=>hands[i%NP].push(c));
-  hands.forEach(h=>h.sort((a,b)=>a.suit.localeCompare(b.suit)||a.value-b.value));
-  placed={S:new Set(),H:new Set(),D:new Set(),C:new Set()};
-  passesLeft=[3,3,3,3];finishOrder=[];busted=[false,false,false,false];gameOver=false;
-  // start with holder of D7
-  turn=hands.findIndex(h=>h.some(c=>c.id==='D7'));
-  if(turn<0)turn=0;
+  const h=Array.from({length:np},()=>[]);
+  deck.forEach((c,i)=>h[i%np].push(c));
+  h.forEach(hh=>hh.sort((a,b)=>a.suit.localeCompare(b.suit)||a.value-b.value));
+  const pl={S:new Set(),H:new Set(),D:new Set(),C:new Set()};
+  const pl7=h.findIndex(hh=>hh.some(c=>c.id==='D7'));
+  return {
+    hands:h, placed:serializePlaced(pl),
+    passesLeft:new Array(np).fill(3),
+    finishOrder:[], busted:new Array(np).fill(false), gameOver:false,
+    turn:pl7>=0?pl7:0, seq:0
+  };
+}
+function applyState(st){
+  hands=st.hands; placed=deserializePlaced(st.placed);
+  passesLeft=st.passesLeft; finishOrder=st.finishOrder;
+  busted=st.busted; gameOver=st.gameOver; turn=st.turn;
+}
+function setup(){
+  myIdx=(gameMode==='online'&&onlineRole==='guest')?1:0;
+  const st=computeInitState(); onlineSeq=st.seq;
+  applyState(st);
   $('winmsg').textContent='';$('ranklist').textContent='';
-  render();
-  if(turn!==0)setTimeout(cpuTurn,700);
+  render(); afterTurnChange();
 }
 
 function playable(card){
@@ -87,17 +115,16 @@ function hasMove(p){return hands[p].some(playable);}
 
 function render(){
   $('title').textContent=t('title');$('newbtn').textContent=t('newgame');$('backbtn').textContent=t('back');
-  // cpus
   const cE=$('cpus');cE.innerHTML='';
-  for(let p=1;p<NP;p++){
+  for(let p=0;p<np;p++){
+    if(p===myIdx)continue;
     const d=document.createElement('div');d.className='cpu'+(turn===p&&!gameOver?' act':'');
     let status=`${hands[p].length}${t('cards')}`;
     if(busted[p])status=t('bust');
     if(finishOrder.includes(p))status='👑'+(finishOrder.indexOf(p)+1);
-    d.innerHTML=`<div class="n">CPU ${p}</div><div>${status}</div>`;
+    d.innerHTML=`<div class="n">${playerLabel(p)}</div><div>${status}</div>`;
     cE.appendChild(d);
   }
-  // board
   const b=$('board');b.innerHTML='';
   SUITS.forEach(s=>{
     const row=document.createElement('div');row.className='brow';
@@ -107,28 +134,43 @@ function render(){
         row.appendChild(C.cardEl(card,true));
       }else{
         const sl=document.createElement('div');sl.className='slot'+(v===7?' seven':'');
-        if(v===7)sl.textContent='';
         row.appendChild(sl);
       }
     }
     b.appendChild(row);
   });
-  // turn
-  $('turn').textContent=gameOver?t('finished'):(turn===0?t('yourturn'):`CPU ${turn}${t('cputurn')}`);
-  // my hand
+  let turnTxt;
+  if(gameOver)turnTxt=t('finished');
+  else if(turn===myIdx)turnTxt=t('yourturn');
+  else if(!isHuman(turn))turnTxt=playerLabel(turn)+t('cputurn');
+  else turnTxt=t('waiting');
+  $('turn').textContent=turnTxt;
   const mh=$('myhand');mh.innerHTML='';
-  hands[0].forEach((c)=>{
+  const myTurn=turn===myIdx&&!gameOver;
+  (hands[myIdx]||[]).forEach(c=>{
     const el=C.cardEl(c,true);
-    const canPlay=turn===0&&!gameOver&&playable(c);
-    if(canPlay){el.classList.add('playable');el.onclick=()=>playCard(0,c);}
+    const canPlay=myTurn&&playable(c);
+    if(canPlay){el.classList.add('playable');el.onclick=()=>playCard(myIdx,c);}
     else el.classList.add('dim');
     mh.appendChild(el);
   });
-  // pass button
   const pb=$('passbtn');
-  pb.textContent=`${t('pass')} (${t('passes')} ${passesLeft[0]})`;
-  pb.disabled=!(turn===0&&!gameOver&&passesLeft[0]>0);
-  pb.onclick=()=>doPass(0);
+  pb.textContent=`${t('pass')} (${t('passes')} ${(passesLeft[myIdx])||0})`;
+  pb.disabled=!(myTurn&&(passesLeft[myIdx]||0)>0);
+  pb.onclick=()=>doPass(myIdx);
+}
+
+function afterTurnChange(){
+  render();
+  if(gameOver)return;
+  if(!isHuman(turn)){
+    if(gameMode!=='online'||onlineRole==='host')setTimeout(cpuTurn,650);
+    return;
+  }
+  if(turn===myIdx)return;
+  if(gameMode==='local2p'){
+    NETPLAY.showHandoff(playerLabel(turn),lang,()=>{myIdx=turn;render();});
+  }
 }
 
 function playCard(p,card){
@@ -141,76 +183,125 @@ function playCard(p,card){
 }
 function doPass(p){
   if(turn!==p||gameOver)return;
-  passesLeft[p]--;
+  passesLeft[p]--;if(passesLeft[p]<0)passesLeft[p]=0;
   SND.sfx.click&&SND.sfx.click();
-  if(passesLeft[p]<0)passesLeft[p]=0;
   next();
 }
-function bust(p){
-  // dump all remaining cards onto board, player eliminated
+function bustPlayer(p){
   busted[p]=true;
   hands[p].forEach(c=>placed[c.suit].add(c.value));
   hands[p]=[];
-  SND.sfx.fallOff&&SND.sfx.fallOff();
 }
 function next(){
-  render();
-  // check end: only one active player left or all but one finished
   const active=[];
-  for(let p=0;p<NP;p++) if(!finishOrder.includes(p)&&!busted[p])active.push(p);
-  if(active.length<=1){
-    active.forEach(p=>finishOrder.push(p));
-    endGame();return;
-  }
-  // advance turn
+  for(let p=0;p<np;p++)if(!finishOrder.includes(p)&&!busted[p])active.push(p);
+  if(active.length<=1){active.forEach(p=>finishOrder.push(p));endGame();return;}
   let nt=turn;
-  do{ nt=(nt+1)%NP; }while(finishOrder.includes(nt)||busted[nt]);
+  do{nt=(nt+1)%np;}while(finishOrder.includes(nt)||busted[nt]);
   turn=nt;
-  render();
-  if(turn===0){
-    // if player has no move and no passes, auto-bust
-    if(!hasMove(0)&&passesLeft[0]<=0){bust(0);setTimeout(next,500);return;}
-  }else{
-    setTimeout(cpuTurn,650);
+  if(gameMode==='online'){pushOnline();}
+  else{
+    if(turn===myIdx&&!hasMove(myIdx)&&passesLeft[myIdx]<=0){bustPlayer(myIdx);setTimeout(next,500);return;}
+    afterTurnChange();
   }
 }
 function cpuTurn(){
-  if(gameOver||turn===0)return;
+  if(gameOver||isHuman(turn))return;
   const p=turn;
   const moves=hands[p].filter(playable);
-  if(moves.length===0){
+  if(!moves.length){
     if(passesLeft[p]>0)doPass(p);
-    else {bust(p);setTimeout(next,500);}
+    else{bustPlayer(p);setTimeout(next,500);}
     return;
   }
-  // Strategy: avoid playing 6/8 near 7 too early if holding edge cards; simple: play card that
-  // releases fewest, but mostly play furthest-from-7 to keep flexibility. Prefer playing edges.
-  // If have a card that's far end (A,K, or extreme), play it. Else play random valid.
-  // Also: hold a "key" card (one that blocks others) sometimes by passing.
-  let pick;
-  // play the move whose value is most extreme (closest to A or K) to dump safely
-  moves.sort((a,b)=>Math.max(Math.abs(b.value-7))-Math.max(Math.abs(a.value-7)));
   moves.sort((a,b)=>Math.abs(b.value-7)-Math.abs(a.value-7));
-  pick=moves[0];
-  // occasionally strategic pass to hold a 7 if has passes & few cards already low
-  if(passesLeft[p]>0 && pick.value===7 && hands[p].length>6 && Math.random()<0.4){doPass(p);return;}
+  const pick=moves[0];
+  if(passesLeft[p]>0&&pick.value===7&&hands[p].length>6&&Math.random()<0.4){doPass(p);return;}
   playCard(p,pick);
 }
 function endGame(){
   gameOver=true;SND.stopBGM&&SND.stopBGM();
-  // remaining ordering: add busted at end
-  for(let p=0;p<NP;p++)if(!finishOrder.includes(p))finishOrder.push(p);
-  const myRank=finishOrder.indexOf(0)+1;
+  if(gameMode==='online'){NETPLAY.stopPoll();if(sbar)sbar.remove();}
+  for(let p=0;p<np;p++)if(!finishOrder.includes(p))finishOrder.push(p);
+  const myRank=finishOrder.indexOf(myIdx)+1;
   const m=$('winmsg');
   if(myRank===1){m.textContent='🏆 '+t('you')+' 1st!';m.style.color='#7dffb0';SND.sfx.win&&SND.sfx.win();}
   else{m.textContent=`${t('you')}: ${myRank}${lang==='ja'?'位':'th'}`;m.style.color='#ffe27a';SND.sfx.lose&&SND.sfx.lose();}
-  const names=finishOrder.map((p,i)=>`${i+1}. ${p===0?t('you'):'CPU '+p}${busted[p]?'('+t('bust')+')':''}`);
-  $('ranklist').textContent=names.join('   ');
+  $('ranklist').textContent=finishOrder.map((p,i)=>`${i+1}. ${playerLabel(p)}${busted[p]?'('+t('bust')+')':''}`).join('   ');
+  if(gameMode==='online')pushOnline();
   render();
 }
-$('newbtn').onclick=()=>{SND.startBGM&&SND.startBGM('game');setup();};
 
-setup();
+// Online helpers
+function getState(){return{hands,placed:serializePlaced(placed),passesLeft,finishOrder,busted,gameOver,turn,seq:++onlineSeq};}
+async function pushOnline(){
+  try{await NETPLAY.pushState(roomId,getState());}catch(e){console.error(e);}
+  if(!gameOver)afterTurnChange();
+}
+function onPoll(room){
+  if(!room.state||room.state.seq<=onlineSeq)return;
+  onlineSeq=room.state.seq;
+  applyState(room.state);
+  if(room.state.gameOver){endGame();return;}
+  afterTurnChange();
+}
+
+// UI
+function initUI(){
+  const area=document.querySelector('.controls');
+  const np_div=document.createElement('div');
+  np_div.style.cssText='display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:10px;';
+  np_div.appendChild(NETPLAY.playerCountPicker({min:2,max:6,current:np,lang,onChange:n=>{
+    if(gameMode==='online')return;
+    np=n;localStorage.setItem('sevens_np',n);setup();
+  }}));
+  const modeRow=document.createElement('div');modeRow.style.cssText='display:flex;gap:8px;';
+  const l2btn=document.createElement('button');
+  l2btn.style.cssText='background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.82rem;cursor:pointer;font-weight:bold;';
+  const onbtn=document.createElement('button');
+  onbtn.style.cssText='background:#10b981;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.82rem;cursor:pointer;font-weight:bold;';
+  function updateBtns(){
+    l2btn.textContent=t('local2p');onbtn.textContent=t('online');
+    l2btn.style.opacity=gameMode==='local2p'?'1':'.55';
+    onbtn.style.opacity=gameMode==='online'?'1':'.55';
+  }
+  l2btn.onclick=()=>{
+    if(gameMode==='online'){NETPLAY.stopPoll();if(sbar){sbar.remove();sbar=null;}onlineRole=null;roomId=null;}
+    gameMode=gameMode==='local2p'?'solo':'local2p';myIdx=0;setup();updateBtns();
+  };
+  onbtn.onclick=()=>{
+    NETPLAY.showLobby({
+      game:'sevens',lang,
+      initState:()=>computeInitState(),
+      onHost:(id,room)=>{
+        roomId=id;onlineRole='host';myIdx=0;gameMode='online';
+        applyState(room.state);onlineSeq=room.state.seq;
+        if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('host');
+        $('winmsg').textContent='';$('ranklist').textContent='';
+        render();afterTurnChange();NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();
+      },
+      onJoin:(room,tok)=>{
+        roomId=room.id;onlineRole='guest';myIdx=1;gameMode='online';
+        applyState(room.state);onlineSeq=room.state.seq;
+        if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('guest');
+        $('winmsg').textContent='';$('ranklist').textContent='';
+        render();afterTurnChange();NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();
+      },
+      onCancel:()=>{}
+    });
+  };
+  modeRow.appendChild(l2btn);modeRow.appendChild(onbtn);
+  np_div.appendChild(modeRow);
+  area.parentNode.insertBefore(np_div,area.nextSibling);
+  updateBtns();
+}
+
+$('newbtn').onclick=()=>{
+  if(gameMode==='online'){NETPLAY.stopPoll();if(sbar){sbar.remove();sbar=null;}gameMode='solo';onlineRole=null;roomId=null;}
+  SND.startBGM&&SND.startBGM('game');setup();
+};
+
+setup();initUI();
 if(typeof SND!=='undefined'){SND.createBtn(document.body);SND.startBGM('game');}
 </script>
 </body>

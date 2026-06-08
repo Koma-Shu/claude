@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ババ抜き</title>
+<script src="netplay.js"></script>
 <script src="sound.js"></script>
 <script src="cards.js"></script>
 <style>
@@ -47,176 +48,252 @@
 <script>
 const L={
   title:{ja:'ババ抜き',en:'Old Maid'},you:{ja:'あなた',en:'You'},
-  yourdraw:{ja:'から1枚引く — カードをタップ',en:': draw a card — tap one'},
+  yourdraw:{ja:'から1枚引く',en:': draw one'},
   drawing:{ja:'が引いています…',en:' is drawing…'},
   cputurn:{ja:'の番…',en:'\'s turn…'},newgame:{ja:'新しいゲーム',en:'New Game'},
-  safe:{ja:'あがり',en:'SAFE'},loser:{ja:'ババを持って負け…',en:'stuck with the Old Maid…'},
+  safe:{ja:'あがり',en:'SAFE'},
   youlose:{ja:'あなたがババ！負け…',en:'You got the Old Maid! You lose…'},
   youwin:{ja:'あがり！勝ち！',en:'You\'re safe — you win!'},finished:{ja:'ゲーム終了',en:'Game Over'},
   drew:{ja:'が引いた！',en:' drew!'},pair:{ja:'✨ ペア成立！',en:'✨ PAIR!'},
   back:{ja:'戻る',en:'Back'},
-  modeJoker:{ja:'モード: ババ抜き(🃏)',en:'Mode: Joker'},
-  modeOdd:{ja:'モード: ジジ抜き',en:'Mode: Odd-Out'},
+  modeJoker:{ja:'ババ抜き(🃏)',en:'Joker Mode'},
+  modeOdd:{ja:'ジジ抜き',en:'Odd-Out'},
+  p2:{ja:'P2',en:'P2'},opponent:{ja:'相手',en:'Opponent'},
+  online:{ja:'オンライン',en:'Online'},local2p:{ja:'ローカル2P',en:'Local 2P'},
+  waiting:{ja:'相手の番…',en:'Opponent\'s turn…'},
+  tapToDraw:{ja:'カードをタップして引く',en:'Tap a card to draw'},
 };
 let lang=localStorage.getItem('lang')||'ja';
 const t=k=>(L[k]&&L[k][lang])||k;
 const C=window.CARDS,$=id=>document.getElementById(id);
-const NP=4;
-let hands,turn,safeOrder,gameOver,phase,victim;
-let jokerMode=(localStorage.getItem('oldmaid_joker')==='1'); // true=ババ抜き, false=ジジ抜き
+let jokerMode=(localStorage.getItem('oldmaid_joker')==='1');
 
-function setup(){
+let np=parseInt(localStorage.getItem('oldmaid_np'))||4;
+let gameMode='solo',myIdx=0,onlineRole=null,roomId=null,onlineSeq=-1,sbar=null;
+let hands,turn,safeOrder,gameOver,phase,victim;
+
+function isHuman(p){return gameMode==='solo'?p===myIdx:(p===0||p===1);}
+function playerLabel(p){
+  if(p===myIdx)return t('you');
+  if(gameMode==='local2p'&&p<2)return t('p2');
+  if(gameMode==='online'&&p<2)return t('opponent');
+  return 'CPU '+p;
+}
+
+function computeInitState(){
   let deck=C.shuffle(C.makeDeck());
-  if(jokerMode){
-    // ババ抜き: 52 cards pair perfectly + 1 unpairable Joker
-    deck.push({joker:true,rank:'JOKER',suit:'JOKER',value:-1,id:'JOKER'});
-    C.shuffle(deck);
-  } else {
-    deck.pop(); // ジジ抜き: remove one card → creates a lone unmatched card
-  }
-  hands=[[],[],[],[]];
-  deck.forEach((c,i)=>hands[i%NP].push(c));
-  hands.forEach((h,p)=>{discardPairs(h);shuffleHand(h);});
-  turn=0;safeOrder=[];gameOver=false;phase='turn';victim=-1;
+  if(jokerMode){deck.push({joker:true,rank:'JOKER',suit:'JOKER',value:-1,id:'JOKER'});C.shuffle(deck);}
+  else deck.pop();
+  const h=Array.from({length:np},()=>[]);
+  deck.forEach((c,i)=>h[i%np].push(c));
+  h.forEach(hh=>{discardPairs(hh);C.shuffle(hh);});
+  const tt=0;
+  return{hands:h,turn:tt,safeOrder:[],gameOver:false,phase:'turn',victim:-1,seq:0};
+}
+function applyState(st){hands=st.hands;turn=st.turn;safeOrder=st.safeOrder;gameOver=st.gameOver;phase=st.phase;victim=st.victim;}
+function discardPairs(h){
+  const byVal={};h.forEach(c=>{(byVal[c.value]=byVal[c.value]||[]).push(c);});
+  for(const v in byVal){let g=byVal[v];while(g.length>=2){const a=g.pop(),b=g.pop();h.splice(h.indexOf(a),1);h.splice(h.indexOf(b),1);}}
+}
+function nextActive(from){
+  let n=from;
+  for(let i=0;i<np;i++){n=(n+1)%np;if(hands[n]&&hands[n].length>0&&!safeOrder.includes(n))break;}
+  return n;
+}
+function setup(){
+  myIdx=(gameMode==='online'&&onlineRole==='guest')?1:0;
+  const st=computeInitState();onlineSeq=st.seq;
+  applyState(st);
   $('winmsg').textContent='';$('ranklist').textContent='';
   render();
   if(checkSafe())return;
   setTimeout(startTurn,500);
 }
-function shuffleHand(h){C.shuffle(h);}
-function discardPairs(h){
-  const byVal={};h.forEach(c=>{(byVal[c.value]=byVal[c.value]||[]).push(c);});
-  for(const v in byVal){
-    let g=byVal[v];
-    while(g.length>=2){
-      const a=g.pop(),b=g.pop();
-      h.splice(h.indexOf(a),1);h.splice(h.indexOf(b),1);
-    }
-  }
-}
-function nextActive(from){let n=from;for(let i=0;i<NP;i++){n=(n+1)%NP;if(hands[n].length>0&&!safeOrder.includes(n))break;}return n;}
 
 function render(){
   $('title').textContent=t('title');$('newbtn').textContent=t('newgame');
   $('backbtn').textContent=t('back');
   $('modebtn').textContent=jokerMode?t('modeJoker'):t('modeOdd');
   const cE=$('cpus');cE.innerHTML='';
-  for(let p=1;p<NP;p++){
+  for(let p=0;p<np;p++){
+    if(p===myIdx)continue;
     const d=document.createElement('div');
     let cls='cpu';if(turn===p&&!gameOver)cls+=' act';if(victim===p)cls+=' victim';if(safeOrder.includes(p))cls+=' safe';
     d.className=cls;
-    let st=safeOrder.includes(p)?'✅'+t('safe'):`${hands[p].length}枚`;
-    d.innerHTML=`<div class="n">CPU ${p}</div><div>${st}</div>`;
+    let st=safeOrder.includes(p)?'✅'+t('safe'):`${(hands[p]||[]).length}枚`;
+    d.innerHTML=`<div class="n">${playerLabel(p)}</div><div>${st}</div>`;
     cE.appendChild(d);
   }
-  // draw zone
   const dz=$('drawzone');dz.innerHTML='';
-  if(phase==='pick'&&turn===0&&victim>=0){
+  const isMyTurn=turn===myIdx&&!gameOver;
+  if(phase==='pick'&&isMyTurn&&victim>=0){
     const lbl=document.createElement('div');lbl.className='draw-lbl';
-    lbl.textContent=(victim===0?t('you'):'CPU '+victim)+t('yourdraw');
+    lbl.textContent=playerLabel(victim)+t('yourdraw')+' — '+t('tapToDraw');
     dz.appendChild(lbl);
     const dc=document.createElement('div');dc.className='draw-cards';
-    hands[victim].forEach((c,i)=>{
-      const el=C.cardEl(c,false);el.classList.add('draw-pick');
-      el.onclick=()=>playerDraw(i);dc.appendChild(el);
+    (hands[victim]||[]).forEach((c,i)=>{
+      const el=C.cardEl(c,gameMode==='online'&&victim===myIdx?true:false);
+      el.classList.add('draw-pick');el.onclick=()=>playerDraw(i);dc.appendChild(el);
     });
     dz.appendChild(dc);
   }else if(phase==='cpudraw'&&victim>=0){
     const lbl=document.createElement('div');lbl.className='draw-lbl';
-    lbl.textContent=`CPU ${turn} → ${victim===0?t('you'):'CPU '+victim}${t('drawing')}`;
+    lbl.textContent=`${playerLabel(turn)} → ${playerLabel(victim)}${t('drawing')}`;
     dz.appendChild(lbl);
     const dc=document.createElement('div');dc.className='draw-cards';
-    hands[victim].forEach(c=>dc.appendChild(C.cardEl(c,victim===0?true:false)));
+    (hands[victim]||[]).forEach(c=>dc.appendChild(C.cardEl(c,victim===myIdx)));
     dz.appendChild(dc);
   }
-  $('turn').textContent=gameOver?t('finished'):(turn===0?'':`CPU ${turn}${t('cputurn')}`);
+  let turnTxt;
+  if(gameOver)turnTxt=t('finished');
+  else if(isMyTurn)turnTxt='';
+  else if(!isHuman(turn))turnTxt=playerLabel(turn)+t('cputurn');
+  else turnTxt=t('waiting');
+  $('turn').textContent=turnTxt;
   const mh=$('myhand');mh.innerHTML='';
-  hands[0].forEach(c=>mh.appendChild(C.cardEl(c,true)));
+  (hands[myIdx]||[]).forEach(c=>mh.appendChild(C.cardEl(c,true)));
 }
 
 function startTurn(){
   if(gameOver)return;
   victim=nextActive(turn);
   if(victim===turn){checkSafe();return;}
-  if(turn===0){phase='pick';render();}
-  else{phase='cpudraw';render();setTimeout(()=>cpuDraw(),900);}
+  if(isHuman(turn)&&turn===myIdx){phase='pick';render();}
+  else if(isHuman(turn)&&turn!==myIdx){
+    // Other human's turn (local2p or online)
+    if(gameMode==='local2p'){
+      phase='cpudraw';render();
+      NETPLAY.showHandoff(playerLabel(turn),lang,()=>{myIdx=turn;phase='pick';render();});
+    }else{
+      phase='cpudraw';render(); // online: wait for their push
+    }
+  }else{
+    phase='cpudraw';render();setTimeout(()=>cpuDraw(),900);
+  }
 }
 function playerDraw(i){
-  if(phase!=='pick'||turn!==0)return;
-  takeCard(0,victim,i);
+  if(phase!=='pick'||turn!==myIdx)return;
+  takeCard(myIdx,victim,i);
 }
 function cpuDraw(){
-  const i=Math.floor(Math.random()*hands[victim].length);
+  if(gameOver||isHuman(turn))return;
+  const i=Math.floor(Math.random()*(hands[victim]||[]).length);
   takeCard(turn,victim,i);
 }
 function takeCard(drawer,from,idx){
+  if(!(hands[from]&&hands[from][idx]))return;
   const card=hands[from].splice(idx,1)[0];
   SND.sfx.draw&&SND.sfx.draw();
-
-  // Flash drawn card face-up in draw zone
   const dz=$('drawzone');dz.innerHTML='';
   const lbl=document.createElement('div');lbl.className='draw-lbl';
-  lbl.textContent=(drawer===0?t('you'):'CPU '+drawer)+t('drew');
-  dz.appendChild(lbl);
+  lbl.textContent=playerLabel(drawer)+t('drew');dz.appendChild(lbl);
   const flashEl=C.cardEl(card,true);
   flashEl.classList.add('glow-gold');
   flashEl.style.setProperty('--cw','56px');flashEl.style.setProperty('--ch','80px');
   dz.appendChild(flashEl);
-
   setTimeout(()=>{
     hands[drawer].push(card);
     const match=hands[drawer].find(c=>c.value===card.value&&c.id!==card.id);
-
     const afterPair=()=>{
-      shuffleHand(hands[drawer]);
+      C.shuffle(hands[drawer]);
       phase='turn';victim=-1;
-      render();
-      checkSafe();
-      if(gameOver)return;
-      turn=nextActive(turn);
-      render();
-      setTimeout(startTurn,650);
+      if(gameMode==='online')pushOnline();
+      else{render();checkSafe();if(gameOver)return;turn=nextActive(turn);render();setTimeout(startTurn,650);}
     };
-
     if(match){
-      hands[drawer].splice(hands[drawer].indexOf(match),1);
-      hands[drawer].splice(hands[drawer].indexOf(card),1);
-      if(drawer===0){ SND.sfx.pointWin&&SND.sfx.pointWin(); }   // 自分のペア
-      else { SND.sfx.discard&&SND.sfx.discard(); }              // 相手のペア
+      hands[drawer].splice(hands[drawer].indexOf(match),1);hands[drawer].splice(hands[drawer].indexOf(card),1);
+      if(drawer===myIdx)SND.sfx.pointWin&&SND.sfx.pointWin();else SND.sfx.discard&&SND.sfx.discard();
       C.showOverlay(t('pair'),[card,match],'#7dffb0',1400,afterPair);
-    } else {
-      afterPair();
-    }
+    }else afterPair();
   },650);
 }
 function checkSafe(){
   let changed=false;
-  for(let p=0;p<NP;p++){
-    if(hands[p].length===0&&!safeOrder.includes(p)){safeOrder.push(p);changed=true;
-      if(p===0)SND.sfx.win&&SND.sfx.win();}
+  for(let p=0;p<np;p++){
+    if((hands[p]||[]).length===0&&!safeOrder.includes(p)){safeOrder.push(p);changed=true;
+      if(p===myIdx)SND.sfx.win&&SND.sfx.win();}
   }
-  const active=[];for(let p=0;p<NP;p++)if(!safeOrder.includes(p))active.push(p);
-  if(active.length<=1){
-    if(active.length===1)safeOrder.push(active[0]); // loser last
-    endGame();return true;
-  }
+  const active=[];for(let p=0;p<np;p++)if(!safeOrder.includes(p))active.push(p);
+  if(active.length<=1){if(active.length===1)safeOrder.push(active[0]);endGame();return true;}
   if(changed)render();
   return false;
 }
 function endGame(){
   gameOver=true;SND.stopBGM&&SND.stopBGM();
+  if(gameMode==='online'){NETPLAY.stopPoll();if(sbar)sbar.remove();}
   const loser=safeOrder[safeOrder.length-1];
   const m=$('winmsg');
-  if(loser===0){m.textContent='😱 '+t('youlose');m.style.color='#ff9090';SND.sfx.lose&&SND.sfx.lose();}
+  if(loser===myIdx){m.textContent='😱 '+t('youlose');m.style.color='#ff9090';SND.sfx.lose&&SND.sfx.lose();}
   else{m.textContent='🎉 '+t('youwin');m.style.color='#7dffb0';SND.sfx.win&&SND.sfx.win();}
-  $('ranklist').textContent=safeOrder.map((p,i)=>
-    `${i<safeOrder.length-1?'✅':'💀'} ${p===0?t('you'):'CPU '+p}`).join('   ');
-  victim=-1;phase='turn';render();
+  $('ranklist').textContent=safeOrder.map((p,i)=>`${i<safeOrder.length-1?'✅':'💀'} ${playerLabel(p)}`).join('   ');
+  victim=-1;phase='turn';
+  if(gameMode==='online')pushOnline();
+  render();
 }
-$('newbtn').onclick=()=>{SND.startBGM&&SND.startBGM('game');setup();};
+
+// Online
+function getState(){return{hands,turn,safeOrder,gameOver,phase,victim,seq:++onlineSeq};}
+async function pushOnline(){
+  try{await NETPLAY.pushState(roomId,getState());}catch(e){console.error(e);}
+  // After push, advance turn locally only if host
+  if(!gameOver&&onlineRole==='host'){
+    render();checkSafe();if(gameOver)return;
+    turn=nextActive(turn);render();setTimeout(startTurn,650);
+  }
+}
+function onPoll(room){
+  if(!room.state||room.state.seq<=onlineSeq)return;
+  onlineSeq=room.state.seq;
+  applyState(room.state);
+  if(room.state.gameOver){endGame();return;}
+  render();
+  // If it's now my turn, enable interaction
+  if(turn===myIdx&&!gameOver){startTurn();}
+}
+
+function initUI(){
+  const area=document.querySelector('.controls');
+  const np_div=document.createElement('div');
+  np_div.style.cssText='display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:10px;';
+  np_div.appendChild(NETPLAY.playerCountPicker({min:2,max:6,current:np,lang,onChange:n=>{
+    if(gameMode==='online')return;
+    np=n;localStorage.setItem('oldmaid_np',n);setup();
+  }}));
+  const modeRow=document.createElement('div');modeRow.style.cssText='display:flex;gap:8px;';
+  const l2btn=document.createElement('button');
+  l2btn.style.cssText='background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.82rem;cursor:pointer;font-weight:bold;';
+  const onbtn=document.createElement('button');
+  onbtn.style.cssText='background:#10b981;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.82rem;cursor:pointer;font-weight:bold;';
+  function updateBtns(){
+    l2btn.textContent=t('local2p');onbtn.textContent=t('online');
+    l2btn.style.opacity=gameMode==='local2p'?'1':'.55';
+    onbtn.style.opacity=gameMode==='online'?'1':'.55';
+  }
+  l2btn.onclick=()=>{
+    if(gameMode==='online'){NETPLAY.stopPoll();if(sbar){sbar.remove();sbar=null;}onlineRole=null;roomId=null;}
+    gameMode=gameMode==='local2p'?'solo':'local2p';myIdx=0;setup();updateBtns();
+  };
+  onbtn.onclick=()=>{
+    NETPLAY.showLobby({
+      game:'oldmaid',lang,initState:()=>computeInitState(),
+      onHost:(id,room)=>{roomId=id;onlineRole='host';myIdx=0;gameMode='online';applyState(room.state);onlineSeq=room.state.seq;if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('host');$('winmsg').textContent='';$('ranklist').textContent='';render();if(checkSafe())return;setTimeout(startTurn,500);NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();},
+      onJoin:(room,tok)=>{roomId=room.id;onlineRole='guest';myIdx=1;gameMode='online';applyState(room.state);onlineSeq=room.state.seq;if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('guest');$('winmsg').textContent='';$('ranklist').textContent='';render();NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();},
+      onCancel:()=>{}
+    });
+  };
+  modeRow.appendChild(l2btn);modeRow.appendChild(onbtn);
+  np_div.appendChild(modeRow);
+  area.parentNode.insertBefore(np_div,area.nextSibling);
+  updateBtns();
+}
+
+$('newbtn').onclick=()=>{
+  if(gameMode==='online'){NETPLAY.stopPoll();if(sbar){sbar.remove();sbar=null;}gameMode='solo';onlineRole=null;roomId=null;}
+  SND.startBGM&&SND.startBGM('game');setup();
+};
 $('modebtn').onclick=()=>{jokerMode=!jokerMode;localStorage.setItem('oldmaid_joker',jokerMode?'1':'0');SND.sfx.click&&SND.sfx.click();setup();};
 
-setup();
+setup();initUI();
 if(typeof SND!=='undefined'){SND.createBtn(document.body);SND.startBGM('game');}
 </script>
 </body>

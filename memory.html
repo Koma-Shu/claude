@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>神経衰弱</title>
+<script src="netplay.js"></script>
 <script src="sound.js"></script>
 <script src="cards.js"></script>
 <style>
@@ -32,7 +33,7 @@
 <h1 id="title">神経衰弱</h1>
 <div class="scores">
   <div class="sc" id="sc-you"></div>
-  <div class="sc" id="sc-cpu"></div>
+  <div class="sc" id="sc-opp"></div>
 </div>
 <div class="turn" id="turn"></div>
 <div class="grid" id="grid"></div>
@@ -45,28 +46,43 @@
 <script>
 const L={
   title:{ja:'神経衰弱',en:'Memory'},you:{ja:'あなた',en:'You'},cpu:{ja:'CPU',en:'CPU'},
-  yourturn:{ja:'あなたの番',en:'Your turn'},cputurn:{ja:'CPUの番…',en:'CPU\'s turn…'},
+  yourturn:{ja:'あなたの番',en:'Your turn'},
+  oppturn:{ja:'の番…',en:'\'s turn…'},
   newgame:{ja:'新しいゲーム',en:'New Game'},
-  win:{ja:'あなたの勝ち！',en:'You win!'},lose:{ja:'CPUの勝ち…',en:'CPU wins…'},draw:{ja:'引き分け',en:'Draw'},
+  win:{ja:'あなたの勝ち！',en:'You win!'},lose:{ja:'の勝ち…',en:' wins…'},draw:{ja:'引き分け',en:'Draw'},
   pairs:{ja:'ペア',en:'pairs'},back:{ja:'戻る',en:'Back'},
+  online:{ja:'オンライン',en:'Online'},local2p:{ja:'ローカル2P',en:'Local 2P'},
+  waiting:{ja:'相手の番…',en:'Opponent\'s turn…'},
+  opponent:{ja:'相手',en:'Opponent'},
 };
 let lang=localStorage.getItem('lang')||'ja';
 const t=k=>(L[k]&&L[k][lang])||k;
 const C=window.CARDS,$=id=>document.getElementById(id);
-let cards,flipped,matched,turn,scores,busy,pairsN=8;
-let cellEls=[];
-let cpuMem={};
+let pairsN=8;
+let gameMode='solo',myIdx=0,onlineRole=null,roomId=null,onlineSeq=-1,sbar=null;
+let cards,flipped,matched,turn,scores,busy,cellEls=[],cpuMem={};
 
-function setup(){
+// In solo/local2P: myIdx=0 always (opponent is CPU or P2)
+// In online: myIdx=0 (host) or 1 (guest)
+function oppLabel(){return gameMode==='online'?t('opponent'):(gameMode==='local2p'?'P2':t('cpu'));}
+function isMyTurn(){return turn===myIdx&&!busy;}
+
+function computeInitState(){
   const deck=C.shuffle(C.makeDeck()).slice(0,pairsN);
-  cards=[];
-  deck.forEach(c=>{cards.push({...c});cards.push({...c});});
-  C.shuffle(cards);
-  flipped=[];matched=new Array(cards.length).fill(false);
-  turn=0;scores=[0,0];busy=false;cpuMem={};
-  $('winmsg').textContent='';
-  buildGrid();
+  const cs=[];deck.forEach(c=>{cs.push({...c});cs.push({...c});});C.shuffle(cs);
+  return{cards:cs,matched:new Array(cs.length).fill(false),scores:[0,0],turn:0,seq:0};
+}
+function applyState(st,rebuild){
+  cards=st.cards;matched=st.matched;scores=st.scores;turn=st.turn;flipped=[];busy=false;
+  if(rebuild)buildGrid();
   renderStatus();
+}
+function setup(){
+  myIdx=(gameMode==='online'&&onlineRole==='guest')?1:0;
+  const st=computeInitState();onlineSeq=st.seq;
+  applyState(st,true);
+  cpuMem={};$('winmsg').textContent='';
+  if(gameMode==='solo'&&turn!==myIdx)setTimeout(cpuTurn,700);
 }
 
 function cols(){const n=cards.length;return n<=16?4:(n<=20?5:6);}
@@ -76,78 +92,68 @@ function buildGrid(){
   g.style.gridTemplateColumns=`repeat(${cols()},var(--cw))`;
   cellEls=[];
   cards.forEach((c,i)=>{
-    const el=C.cardEl(c,false);
-    el.classList.add('cell');
-    el.onclick=()=>pick(i);
-    g.appendChild(el);
-    cellEls.push(el);
-    C.dealIn(el, i*30);
+    const el=C.cardEl(c,false);el.classList.add('cell');
+    el.onclick=()=>pick(i);g.appendChild(el);cellEls.push(el);
+    C.dealIn(el,i*30);
   });
 }
 
 function renderStatus(){
-  $('title').textContent=t('title');
-  $('backbtn').textContent=t('back');
-  $('newbtn').textContent=t('newgame');
-  $('sizebtn').textContent=`${pairsN} ${t('pairs')}`;
-  $('sc-you').textContent=`${t('you')}: ${scores[0]}`;
-  $('sc-cpu').textContent=`${t('cpu')}: ${scores[1]}`;
-  $('sc-you').classList.toggle('act',turn===0);
-  $('sc-cpu').classList.toggle('act',turn===1);
-  $('turn').textContent=turn===0?t('yourturn'):t('cputurn');
-  // update clickability
+  $('title').textContent=t('title');$('backbtn').textContent=t('back');
+  $('newbtn').textContent=t('newgame');$('sizebtn').textContent=`${pairsN} ${t('pairs')}`;
+  const myScore=scores[myIdx],oppScore=scores[1-myIdx];
+  $('sc-you').textContent=`${t('you')}: ${myScore}`;
+  $('sc-opp').textContent=`${oppLabel()}: ${oppScore}`;
+  $('sc-you').classList.toggle('act',turn===myIdx);
+  $('sc-opp').classList.toggle('act',turn!==myIdx);
+  let turnTxt;
+  if(turn===myIdx)turnTxt=t('yourturn');
+  else if(gameMode==='online')turnTxt=t('waiting');
+  else turnTxt=oppLabel()+t('oppturn');
+  $('turn').textContent=turnTxt;
   cellEls.forEach((el,i)=>{
-    el.style.cursor=(turn===0&&!busy&&!flipped.includes(i)&&!matched[i])?'pointer':'default';
+    if(matched[i])el.classList.add('matched');
+    el.style.cursor=(isMyTurn()&&!flipped.includes(i)&&!matched[i])?'pointer':'default';
   });
 }
 
 function pick(i){
-  if(busy||flipped.includes(i)||matched[i]||turn!==0)return;
-  flipOpen(i,()=>{
-    if(flipped.length===2) resolve();
-  });
+  if(!isMyTurn()||flipped.includes(i)||matched[i])return;
+  flipOpen(i,()=>{if(flipped.length===2)resolveFlip();});
 }
-
-function flipOpen(i, cb){
-  flipped.push(i);
-  remember(i);
-  SND.sfx.flip&&SND.sfx.flip();
+function flipOpen(i,cb){
+  flipped.push(i);remember(i);SND.sfx.flip&&SND.sfx.flip();
   C.flipCard(cellEls[i],cards[i],cb);
 }
 
-function resolve(){
+function resolveFlip(){
   busy=true;
   const[a,b]=flipped;
   if(cards[a].id===cards[b].id){
-    // Match
     setTimeout(()=>{
-      matched[a]=matched[b]=true;
-      scores[turn]++;
-      flipped=[];busy=false;
-      cellEls[a].classList.add('matched');
-      cellEls[b].classList.add('matched');
+      matched[a]=matched[b]=true;scores[turn]++;flipped=[];busy=false;
+      cellEls[a].classList.add('matched');cellEls[b].classList.add('matched');
       SND.sfx.pointWin&&SND.sfx.pointWin();
-      renderStatus();
       if(matched.every(x=>x)){endGame();return;}
-      if(turn===1) setTimeout(cpuTurn,600);
+      if(gameMode==='online'){pushOnline();}
+      else{renderStatus();if(turn===1-myIdx&&gameMode==='solo')setTimeout(cpuTurn,600);}
     },550);
   }else{
-    // No match — flip both back
     setTimeout(()=>{
-      flipped=[];turn=1-turn;busy=false;
+      flipped=[];busy=false;
       SND.sfx.discard&&SND.sfx.discard();
-      C.flipBack(cellEls[a]);
-      C.flipBack(cellEls[b]);
-      renderStatus();
-      if(turn===1) setTimeout(cpuTurn,700);
+      C.flipBack(cellEls[a]);C.flipBack(cellEls[b]);
+      turn=1-turn;
+      if(gameMode==='online'){pushOnline();}
+      else{renderStatus();if(turn!==myIdx)setTimeout(cpuTurn,700);}
     },900);
   }
 }
-
+function remember(i){const id=cards[i].id;cpuMem[id]=cpuMem[id]||[];if(!cpuMem[id].includes(i))cpuMem[id].push(i);}
 function cpuTurn(){
   if(matched.every(x=>x))return;
-  busy=true;
-  renderStatus();
+  if(gameMode!=='solo')return; // only for CPU in solo mode
+  busy=true;renderStatus();
   let known=null;
   for(const id in cpuMem){
     const idxs=cpuMem[id].filter(i=>!matched[i]);
@@ -159,32 +165,81 @@ function cpuTurn(){
   else{
     a=avail[Math.floor(Math.random()*avail.length)];
     const memMatch=(cpuMem[cards[a].id]||[]).filter(i=>i!==a&&!matched[i]);
-    if(memMatch.length&&Math.random()<0.85) b=memMatch[0];
+    if(memMatch.length&&Math.random()<0.85)b=memMatch[0];
     else{const rest=avail.filter(i=>i!==a);b=rest[Math.floor(Math.random()*rest.length)];}
   }
-  flipOpen(a,()=>{
-    setTimeout(()=>{
-      flipOpen(b,()=>{
-        setTimeout(resolve,400);
-      });
-    },700);
-  });
+  flipOpen(a,()=>{setTimeout(()=>{flipOpen(b,()=>{setTimeout(resolveFlip,400);});},700);});
 }
-
-function remember(i){const id=cards[i].id;cpuMem[id]=cpuMem[id]||[];if(!cpuMem[id].includes(i))cpuMem[id].push(i);}
-
 function endGame(){
   SND.stopBGM&&SND.stopBGM();
+  if(gameMode==='online'){NETPLAY.stopPoll();if(sbar)sbar.remove();}
   const m=$('winmsg');
-  if(scores[0]>scores[1]){m.textContent=t('win');m.className='win-msg w';SND.sfx.win&&SND.sfx.win();}
-  else if(scores[1]>scores[0]){m.textContent=t('lose');m.className='win-msg l';SND.sfx.lose&&SND.sfx.lose();}
+  const myS=scores[myIdx],oppS=scores[1-myIdx];
+  if(myS>oppS){m.textContent=t('win');m.className='win-msg w';SND.sfx.win&&SND.sfx.win();}
+  else if(myS<oppS){m.textContent=oppLabel()+t('lose');m.className='win-msg l';SND.sfx.lose&&SND.sfx.lose();}
   else{m.textContent=t('draw');m.className='win-msg d';SND.sfx.point&&SND.sfx.point();}
+  if(gameMode==='online')pushOnline();
 }
 
-$('newbtn').onclick=()=>{SND.startBGM&&SND.startBGM('game');setup();};
-$('sizebtn').onclick=()=>{pairsN=pairsN===8?12:(pairsN===12?18:8);setup();};
+// Online
+function getState(){return{cards,matched,scores,turn,seq:++onlineSeq};}
+async function pushOnline(){
+  try{await NETPLAY.pushState(roomId,getState());}catch(e){console.error(e);}
+  // After push: if now it's my turn keep controls enabled; otherwise wait
+  if(!matched.every(x=>x)){renderStatus();}
+}
+function onPoll(room){
+  if(!room.state||room.state.seq<=onlineSeq)return;
+  const st=room.state;onlineSeq=st.seq;
+  matched=st.matched;scores=st.scores;turn=st.turn;flipped=[];busy=false;
+  // Sync matched cells
+  cellEls.forEach((el,i)=>{if(matched[i]&&!el.classList.contains('matched')){el.classList.add('matched');}});
+  // Flip open any cards that were just revealed by opponent (flipped but not matched)
+  // We can't animate the opponent's picks since we don't have the flip history,
+  // but matched cards auto-fade. For mismatches we just flip back already-back cards.
+  if(matched.every(x=>x)){endGame();return;}
+  renderStatus();
+}
 
-setup();
+function initUI(){
+  const area=document.querySelector('.controls');
+  const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;margin-top:10px;';
+  const l2btn=document.createElement('button');
+  l2btn.style.cssText='background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.82rem;cursor:pointer;font-weight:bold;';
+  const onbtn=document.createElement('button');
+  onbtn.style.cssText='background:#10b981;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.82rem;cursor:pointer;font-weight:bold;';
+  function updateBtns(){
+    l2btn.textContent=t('local2p');onbtn.textContent=t('online');
+    l2btn.style.opacity=gameMode==='local2p'?'1':'.55';
+    onbtn.style.opacity=gameMode==='online'?'1':'.55';
+  }
+  l2btn.onclick=()=>{
+    if(gameMode==='online'){NETPLAY.stopPoll();if(sbar){sbar.remove();sbar=null;}onlineRole=null;roomId=null;}
+    gameMode=gameMode==='local2p'?'solo':'local2p';myIdx=0;setup();updateBtns();
+  };
+  onbtn.onclick=()=>{
+    NETPLAY.showLobby({
+      game:'memory',lang,initState:()=>computeInitState(),
+      onHost:(id,room)=>{roomId=id;onlineRole='host';myIdx=0;gameMode='online';const st=room.state;onlineSeq=st.seq;cards=st.cards;matched=st.matched;scores=st.scores;turn=st.turn;flipped=[];busy=false;cpuMem={};if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('host');$('winmsg').textContent='';buildGrid();renderStatus();NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();},
+      onJoin:(room,tok)=>{roomId=room.id;onlineRole='guest';myIdx=1;gameMode='online';const st=room.state;onlineSeq=st.seq;cards=st.cards;matched=st.matched;scores=st.scores;turn=st.turn;flipped=[];busy=false;cpuMem={};if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('guest');$('winmsg').textContent='';buildGrid();renderStatus();NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();},
+      onCancel:()=>{}
+    });
+  };
+  row.appendChild(l2btn);row.appendChild(onbtn);
+  area.parentNode.insertBefore(row,area.nextSibling);
+  updateBtns();
+}
+
+$('newbtn').onclick=()=>{
+  if(gameMode==='online'){NETPLAY.stopPoll();if(sbar){sbar.remove();sbar=null;}gameMode='solo';onlineRole=null;roomId=null;}
+  SND.startBGM&&SND.startBGM('game');setup();
+};
+$('sizebtn').onclick=()=>{
+  if(gameMode==='online')return;
+  pairsN=pairsN===8?12:(pairsN===12?18:8);setup();
+};
+
+setup();initUI();
 if(typeof SND!=='undefined'){SND.createBtn(document.body);SND.startBGM('game');}
 </script>
 </body>

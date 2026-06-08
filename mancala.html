@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>マンカラ</title>
   <script src="sound.js"></script>
+  <script src="netplay.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{background:#1a0a00;overflow:hidden;font-family:'Hiragino Sans','Meiryo','Segoe UI',sans-serif}
@@ -43,16 +44,23 @@ let lang=localStorage.getItem('lang')||'ja';
 let lastTs=0, pulse=0;
 let highlightPit=-1;
 
+// Multiplayer state
+let gameMode='solo'; // 'solo'|'local2p'|'online'
+let myIdx=0; // 0=p1, 1=p2
+let onlineRole=null,roomId=null,onlineSeq=-1,sbar=null;
+
 const STR={
   title:{ja:'マンカラ',en:'Mancala'},
   you:{ja:'あなた',en:'You'},
   cpu:{ja:'CPU',en:'CPU'},
   p1:{ja:'プレイヤー1',en:'Player 1'},
   p2:{ja:'プレイヤー2',en:'Player 2'},
+  opponent:{ja:'相手',en:'Opponent'},
   yourTurn:{ja:'あなたのターン',en:'Your turn'},
   cpuTurn:{ja:'CPU思考中…',en:'CPU thinking…'},
   p1Turn:{ja:'プレイヤー1のターン',en:'Player 1\'s turn'},
   p2Turn:{ja:'プレイヤー2のターン',en:'Player 2\'s turn'},
+  oppTurn:{ja:'相手のターン',en:'Opponent\'s turn'},
   freeTurn:{ja:'もう一度！',en:'Free turn!'},
   capture:{ja:'奪取！',en:'Capture!'},
   youWin:{ja:'あなたの勝ち！',en:'You Win!'},
@@ -63,6 +71,9 @@ const STR={
   tap:{ja:'タップして再スタート',en:'Tap to restart'},
   modeVs:{ja:'2人対戦',en:'2P Mode'},
   modeCpu:{ja:'CPU対戦',en:'vs CPU'},
+  local2p:{ja:'ローカル2P',en:'Local 2P'},
+  online:{ja:'オンライン',en:'Online'},
+  leave:{ja:'退出',en:'Leave'},
   back:{ja:'戻る',en:'Back'},
   rules:{ja:'自分の穴を選んで種を配ろう',en:'Choose a pit to sow seeds'},
 };
@@ -294,11 +305,18 @@ function updateAnims(dt){
 // ── Player action ─────────────────────────────────────────────────
 let statusMsg='', freeTurnMsg=0;
 
+function isMyTurn(){
+  if(gameMode==='solo')return turn===0;
+  return turn===myIdx;
+}
+
 function playerMove(slot){
   if(animating||gameOver||cpuPending)return;
   const vm=validMoves(seeds,turn);
   if(!vm.includes(slot))return;
-  if(mode==='cpu'&&turn===1)return;
+  if(gameMode==='solo'&&turn===1)return;
+  if(gameMode==='online'&&!isMyTurn())return;
+  if(gameMode==='local2p'&&turn!==myIdx)return;
 
   executeMove(slot);
 }
@@ -350,24 +368,66 @@ function executeMove(slot){
     if(result==='freeTurn'){
       statusMsg=t('freeTurn'); freeTurnMsg=120;
       SND.sfx.coin?.();
-      if(mode==='cpu'&&turn===1&&!gameOver) scheduleCPU();
+      afterTurnChange();
     }else if(result==='capture'){
       statusMsg=t('capture'); freeTurnMsg=120;
       SND.sfx.pointWin?.();
       turn=1-turn;
-      if(mode==='cpu'&&turn===1&&!gameOver) scheduleCPU();
+      afterTurnChange();
     }else{
       turn=1-turn;
-      if(mode==='cpu'&&turn===1&&!gameOver) scheduleCPU();
+      afterTurnChange();
     }
   });
+}
+
+function afterTurnChange(){
+  if(gameOver){
+    if(gameMode==='online')pushOnline();
+    return;
+  }
+  if(gameMode==='online'){
+    pushOnline();
+    return;
+  }
+  if(gameMode==='solo'&&turn===1&&!cpuPending){
+    scheduleCPU();
+  } else if(gameMode==='local2p'&&!isMyTurn()){
+    const name=turn===0?t('p1'):t('p2');
+    NETPLAY.showHandoff(name,lang,()=>{myIdx=turn;});
+  } else if(gameMode==='online'){
+    if(sbar)sbar.set(isMyTurn()?t('yourTurn'):t('oppTurn'));
+  }
+}
+
+// ── Online helpers ────────────────────────────────────────────────
+function getState(){
+  return{seeds:[...seeds],turn,gameOver,winner,seq:++onlineSeq};
+}
+
+async function pushOnline(){
+  try{await NETPLAY.pushState(roomId,getState());}catch(e){console.error(e);}
+  if(sbar)sbar.set(isMyTurn()?t('yourTurn'):t('oppTurn'));
+}
+
+function applyState(st){
+  seeds=[...st.seeds];turn=st.turn;gameOver=st.gameOver;winner=st.winner;
+  onlineSeq=st.seq;
+  if(gameOver){SND.stopBGM?.();}
+}
+
+function onPoll(room){
+  if(!room.state||room.state.seq<=onlineSeq)return;
+  applyState(room.state);
+  if(sbar)sbar.set(isMyTurn()?t('yourTurn'):t('oppTurn'));
+  // CPU turn (host only) - not applicable in online since both are human
 }
 
 function scheduleCPU(){
   cpuPending=true;
   setTimeout(()=>{
     cpuPending=false;
-    if(gameOver)return;
+    if(gameOver||gameMode!=='solo')return;
     const[mv]=minimaxM(seeds,8,-Infinity,Infinity,1,false);
     if(mv!=null) executeMove(mv);
   },400);
@@ -496,12 +556,12 @@ function drawBoard(){
 
   // Draw all pits
   for(let i=0;i<PITS;i++){
-    const canClick=!animating&&!gameOver&&!cpuPending&&(mode==='2p'||(mode==='cpu'&&turn===0));
-    const hl=canClick&&vm.includes(i)&&(highlightPit===i||(highlightPit===-1&&vm.includes(i)));
-    drawPit(i, hl&&vm.includes(i));
+    const canClick=!animating&&!gameOver&&!cpuPending&&isMyTurn()&&turn===0;
+    const hl=canClick&&vm.includes(i);
+    drawPit(i, hl);
   }
   for(let i=7;i<7+PITS;i++){
-    const canClick2=!animating&&!gameOver&&!cpuPending&&(mode==='2p');
+    const canClick2=!animating&&!gameOver&&!cpuPending&&(gameMode!=='solo')&&isMyTurn()&&turn===1;
     const hl2=canClick2&&vm.includes(i);
     drawPit(i, hl2);
   }
@@ -523,8 +583,8 @@ function drawBoard(){
   ctx.font=`bold ${Math.round(PIT_R*0.38)}px 'Hiragino Sans','Meiryo',sans-serif`;
   ctx.textAlign='center';ctx.textBaseline='middle';
 
-  const p1n=mode==='cpu'?t('you'):t('p1');
-  const p2n=mode==='cpu'?t('cpu'):t('p2');
+  const p1n=gameMode==='online'?(myIdx===0?t('you'):t('opponent')):gameMode==='local2p'?t('p1'):t('you');
+  const p2n=gameMode==='online'?(myIdx===1?t('you'):t('opponent')):gameMode==='local2p'?t('p2'):t('cpu');
   ctx.fillStyle=turn===0&&!gameOver?'rgba(255,220,80,0.95)':'rgba(255,200,100,0.5)';
   ctx.fillText('▲',labelX+BW*0.5-PIT_R*2.5,p1Y);
   ctx.fillStyle=turn===0&&!gameOver?'rgba(255,220,80,0.9)':'rgba(200,160,80,0.5)';
@@ -554,8 +614,8 @@ function drawUI(){
 
   // Scores
   ctx.font=`${Math.round(PIT_R*0.6)}px 'Hiragino Sans','Meiryo',sans-serif`;
-  const p1n=mode==='cpu'?t('you'):t('p1');
-  const p2n=mode==='cpu'?t('cpu'):t('p2');
+  const p1n=gameMode==='online'?(myIdx===0?t('you'):t('opponent')):gameMode==='local2p'?t('p1'):t('you');
+  const p2n=gameMode==='online'?(myIdx===1?t('you'):t('opponent')):gameMode==='local2p'?t('p2'):t('cpu');
   ctx.textAlign='right';ctx.fillStyle='rgba(255,220,80,0.9)';
   ctx.fillText(`${p1n}  ${scores.p1}`, cx-PIT_R*0.3, BY-PIT_R*0.7);
   ctx.textAlign='center';ctx.fillStyle='rgba(150,120,70,0.7)';
@@ -580,12 +640,17 @@ function drawUI(){
 
   if(gameOver){
     let msg,col;
-    if(winner===0){msg=mode==='cpu'?t('youWin'):t('p1Win');col='rgba(255,220,80,0.95)';}
-    else if(winner===1){msg=mode==='cpu'?t('cpuWin'):t('p2Win');col='rgba(255,120,80,0.95)';}
-    else{msg=t('draw');col='rgba(180,160,120,0.9)';}
+    if(winner===0){
+      msg=gameMode==='online'?(myIdx===0?t('youWin'):t('cpuWin')):gameMode==='local2p'?t('p1Win'):t('youWin');
+      col='rgba(255,220,80,0.95)';
+    }else if(winner===1){
+      msg=gameMode==='online'?(myIdx===1?t('youWin'):t('cpuWin')):gameMode==='local2p'?t('p2Win'):t('cpuWin');
+      col='rgba(255,120,80,0.95)';
+    }else{msg=t('draw');col='rgba(180,160,120,0.9)';}
     ctx.fillStyle=col;ctx.fillText(msg,cx,sy);
     ctx.font=`${Math.round(PIT_R*0.42)}px 'Hiragino Sans','Meiryo',sans-serif`;
-    ctx.fillStyle='rgba(150,120,70,0.7)';ctx.fillText(t('tap'),cx,sy+PIT_R*0.85);
+    ctx.fillStyle='rgba(150,120,70,0.7)';
+    if(gameMode!=='online')ctx.fillText(t('tap'),cx,sy+PIT_R*0.85);
   }else if(freeTurnMsg>0){
     freeTurnMsg--;
     ctx.fillStyle='rgba(255,220,80,0.95)';ctx.fillText(statusMsg,cx,sy);
@@ -593,8 +658,9 @@ function drawUI(){
     let msg,col;
     if(cpuPending){msg=t('cpuTurn');col='rgba(255,120,80,0.9)';}
     else if(animating){msg='';col='transparent';}
-    else if(turn===0){msg=mode==='cpu'?t('yourTurn'):t('p1Turn');col='rgba(255,220,80,0.9)';}
-    else{msg=mode==='cpu'?t('cpuTurn'):t('p2Turn');col='rgba(255,120,80,0.9)';}
+    else if(gameMode==='online'&&!isMyTurn()){msg=t('oppTurn');col='rgba(255,120,80,0.9)';}
+    else if(turn===0){msg=gameMode==='solo'?t('yourTurn'):t('p1Turn');col='rgba(255,220,80,0.9)';}
+    else{msg=gameMode==='solo'?t('cpuTurn'):t('p2Turn');col='rgba(255,120,80,0.9)';}
     ctx.fillStyle=col;ctx.fillText(msg,cx,sy);
   }
 
@@ -636,14 +702,14 @@ canvas.addEventListener('mousemove',e=>{
 });
 canvas.addEventListener('mouseleave',()=>{highlightPit=-1;});
 canvas.addEventListener('click',e=>{
-  if(gameOver){initBoard();SND.startBGM?.('mahjong');return;}
+  if(gameOver){if(gameMode!=='online'){initBoard();SND.startBGM?.('mahjong');}return;}
   const s=pitFromXY(e.clientX,e.clientY);
   if(s>=0) playerMove(s);
 });
 canvas.addEventListener('touchstart',e=>{
   e.preventDefault();
   const t0=e.touches[0];
-  if(gameOver){initBoard();SND.startBGM?.('mahjong');return;}
+  if(gameOver){if(gameMode!=='online'){initBoard();SND.startBGM?.('mahjong');}return;}
   const s=pitFromXY(t0.clientX,t0.clientY);
   if(s>=0) playerMove(s);
 },{passive:false});
@@ -659,11 +725,61 @@ function addBtn(label,style,cb){
   return b;
 }
 
-addBtn(t('back'),'background:#374151;color:#fff;top:10px;left:10px;',()=>{location.href='index.html';});
-const modeBtn=addBtn(t('modeVs'),'background:#7c3aed;color:#fff;top:10px;right:10px;',()=>{
-  mode=mode==='cpu'?'2p':'cpu';
-  modeBtn.textContent=mode==='cpu'?t('modeVs'):t('modeCpu');
+addBtn(t('back'),'background:#374151;color:#fff;top:10px;left:10px;',()=>{
+  NETPLAY.stopPoll();
+  if(sbar){sbar.remove();sbar=null;}
+  location.href='index.html';
+});
+
+let local2pBtn,onlineBtn,leaveBtn;
+
+function leaveOnline(){
+  NETPLAY.stopPoll();
+  if(sbar){sbar.remove();sbar=null;}
+  gameMode='solo';myIdx=0;onlineRole=null;roomId=null;onlineSeq=-1;
+  if(leaveBtn)leaveBtn.style.display='none';
+  local2pBtn.style.display='';onlineBtn.style.display='';
   initBoard();SND.startBGM?.('mahjong');
+}
+
+local2pBtn=addBtn(t('local2p'),'background:#7c3aed;color:#fff;top:10px;right:10px;',()=>{
+  if(gameMode==='local2p'){gameMode='solo';myIdx=0;local2pBtn.textContent=t('local2p');initBoard();return;}
+  gameMode='local2p';myIdx=0;
+  local2pBtn.textContent=t('modeCpu');
+  initBoard();SND.startBGM?.('mahjong');
+});
+
+onlineBtn=addBtn(t('online'),'background:#0ea5e9;color:#fff;top:10px;right:120px;',()=>{
+  NETPLAY.showLobby({
+    game:'mancala',lang,
+    initState:()=>{
+      const s=new Array(14).fill(0);
+      for(let i=0;i<PITS;i++)s[i]=4;
+      for(let i=7;i<7+PITS;i++)s[i]=4;
+      return{seeds:s,turn:0,gameOver:false,winner:-1,seq:0};
+    },
+    onHost:(id,room)=>{
+      roomId=id;gameMode='online';myIdx=0;onlineRole='host';onlineSeq=0;
+      local2pBtn.style.display='none';onlineBtn.style.display='none';
+      if(!leaveBtn)leaveBtn=addBtn(t('leave'),'background:#dc2626;color:#fff;top:10px;right:10px;',leaveOnline);
+      else leaveBtn.style.display='';
+      sbar=NETPLAY.statusBar(lang);sbar.online('host');
+      if(room.state)applyState(room.state);
+      NETPLAY.startPoll(roomId,1500,onPoll);
+      SND.startBGM?.('mahjong');
+    },
+    onJoin:(room,tok)=>{
+      roomId=room.id;gameMode='online';myIdx=1;onlineRole='guest';
+      local2pBtn.style.display='none';onlineBtn.style.display='none';
+      if(!leaveBtn)leaveBtn=addBtn(t('leave'),'background:#dc2626;color:#fff;top:10px;right:10px;',leaveOnline);
+      else leaveBtn.style.display='';
+      sbar=NETPLAY.statusBar(lang);sbar.online('guest');
+      if(room.state){applyState(room.state);onlineSeq=room.state.seq||0;}
+      NETPLAY.startPoll(roomId,1500,onPoll);
+      SND.startBGM?.('mahjong');
+    },
+    onCancel:()=>{}
+  });
 });
 
 // ── Init ─────────────────────────────────────────────────────────

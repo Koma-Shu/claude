@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>大富豪</title>
+<script src="netplay.js"></script>
 <script src="sound.js"></script>
 <script src="cards.js"></script>
 <style>
@@ -56,27 +57,57 @@ const L={
   cards:{ja:'枚',en:''},finished:{ja:'ゲーム終了',en:'Game Over'},
   daifugo:{ja:'大富豪',en:'1st'},fugo:{ja:'富豪',en:'2nd'},hinmin:{ja:'貧民',en:'3rd'},daihinmin:{ja:'大貧民',en:'4th'},
   back:{ja:'戻る',en:'Back'},
+  p2:{ja:'P2',en:'P2'}, opponent:{ja:'相手',en:'Opponent'},
+  online:{ja:'オンライン',en:'Online'}, local2p:{ja:'ローカル2P',en:'Local 2P'},
+  players:{ja:'人数',en:'Players'}, leave:{ja:'退出',en:'Leave'},
+  waiting:{ja:'相手の番…',en:'Opponent\'s turn…'},
 };
 let lang=localStorage.getItem('lang')||'ja';
 const t=k=>(L[k]&&L[k][lang])||k;
 const C=window.CARDS,$=id=>document.getElementById(id);
-const NP=4;
+
+let np=parseInt(localStorage.getItem('daifugo_np'))||4;
+let gameMode='solo'; // 'solo' | 'local2p' | 'online'
+let myIdx=0;         // my player index (0=host/solo, 1=guest)
+let onlineRole=null; // 'host' | 'guest'
+let roomId=null,onlineSeq=-1,sbar=null;
+
 let hands,field,turn,lastPlayer,passed,finishOrder,gameOver,selected,cut8flash;
 
 // strength: 3..K (value 3..13)=>0..10, A(1)=>11, 2(2)=>12
 function strength(v){return v===1?11:(v===2?12:v-3);}
 
-function setup(){
+function isHuman(p){
+  if(gameMode==='solo')return p===myIdx;
+  return p===0||p===1;
+}
+function playerLabel(p){
+  if(p===myIdx)return t('you');
+  if(gameMode==='local2p'&&p<2)return t('p2');
+  if(gameMode==='online'&&p<2)return t('opponent');
+  return 'CPU '+p;
+}
+
+function computeInitState(){
   const deck=C.shuffle(C.makeDeck());
-  hands=[[],[],[],[]];
-  deck.forEach((c,i)=>hands[i%NP].push(c));
-  hands.forEach(sortHand);
-  field=null;lastPlayer=-1;passed=[false,false,false,false];finishOrder=[];gameOver=false;selected=new Set();cut8flash=0;
-  // start: holder of D3 (lowest)
-  turn=hands.findIndex(h=>h.some(c=>c.id==='D3'));if(turn<0)turn=0;
+  const h=Array.from({length:np},()=>[]);
+  deck.forEach((c,i)=>h[i%np].push(c));
+  h.forEach(sortHand);
+  const tt=h.findIndex(x=>x.some(c=>c.id==='D3'));
+  const seq=0;
+  return {hands:h,field:null,lastPlayer:-1,passed:new Array(np).fill(false),
+    finishOrder:[],gameOver:false,cut8flash:0,turn:tt>=0?tt:0,seq};
+}
+
+function setup(){
+  const st=computeInitState();
+  onlineSeq=st.seq;
+  hands=st.hands;field=st.field;lastPlayer=st.lastPlayer;passed=st.passed;
+  finishOrder=st.finishOrder;gameOver=st.gameOver;cut8flash=st.cut8flash;turn=st.turn;
+  selected=new Set();
   $('winmsg').textContent='';$('ranklist').textContent='';
   render();
-  if(turn!==0)setTimeout(cpuTurn,700);
+  afterTurnChange();
 }
 function sortHand(h){h.sort((a,b)=>strength(a.value)-strength(b.value)||a.suit.localeCompare(b.suit));}
 
@@ -84,13 +115,15 @@ function render(){
   $('title').textContent=t('title');$('newbtn').textContent=t('newgame');$('backbtn').textContent=t('back');
   $('playbtn').textContent=t('play');$('passbtn').textContent=t('pass');
   const cE=$('cpus');cE.innerHTML='';
-  for(let p=1;p<NP;p++){
+  for(let p=0;p<np;p++){
+    if(p===myIdx)continue; // skip self
     const d=document.createElement('div');d.className='cpu'+(turn===p&&!gameOver?' act':'');
-    let st=`${hands[p].length}枚`;
+    const label=playerLabel(p);
+    let st=`${hands[p].length}${t('cards')||'枚'}`;
     const fi=finishOrder.indexOf(p);
     if(fi>=0)st=rankName(fi);
     if(passed[p]&&turn!==p&&fi<0)st+=' ✋';
-    d.innerHTML=`<div class="n">CPU ${p}</div><div>${st}</div>`;
+    d.innerHTML=`<div class="n">${label}</div><div>${st}</div>`;
     cE.appendChild(d);
   }
   const f=$('field');f.innerHTML='';
@@ -103,20 +136,38 @@ function render(){
     field.cards.forEach(c=>fc.appendChild(C.cardEl(c,true)));
     f.appendChild(fc);
   }
-  $('turn').textContent=gameOver?t('finished'):(turn===0?t('yourturn'):`CPU ${turn}${t('cputurn')}`);
+  // Turn indicator
+  let turnTxt;
+  if(gameOver){
+    turnTxt=t('finished');
+  }else if(turn===myIdx){
+    turnTxt=t('yourturn');
+  }else if(!isHuman(turn)){
+    turnTxt=playerLabel(turn)+t('cputurn');
+  }else{
+    turnTxt=t('waiting');
+  }
+  $('turn').textContent=turnTxt;
+
   const mh=$('myhand');mh.innerHTML='';
-  hands[0].forEach(c=>{
+  const myIsActive=turn===myIdx&&!gameOver&&(gameMode!=='online'||(onlineRole!=null));
+  hands[myIdx].forEach(c=>{
     const el=C.cardEl(c,true);
-    if(turn===0&&!gameOver){el.classList.add('playable');
+    if(myIsActive){el.classList.add('playable');
       if(selected.has(c.id))el.classList.add('sel');
       el.onclick=()=>{selected.has(c.id)?selected.delete(c.id):selected.add(c.id);render();};}
     mh.appendChild(el);
   });
-  const sel=[...selected].map(id=>hands[0].find(c=>c.id===id)).filter(Boolean);
-  $('playbtn').disabled=!(turn===0&&!gameOver&&validPlay(sel));
-  $('passbtn').disabled=!(turn===0&&!gameOver&&field!==null);
+  const sel=[...selected].map(id=>hands[myIdx].find(c=>c.id===id)).filter(Boolean);
+  $('playbtn').disabled=!(myIsActive&&validPlay(sel));
+  $('passbtn').disabled=!(myIsActive&&field!==null);
 }
-function rankName(i){return [t('daifugo'),t('fugo'),t('hinmin'),t('daihinmin')][i];}
+
+function rankName(i){
+  const names4=[t('daifugo'),t('fugo'),t('hinmin'),t('daihinmin')];
+  if(np===4)return names4[i]||`${i+1}位`;
+  return `${i+1}${lang==='ja'?'位':(['st','nd','rd'][i]||'th')}`;
+}
 
 // valid: all same rank, count matches field (or any if field empty), strength greater
 function validPlay(cards){
@@ -130,6 +181,25 @@ function validPlay(cards){
   return true;
 }
 
+function afterTurnChange(){
+  render();
+  if(gameOver)return;
+  if(!isHuman(turn)){
+    // CPU turn — host (or solo) runs it
+    if(gameMode!=='online'||onlineRole==='host') setTimeout(cpuTurn,750);
+    return;
+  }
+  if(turn===myIdx){
+    // My turn — controls enabled via render()
+    return;
+  }
+  // Other human's turn
+  if(gameMode==='local2p'){
+    NETPLAY.showHandoff(playerLabel(turn),lang,()=>{ myIdx=turn; render(); });
+  }
+  // online: wait for poll (guest just watches)
+}
+
 function doPlay(p,cards){
   const ids=new Set(cards.map(c=>c.id));
   hands[p]=hands[p].filter(c=>!ids.has(c.id));
@@ -137,50 +207,59 @@ function doPlay(p,cards){
   lastPlayer=p;
   SND.sfx.discard&&SND.sfx.discard();
   const is8=cards.some(c=>c.value===8);
-  if(p===0)selected.clear();
+  if(p===myIdx)selected.clear();
   // finished?
   if(hands[p].length===0){finishOrder.push(p);SND.sfx.pointWin&&SND.sfx.pointWin();}
   if(is8){
     // 8-cut: clear field, same player leads again (if still in)
-    cut8flash=1;field=null;passed=[false,false,false,false];SND.sfx.coin&&SND.sfx.coin();
+    cut8flash=1;field=null;passed=new Array(np).fill(false);SND.sfx.coin&&SND.sfx.coin();
     render();
-    if(checkEnd())return;
-    if(finishOrder.includes(p)){ advanceFrom(p); } // finished on the 8 → next leads
-    else { turn=p; render(); if(turn!==0)setTimeout(cpuTurn,800); }
+    if(checkEnd()){if(gameMode==='online')pushOnline();return;}
+    if(gameMode==='online')pushOnline();
+    if(finishOrder.includes(p)){advanceFrom(p);}
+    else{turn=p;afterTurnChange();}
     return;
   }
-  if(checkEnd())return;
+  if(checkEnd()){if(gameMode==='online')pushOnline();return;}
+  if(gameMode==='online')pushOnline();
   advanceFrom(p);
 }
 function doPass(p){
   passed[p]=true;SND.sfx.click&&SND.sfx.click();
+  if(gameMode==='online')pushOnline();
   advanceFrom(p);
 }
-function activePlayers(){const a=[];for(let p=0;p<NP;p++)if(!finishOrder.includes(p))a.push(p);return a;}
+function activePlayers(){
+  const a=[];
+  for(let p=0;p<np;p++)if(!finishOrder.includes(p))a.push(p);
+  return a;
+}
 function advanceFrom(p){
   cut8flash=0;
   if(checkEnd())return;
   // find next active player
   let nt=p;
-  for(let i=0;i<NP;i++){nt=(nt+1)%NP;if(!finishOrder.includes(nt))break;}
+  for(let i=0;i<np;i++){nt=(nt+1)%np;if(!finishOrder.includes(nt))break;}
   // Does field clear? It clears when everyone except lastPlayer has passed (or finished).
   if(field){
     const act=activePlayers().filter(x=>x!==lastPlayer);
     const allPassed=act.every(x=>passed[x]);
     if(allPassed||lastPlayer===nt){
       // clear field; lastPlayer leads (if active) else next active
-      field=null;passed=[false,false,false,false];
+      field=null;passed=new Array(np).fill(false);
       let leader=lastPlayer;
-      if(finishOrder.includes(leader)){for(let i=0;i<NP;i++){leader=(leader+1)%NP;if(!finishOrder.includes(leader))break;}}
-      turn=leader;render();
-      if(turn!==0)setTimeout(cpuTurn,800);else if(turn===0){}
+      if(finishOrder.includes(leader)){
+        for(let i=0;i<np;i++){leader=(leader+1)%np;if(!finishOrder.includes(leader))break;}
+      }
+      turn=leader;
+      afterTurnChange();
       return;
     }
   }
   // skip players who already passed (in current field round)
-  while(passed[nt]&&!finishOrder.includes(nt)){nt=(nt+1)%NP;}
-  turn=nt;render();
-  if(turn!==0)setTimeout(cpuTurn,750);
+  while(passed[nt]&&!finishOrder.includes(nt)){nt=(nt+1)%np;}
+  turn=nt;
+  afterTurnChange();
 }
 function checkEnd(){
   if(activePlayers().length<=1){
@@ -190,20 +269,16 @@ function checkEnd(){
   return false;
 }
 function cpuTurn(){
-  if(gameOver||turn===0||finishOrder.includes(turn))return;
+  if(gameOver||isHuman(turn)||finishOrder.includes(turn))return;
   const p=turn;
   const plays=enumeratePlays(hands[p]);
   if(plays.length===0){doPass(p);return;}
-  // play the weakest valid combo; prefer dumping larger groups when field empty late
   plays.sort((a,b)=>a[0].length-b[0].length||strength(a[0][0].value)-strength(b[0][0].value));
   let choice;
   if(!field){
-    // lead with weakest single normally, but dump pairs/triples sometimes
     choice=plays[0][0];
   }else{
-    // play weakest that beats field
     choice=plays[0][0];
-    // strategic: if only slightly stronger and holding few cards, ok
   }
   doPlay(p,choice);
 }
@@ -218,7 +293,6 @@ function enumeratePlays(hand){
         res.push([group.slice(0,field.count)]);
       }
     }else{
-      // can play 1..group.length of same rank
       for(let n=1;n<=group.length;n++)res.push([group.slice(0,n)]);
     }
   }
@@ -226,23 +300,128 @@ function enumeratePlays(hand){
 }
 function endGame(){
   gameOver=true;SND.stopBGM&&SND.stopBGM();
-  for(let p=0;p<NP;p++)if(!finishOrder.includes(p))finishOrder.push(p);
-  const myRank=finishOrder.indexOf(0);
+  if(gameMode==='online')NETPLAY.stopPoll();
+  for(let p=0;p<np;p++)if(!finishOrder.includes(p))finishOrder.push(p);
+  const myRank=finishOrder.indexOf(myIdx);
   const m=$('winmsg');
-  if(myRank===0){m.textContent='🏆 '+t('daifugo')+'！';m.style.color='#7dffb0';SND.sfx.win&&SND.sfx.win();}
+  if(myRank===0){m.textContent='🏆 '+rankName(0)+'！';m.style.color='#7dffb0';SND.sfx.win&&SND.sfx.win();}
   else{m.textContent=`${t('you')}: ${rankName(myRank)}`;m.style.color=myRank<=1?'#ffe27a':'#ff9090';
-    (myRank<=1?SND.sfx.point:SND.sfx.lose)&&(myRank<=1?SND.sfx.point():SND.sfx.lose());}
-  $('ranklist').textContent=finishOrder.map((p,i)=>`${rankName(i)}: ${p===0?t('you'):'CPU '+p}`).join('   ');
+    (myRank<=1?SND.sfx.point:SND.sfx.lose)?.();}
+  $('ranklist').textContent=finishOrder.map((p,i)=>`${rankName(i)}: ${playerLabel(p)}`).join('   ');
+  if(gameMode==='online')pushOnline();
   render();
 }
+
+// ── Online helpers ──────────────────────────────────────────────────────────
+function getState(){
+  return {hands,field,lastPlayer,passed,finishOrder,gameOver,cut8flash,turn,seq:++onlineSeq};
+}
+async function pushOnline(){
+  try{await NETPLAY.pushState(roomId,getState());}catch(e){console.error('push err',e);}
+}
+function applyState(st){
+  if(st.seq<=onlineSeq)return;
+  onlineSeq=st.seq;
+  hands=st.hands;field=st.field;lastPlayer=st.lastPlayer;passed=st.passed;
+  finishOrder=st.finishOrder;gameOver=st.gameOver;cut8flash=st.cut8flash;turn=st.turn;
+  selected=new Set();
+}
+function onPoll(room){
+  if(!room.state||room.state.seq<=onlineSeq)return;
+  applyState(room.state);
+  if(room.state.gameOver)NETPLAY.stopPoll();
+  afterTurnChange();
+}
+
+// ── Button handlers ──────────────────────────────────────────────────────────
 $('playbtn').onclick=()=>{
-  const sel=[...selected].map(id=>hands[0].find(c=>c.id===id)).filter(Boolean);
-  if(validPlay(sel))doPlay(0,sel);
+  const sel=[...selected].map(id=>hands[myIdx].find(c=>c.id===id)).filter(Boolean);
+  if(turn===myIdx&&validPlay(sel))doPlay(myIdx,sel);
 };
-$('passbtn').onclick=()=>{if(turn===0&&field)doPass(0);};
-$('newbtn').onclick=()=>{SND.startBGM&&SND.startBGM('game');setup();};
+$('passbtn').onclick=()=>{if(turn===myIdx&&field)doPass(myIdx);};
+$('newbtn').onclick=()=>{
+  if(gameMode==='online'){
+    // reset online seq and push fresh state as host, or just restart locally
+    onlineSeq=-1;
+  }
+  SND.startBGM&&SND.startBGM('game');
+  setup();
+};
+
+// ── initUI ────────────────────────────────────────────────────────────────────
+function initUI(){
+  const area=document.querySelector('.controls');
+  const np_div=document.createElement('div');
+  np_div.style.cssText='display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:10px;';
+
+  // Player count picker
+  np_div.appendChild(NETPLAY.playerCountPicker({min:2,max:6,current:np,lang,onChange:n=>{
+    np=n;localStorage.setItem('daifugo_np',n);
+    if(gameMode==='online'){gameMode='solo';myIdx=0;if(sbar){sbar.remove();sbar=null;}NETPLAY.stopPoll();}
+    setup();
+    if(window._dfUpdateMode)window._dfUpdateMode();
+  }}));
+
+  // Mode buttons row
+  const modeRow=document.createElement('div');modeRow.style.cssText='display:flex;gap:8px;';
+  const l2btn=document.createElement('button');l2btn.textContent=t('local2p');
+  l2btn.style.cssText='background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.82rem;cursor:pointer;font-weight:bold;';
+  l2btn.onclick=()=>{
+    if(gameMode==='online'){NETPLAY.stopPoll();if(sbar){sbar.remove();sbar=null;}onlineRole=null;roomId=null;}
+    if(gameMode==='local2p'){gameMode='solo';myIdx=0;}
+    else{gameMode='local2p';myIdx=0;}
+    setup();
+    updateModeButtons();
+  };
+  const onbtn=document.createElement('button');onbtn.textContent=t('online');
+  onbtn.style.cssText='background:#10b981;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.82rem;cursor:pointer;font-weight:bold;';
+  onbtn.onclick=()=>{
+    NETPLAY.showLobby({
+      game:'daifugo',lang,
+      initState:()=>{
+        const s=computeInitState();
+        // apply to local state for host
+        hands=s.hands;field=s.field;lastPlayer=s.lastPlayer;passed=s.passed;
+        finishOrder=s.finishOrder;gameOver=s.gameOver;cut8flash=s.cut8flash;turn=s.turn;
+        selected=new Set();
+        onlineSeq=s.seq;
+        return s;
+      },
+      onHost:(id,room)=>{
+        roomId=id;onlineRole='host';myIdx=0;gameMode='online';
+        applyState(room.state);
+        if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('host');
+        $('winmsg').textContent='';$('ranklist').textContent='';
+        render();afterTurnChange();
+        NETPLAY.startPoll(roomId,1500,onPoll);
+        updateModeButtons();
+      },
+      onJoin:(room,tok)=>{
+        roomId=room.id;onlineRole='guest';myIdx=1;gameMode='online';
+        applyState(room.state);
+        if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('guest');
+        $('winmsg').textContent='';$('ranklist').textContent='';
+        render();afterTurnChange();
+        NETPLAY.startPoll(roomId,1500,onPoll);
+        updateModeButtons();
+      },
+      onCancel:()=>{}
+    });
+  };
+  modeRow.appendChild(l2btn);modeRow.appendChild(onbtn);
+  np_div.appendChild(modeRow);
+  area.parentNode.insertBefore(np_div,area.nextSibling);
+
+  function updateModeButtons(){
+    l2btn.style.opacity=gameMode==='local2p'?'1':'.55';
+    onbtn.style.opacity=gameMode==='online'?'1':'.55';
+  }
+  window._dfUpdateMode=updateModeButtons;
+  updateModeButtons();
+}
 
 setup();
+initUI();
 if(typeof SND!=='undefined'){SND.createBtn(document.body);SND.startBGM('game');}
 </script>
 </body>
