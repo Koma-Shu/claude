@@ -107,6 +107,23 @@ alter table group_messages enable row level security;
 drop policy if exists "allow all" on group_messages;
 create policy "allow all" on group_messages for all using (true) with check (true);
 
+-- ── Play sessions (利用回数・利用時間の記録) ──────────────────
+create table if not exists play_sessions (
+  id         uuid primary key default gen_random_uuid(),
+  game       text not null,
+  user_id    uuid references users(id) on delete set null,
+  username   text,
+  seconds    integer not null default 0,
+  started_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists play_sessions_game_idx    on play_sessions(game);
+create index if not exists play_sessions_user_idx    on play_sessions(user_id);
+create index if not exists play_sessions_started_idx on play_sessions(started_at);
+alter table play_sessions enable row level security;
+drop policy if exists "allow all" on play_sessions;
+create policy "allow all" on play_sessions for all using (true) with check (true);
+
 -- ── Online game rooms ─────────────────────────────────────────
 create table if not exists rooms (
   id             text primary key,

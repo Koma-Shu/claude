@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>四目並べ</title>
   <script src="sound.js"></script>
+<script src="track.js"></script>
   <script src="netplay.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
@@ -22,6 +23,7 @@ let hoverCol=-1,pulse=0,lastTs=0;
 let scores={p1:0,p2:0},cpuPending=false;
 let lang=localStorage.getItem('lang')||'ja';
 let difficulty=localStorage.getItem('connect4_diff')||'medium';
+if(difficulty==='normal')difficulty='medium'; // legacy value from old button bug
 function cpuDepth(){return difficulty==='easy'?2:difficulty==='medium'?4:6;}
 
 // Multiplayer state
@@ -533,16 +535,16 @@ onlineBtn=addBtn(t('online'),'background:#0ea5e9;top:10px;right:110px;',()=>{
 // Difficulty buttons (only visible in solo mode)
 const diffWrap=document.createElement('div');
 diffWrap.style.cssText='position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;';
-['easy','normal','hard'].forEach(d=>{
+const DIFFS=[['easy','easy'],['medium','normal'],['hard','hard']]; // [value, label key]
+DIFFS.forEach(([d,lab])=>{
   const b=document.createElement('button');
   b.id='diff-'+d;
   b.style.cssText=`font-size:12px;font-weight:bold;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;color:#fff;background:${d===difficulty?'#3b82f6':'#374151'};`;
-  b.textContent=t(d);
+  b.textContent=t(lab);
   b.onclick=()=>{
     difficulty=d;localStorage.setItem('connect4_diff',d);
     diffWrap.querySelectorAll('button').forEach((x,i)=>{
-      const ds=['easy','normal','hard'][i];
-      x.style.background=ds===difficulty?'#3b82f6':'#374151';
+      x.style.background=DIFFS[i][0]===difficulty?'#3b82f6':'#374151';
     });
     if(gameMode==='solo')initBoard();
   };

@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ヨット</title>
+<script src="netplay.js"></script>
+<script src="sound.js"></script>
+<script src="track.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:radial-gradient(circle at 50% 20%,#123a4a,#06141c);min-height:100vh;
+  font-family:'Hiragino Sans','Meiryo','Segoe UI',sans-serif;color:#e6f4f1;
+  display:flex;flex-direction:column;align-items:center;padding:52px 8px 64px;}
+h1{font-size:1.35rem;letter-spacing:5px;color:#5eead4;margin-bottom:2px;text-shadow:0 0 16px rgba(94,234,212,.45);}
+.round{font-size:.72rem;color:#7aa5a0;letter-spacing:2px;margin-bottom:6px;}
+.status{font-size:.9rem;min-height:22px;margin-bottom:10px;font-weight:bold;}
+.status.me{color:#5eead4;}.status.opp{color:#fda4af;}
+
+.dice-row{display:flex;gap:10px;margin-bottom:4px;}
+.die{width:54px;height:54px;background:linear-gradient(145deg,#fdfdf8,#d8d8cc);border-radius:11px;
+  position:relative;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.45),inset 0 -3px 4px rgba(0,0,0,.12);
+  transition:transform .12s;}
+.die:active{transform:scale(.94);}
+.die .pip{position:absolute;width:9px;height:9px;border-radius:50%;background:#1c2733;
+  transform:translate(-50%,-50%);}
+.die.red .pip{background:#c0392b;}
+.die.held{outline:3px solid #fbbf24;outline-offset:2px;}
+.die.held::after{content:'HOLD';position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);
+  font-size:.55rem;font-weight:bold;color:#fbbf24;letter-spacing:1px;}
+.die.rolling{animation:shake .12s infinite;}
+@keyframes shake{
+  0%{transform:translate(0,0) rotate(0)}25%{transform:translate(2px,-3px) rotate(7deg)}
+  50%{transform:translate(-2px,2px) rotate(-6deg)}75%{transform:translate(1px,3px) rotate(4deg)}
+  100%{transform:translate(-1px,-2px) rotate(-3deg)}}
+.hold-hint{font-size:.62rem;color:#5a8580;margin-top:18px;min-height:14px;}
+
+.roll-area{margin:10px 0 14px;}
+#rollbtn{font-family:inherit;font-size:1rem;font-weight:bold;border:none;border-radius:12px;
+  padding:12px 38px;cursor:pointer;color:#06141c;letter-spacing:2px;
+  background:linear-gradient(135deg,#5eead4,#14b8a6);box-shadow:0 4px 14px rgba(20,184,166,.4);}
+#rollbtn:disabled{opacity:.35;cursor:default;box-shadow:none;}
+
+table.sheet{border-collapse:collapse;font-size:.78rem;background:rgba(0,0,0,.28);border-radius:12px;overflow:hidden;}
+.sheet th,.sheet td{padding:4px 10px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06);}
+.sheet thead th{font-size:.68rem;letter-spacing:1px;color:#7aa5a0;background:rgba(0,0,0,.3);padding:7px 10px;}
+.sheet td.cat{text-align:left;color:#b8d8d2;min-width:108px;}
+.sheet td.pts{min-width:54px;font-weight:bold;}
+.sheet td.open{color:#3f6660;}
+.sheet td.avail{color:#5a8580;cursor:pointer;border-radius:6px;}
+.sheet td.avail:hover{background:rgba(94,234,212,.14);color:#5eead4;}
+.sheet td.fresh{color:#fbbf24;animation:pop .35s;}
+@keyframes pop{0%{transform:scale(1.5)}100%{transform:scale(1)}}
+.sheet tr.subtotal td{border-top:1px solid rgba(255,255,255,.18);color:#7aa5a0;font-size:.7rem;}
+.sheet tr.total td{background:rgba(94,234,212,.08);color:#5eead4;font-size:.88rem;font-weight:bold;padding:7px 10px;}
+.sheet th.cur{color:#5eead4;}
+
+.topbtn{position:fixed;top:10px;background:#374151;color:#fff;border-radius:8px;
+  padding:7px 15px;font-size:14px;font-weight:bold;cursor:pointer;border:none;z-index:20;}
+#backbtn{left:10px;}
+#local2pbtn{right:10px;background:#7c3aed;}
+#onlinebtn{right:110px;background:#0ea5e9;}
+#leavebtn{right:10px;background:#dc2626;display:none;}
+
+.diffrow{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;}
+.diffrow button{font-size:12px;font-weight:bold;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;color:#fff;}
+
+.overlay{position:fixed;inset:0;background:rgba(2,10,14,.88);display:none;flex-direction:column;
+  align-items:center;justify-content:center;z-index:100;gap:12px;cursor:pointer;}
+.overlay.show{display:flex;}
+.ov-title{font-size:1.7rem;font-weight:bold;letter-spacing:3px;}
+.ov-score{font-size:1rem;color:#b8d8d2;}
+.ov-hint{font-size:.78rem;color:#5a8580;}
+
+/* rating widget */
+#ratebtn{position:fixed;bottom:14px;left:14px;background:#1f2937;color:#fbbf24;border:1px solid #374151;
+  border-radius:8px;padding:6px 12px;font-size:.75rem;font-weight:bold;cursor:pointer;z-index:10;}
+#ratepanel{position:fixed;bottom:54px;left:14px;background:#111827;border:1px solid #374151;border-radius:12px;
+  padding:14px;display:none;flex-direction:column;gap:8px;z-index:30;width:230px;}
+#ratepanel.show{display:flex;}
+#ratepanel .stars{display:flex;gap:4px;font-size:1.5rem;cursor:pointer;justify-content:center;}
+#ratepanel .star{color:#374151;}#ratepanel .star.on{color:#fbbf24;}
+#ratepanel textarea{background:#0b1220;border:1px solid #374151;border-radius:8px;color:#eee;
+  font-family:inherit;font-size:.75rem;padding:6px;resize:none;height:48px;}
+#ratepanel button{font-family:inherit;border:none;border-radius:8px;padding:7px;font-weight:bold;cursor:pointer;
+  background:#14b8a6;color:#06141c;font-size:.78rem;}
+#ratemsg{font-size:.68rem;color:#5eead4;text-align:center;min-height:12px;}
+@media(max-width:430px){
+  .die{width:46px;height:46px;}
+  table.sheet{font-size:.72rem;}
+  .sheet td.cat{min-width:92px;}
+}
+</style>
+</head>
+<body>
+<button class="topbtn" id="backbtn">戻る</button>
+<button class="topbtn" id="local2pbtn"></button>
+<button class="topbtn" id="onlinebtn"></button>
+<button class="topbtn" id="leavebtn"></button>
+
+<h1 id="title">ヨット</h1>
+<div class="round" id="roundlbl"></div>
+<div class="status" id="status"></div>
+<div class="dice-row" id="dicerow"></div>
+<div class="hold-hint" id="holdhint"></div>
+<div class="roll-area"><button id="rollbtn"></button></div>
+<table class="sheet">
+  <thead><tr><th></th><th id="hd-p0"></th><th id="hd-p1"></th></tr></thead>
+  <tbody id="sheetbody"></tbody>
+</table>
+<div class="diffrow" id="diffrow"></div>
+
+<div class="overlay" id="overlay">
+  <div class="ov-title" id="ov-title"></div>
+  <div class="ov-score" id="ov-score"></div>
+  <div class="ov-hint" id="ov-hint"></div>
+</div>
+
+<button id="ratebtn">★</button>
+<div id="ratepanel">
+  <div class="stars" id="ratestars"></div>
+  <textarea id="ratecmt"></textarea>
+  <button id="ratesub"></button>
+  <div id="ratemsg"></div>
+</div>
+
+<script>
+const L={
+  title:{ja:'ヨット',en:'Yacht Dice'},
+  you:{ja:'あなた',en:'You'},cpu:{ja:'CPU',en:'CPU'},
+  p1:{ja:'プレイヤー1',en:'Player 1'},p2:{ja:'プレイヤー2',en:'Player 2'},
+  opponent:{ja:'相手',en:'Opponent'},
+  yourTurn:{ja:'あなたのターン',en:'Your turn'},
+  cpuTurn:{ja:'CPU思考中…',en:'CPU thinking…'},
+  oppTurn:{ja:'相手のターン',en:'Opponent\'s turn'},
+  turnOf:{ja:'のターン',en:'\'s turn'},
+  roll:{ja:'ロール',en:'ROLL'},left:{ja:'残り',en:'left'},
+  pickCat:{ja:'役を選んでスコア記入',en:'Pick a category to score'},
+  holdHint:{ja:'ダイスをタップでキープ / 解除',en:'Tap dice to hold / release'},
+  round:{ja:'ラウンド',en:'ROUND'},
+  aces:{ja:'エース（1の合計）',en:'Aces (sum of 1s)'},
+  twos:{ja:'デュース（2の合計）',en:'Twos (sum of 2s)'},
+  threes:{ja:'トレイ（3の合計）',en:'Threes (sum of 3s)'},
+  fours:{ja:'フォー（4の合計）',en:'Fours (sum of 4s)'},
+  fives:{ja:'ファイブ（5の合計）',en:'Fives (sum of 5s)'},
+  sixes:{ja:'シックス（6の合計）',en:'Sixes (sum of 6s)'},
+  subtotal:{ja:'小計',en:'Subtotal'},
+  bonus:{ja:'ボーナス (63+で35)',en:'Bonus (35 at 63+)'},
+  choice:{ja:'チョイス（全合計）',en:'Choice (sum of all)'},
+  fourKind:{ja:'フォーダイス（4個同じ）',en:'Four of a Kind'},
+  fullHouse:{ja:'フルハウス（3+2）',en:'Full House (3+2)'},
+  sStraight:{ja:'S.ストレート（4連続）',en:'S. Straight (4 run)'},
+  bStraight:{ja:'B.ストレート（5連続）',en:'B. Straight (5 run)'},
+  yacht:{ja:'ヨット（5個同じ）',en:'YACHT (5 of a kind)'},
+  total:{ja:'合計',en:'TOTAL'},
+  youWin:{ja:'あなたの勝ち！',en:'You Win!'},
+  cpuWin:{ja:'CPUの勝ち！',en:'CPU Wins!'},
+  p1Win:{ja:'プレイヤー1の勝ち！',en:'Player 1 Wins!'},
+  p2Win:{ja:'プレイヤー2の勝ち！',en:'Player 2 Wins!'},
+  oppWin:{ja:'相手の勝ち！',en:'Opponent Wins!'},
+  draw:{ja:'引き分け',en:'Draw'},
+  tap:{ja:'タップして再スタート',en:'Tap to restart'},
+  back:{ja:'戻る',en:'Back'},
+  local2p:{ja:'ローカル2P',en:'Local 2P'},modeCpu:{ja:'CPU対戦',en:'vs CPU'},
+  online:{ja:'オンライン',en:'Online'},leave:{ja:'退出',en:'Leave'},
+  easy:{ja:'弱',en:'Easy'},normal:{ja:'普通',en:'Normal'},hard:{ja:'強',en:'Hard'},
+  rate:{ja:'★ 評価する',en:'★ Rate'},rateSend:{ja:'送信',en:'Submit'},
+  rateThanks:{ja:'ありがとうございました！',en:'Thank you!'},
+  ratePick:{ja:'星を選んでください',en:'Pick a star rating'},
+  rateCmt:{ja:'コメント（任意）',en:'Comment (optional)'},
+};
+let lang=localStorage.getItem('lang')||'ja';
+const t=k=>(L[k]&&L[k][lang])||k;
+const $=id=>document.getElementById(id);
+
+let difficulty=localStorage.getItem('yacht_diff')||'medium';
+if(difficulty==='normal')difficulty='medium';
+
+const CATS=['aces','twos','threes','fours','fives','sixes','choice','fourKind','fullHouse','sStraight','bStraight','yacht'];
+const UPPER=CATS.slice(0,6);
+
+let dice=[1,2,3,4,5],held=[false,false,false,false,false];
+let rollsLeft=3,turn=0,gameOver=false,winner=-1,rolling=false,cpuBusy=false;
+let sheets=[emptySheet(),emptySheet()];
+let gameMode='solo'; // 'solo'|'local2p'|'online'
+let myIdx=0,onlineRole=null,roomId=null,onlineSeq=-1,sbar=null;
+
+function emptySheet(){const s={};CATS.forEach(c=>s[c]=null);return s;}
+
+// ── Scoring ──────────────────────────────────────────────────────
+function faceCounts(d){const c=[0,0,0,0,0,0,0];d.forEach(v=>c[v]++);return c;}
+function hasRun(d,n){
+  const u=[...new Set(d)].sort((a,b)=>a-b);
+  let run=1;
+  for(let i=1;i<u.length;i++){
+    run=u[i]===u[i-1]+1?run+1:1;
+    if(run>=n)return true;
+  }
+  return run>=n;
+}
+function calcScore(cat,d){
+  const cnt=faceCounts(d),sum=d.reduce((a,b)=>a+b,0);
+  const ui=UPPER.indexOf(cat);
+  if(ui>=0)return cnt[ui+1]*(ui+1);
+  switch(cat){
+    case 'choice':return sum;
+    case 'fourKind':return cnt.some(c=>c>=4)?sum:0;
+    case 'fullHouse':{
+      let three=false,two=false;
+      cnt.forEach(c=>{if(c===3)three=true;else if(c===2)two=true;});
+      return three&&two?sum:0;
+    }
+    case 'sStraight':return hasRun(d,4)?15:0;
+    case 'bStraight':return hasRun(d,5)?30:0;
+    case 'yacht':return cnt.some(c=>c===5)?50:0;
+  }
+  return 0;
+}
+function upperSum(s){return UPPER.reduce((a,c)=>a+(s[c]||0),0);}
+function bonusOf(s){return upperSum(s)>=63?35:0;}
+function totalOf(s){return CATS.reduce((a,c)=>a+(s[c]||0),0)+bonusOf(s);}
+function sheetFull(s){return CATS.every(c=>s[c]!==null);}
+
+// ── Player names ─────────────────────────────────────────────────
+function pName(i){
+  if(gameMode==='online')return i===myIdx?t('you'):t('opponent');
+  if(gameMode==='local2p')return i===0?t('p1'):t('p2');
+  return i===0?t('you'):t('cpu');
+}
+function isMyTurn(){
+  if(gameOver||rolling||cpuBusy)return false;
+  if(gameMode==='solo')return turn===0;
+  return turn===myIdx;
+}
+
+// ── Dice rendering ───────────────────────────────────────────────
+const PIPS={1:[4],2:[2,6],3:[2,4,6],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+// grid index → percent coords (0:TL 2:TR 3:ML 4:MC 5:MR 6:BL 8:BR)
+const PIPPOS={0:[25,25],2:[75,25],3:[25,50],4:[50,50],5:[75,50],6:[25,75],8:[75,75]};
+function dieFaceHTML(v){
+  return PIPS[v].map(p=>{
+    const[x,y]=PIPPOS[p];
+    return `<span class="pip" style="left:${x}%;top:${y}%"></span>`;
+  }).join('');
+}
+let dieEls=[];
+function buildDice(){
+  const row=$('dicerow');row.innerHTML='';dieEls=[];
+  for(let i=0;i<5;i++){
+    const d=document.createElement('div');
+    d.className='die';
+    d.innerHTML=dieFaceHTML(dice[i]);
+    d.onclick=()=>toggleHold(i);
+    row.appendChild(d);dieEls.push(d);
+  }
+}
+function renderDice(){
+  dieEls.forEach((el,i)=>{
+    el.innerHTML=dieFaceHTML(dice[i]);
+    el.classList.toggle('held',held[i]);
+    el.classList.toggle('red',dice[i]===1);
+  });
+}
+function toggleHold(i){
+  if(!isMyTurn()||rollsLeft===3||rollsLeft===0)return;
+  held[i]=!held[i];
+  SND.sfx.click?.();
+  renderDice();
+  if(gameMode==='online')pushOnline();
+}
+
+// ── Roll ─────────────────────────────────────────────────────────
+function doRoll(done){
+  if(rolling)return;
+  rolling=true;
+  SND.sfx.capture?.();
+  dieEls.forEach((el,i)=>{if(!held[i])el.classList.add('rolling');});
+  const anim=setInterval(()=>{
+    dieEls.forEach((el,i)=>{
+      if(!held[i])el.innerHTML=dieFaceHTML(1+Math.floor(Math.random()*6));
+    });
+  },70);
+  setTimeout(()=>{
+    clearInterval(anim);
+    for(let i=0;i<5;i++)if(!held[i])dice[i]=1+Math.floor(Math.random()*6);
+    dieEls.forEach(el=>el.classList.remove('rolling'));
+    rolling=false;
+    renderDice();renderSheet();renderStatus();
+    if(done)done();
+  },520);
+}
+function playerRoll(){
+  if(!isMyTurn()||rollsLeft<=0||rolling)return;
+  rollsLeft--;
+  doRoll(()=>{if(gameMode==='online')pushOnline();});
+  renderStatus();
+}
+
+// ── Score sheet ──────────────────────────────────────────────────
+function renderSheet(){
+  $('hd-p0').textContent=pName(0);
+  $('hd-p1').textContent=pName(1);
+  $('hd-p0').className=turn===0&&!gameOver?'cur':'';
+  $('hd-p1').className=turn===1&&!gameOver?'cur':'';
+  const tb=$('sheetbody');
+  const canPick=isMyTurn()&&rollsLeft<3;
+  let html='';
+  const cell=(p,cat)=>{
+    const v=sheets[p][cat];
+    if(v!==null)return `<td class="pts">${v}</td>`;
+    if(p===turn&&canPick){
+      const pv=calcScore(cat,dice);
+      return `<td class="pts avail" data-cat="${cat}">${pv}</td>`;
+    }
+    return `<td class="pts open">–</td>`;
+  };
+  CATS.forEach((cat,i)=>{
+    html+=`<tr><td class="cat">${t(cat)}</td>${cell(0,cat)}${cell(1,cat)}</tr>`;
+    if(i===5){
+      html+=`<tr class="subtotal"><td class="cat">${t('subtotal')} / 63</td><td>${upperSum(sheets[0])}</td><td>${upperSum(sheets[1])}</td></tr>`;
+      html+=`<tr class="subtotal"><td class="cat">${t('bonus')}</td><td>${bonusOf(sheets[0])||'–'}</td><td>${bonusOf(sheets[1])||'–'}</td></tr>`;
+    }
+  });
+  html+=`<tr class="total"><td class="cat">${t('total')}</td><td>${totalOf(sheets[0])}</td><td>${totalOf(sheets[1])}</td></tr>`;
+  tb.innerHTML=html;
+  tb.querySelectorAll('td.avail').forEach(td=>{
+    td.onclick=()=>scoreCat(td.dataset.cat,false);
+  });
+}
+
+function scoreCat(cat,isCpu){
+  if(gameOver||rolling)return;
+  if(!isCpu&&!isMyTurn())return;
+  if(rollsLeft===3||sheets[turn][cat]!==null)return;
+  sheets[turn][cat]=calcScore(cat,dice);
+  SND.sfx.place?.();
+  if(sheets[turn][cat]>=30)SND.sfx.promote?.();
+  if(sheetFull(sheets[0])&&sheetFull(sheets[1])){
+    endGame();
+    if(gameMode==='online')pushOnline();
+    return;
+  }
+  turn=1-turn;
+  rollsLeft=3;held=[false,false,false,false,false];
+  renderAll();
+  if(gameMode==='online')pushOnline();
+  else afterTurnChange();
+}
+
+function afterTurnChange(){
+  if(gameOver)return;
+  if(gameMode==='solo'){
+    if(turn===1)cpuPlay();
+  }else if(gameMode==='local2p'){
+    if(turn!==myIdx){
+      NETPLAY.showHandoff(pName(turn),lang,()=>{myIdx=turn;renderAll();});
+    }
+  }else if(gameMode==='online'){
+    if(sbar)sbar.set(isMyTurn()?t('yourTurn'):t('oppTurn'));
+  }
+}
+
+// ── Status / chrome ──────────────────────────────────────────────
+function roundNo(){
+  const d0=CATS.filter(c=>sheets[0][c]!==null).length;
+  const d1=CATS.filter(c=>sheets[1][c]!==null).length;
+  return Math.min(Math.min(d0,d1)+1,12);
+}
+function renderStatus(){
+  $('roundlbl').textContent=`${t('round')} ${roundNo()} / 12`;
+  const st=$('status');
+  if(gameOver){st.textContent='';return;}
+  let msg,cls;
+  if(gameMode==='solo'){
+    if(turn===0){msg=t('yourTurn');cls='me';}
+    else{msg=t('cpuTurn');cls='opp';}
+  }else if(gameMode==='local2p'){
+    msg=pName(turn)+t('turnOf');cls=turn===myIdx?'me':'opp';
+  }else{
+    if(turn===myIdx){msg=t('yourTurn');cls='me';}
+    else{msg=t('oppTurn');cls='opp';}
+  }
+  st.textContent=msg;st.className='status '+cls;
+  const rb=$('rollbtn');
+  rb.textContent=`🎲 ${t('roll')} (${t('left')} ${rollsLeft})`;
+  rb.disabled=!isMyTurn()||rollsLeft<=0;
+  $('holdhint').textContent=isMyTurn()&&rollsLeft<3?(rollsLeft===0?t('pickCat'):t('holdHint')):'';
+}
+function renderAll(){renderDice();renderSheet();renderStatus();}
+
+// ── Game end ─────────────────────────────────────────────────────
+function endGame(){
+  gameOver=true;
+  const t0=totalOf(sheets[0]),t1=totalOf(sheets[1]);
+  winner=t0>t1?0:t1>t0?1:-1;
+  SND.stopBGM?.();
+  const ov=$('overlay');
+  let msg,col;
+  if(winner===-1){msg=t('draw');col='#94a3b8';}
+  else if(gameMode==='solo'){msg=winner===0?t('youWin'):t('cpuWin');col=winner===0?'#5eead4':'#fda4af';}
+  else if(gameMode==='local2p'){msg=winner===0?t('p1Win'):t('p2Win');col='#5eead4';}
+  else{msg=winner===myIdx?t('youWin'):t('oppWin');col=winner===myIdx?'#5eead4':'#fda4af';}
+  $('ov-title').textContent=msg;$('ov-title').style.color=col;
+  $('ov-score').textContent=`${pName(0)} ${t0} — ${t1} ${pName(1)}`;
+  $('ov-hint').textContent=gameMode==='online'?'':t('tap');
+  ov.classList.add('show');
+  if(gameMode==='solo'){
+    if(winner===0)SND.sfx.win?.();else if(winner===1)SND.sfx.lose?.();
+    if(window.TRACK)TRACK.result(winner===0?'win':winner===1?'loss':'draw');
+  }else{
+    SND.sfx.pointWin?.();
+    if(gameMode==='online'&&window.TRACK)
+      TRACK.result(winner===-1?'draw':winner===myIdx?'win':'loss');
+  }
+  renderAll();
+}
+$('overlay').onclick=()=>{
+  if(gameMode==='online')return;
+  $('overlay').classList.remove('show');
+  newGame();
+};
+
+function newGame(){
+  dice=[1,2,3,4,5];held=[false,false,false,false,false];
+  rollsLeft=3;turn=0;gameOver=false;winner=-1;cpuBusy=false;
+  sheets=[emptySheet(),emptySheet()];
+  if(gameMode==='local2p')myIdx=0;
+  $('overlay').classList.remove('show');
+  renderAll();
+  SND.startBGM?.('game');
+}
+
+// ── CPU AI ───────────────────────────────────────────────────────
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+function openCats(s){return CATS.filter(c=>s[c]===null);}
+
+// Decide holds for the CPU based on difficulty. Returns {stop, holds}.
+function cpuDecide(){
+  const s=sheets[1],cnt=faceCounts(dice);
+  if(difficulty==='easy'){
+    return{stop:false,holds:dice.map(()=>Math.random()<0.5)};
+  }
+  // shared analysis
+  let bestFace=1,bestCnt=0;
+  for(let f=6;f>=1;f--)if(cnt[f]>bestCnt){bestCnt=cnt[f];bestFace=f;}
+  const uniq=[...new Set(dice)].sort((a,b)=>a-b);
+  let runLen=1,maxRun=1,runEnd=uniq[0];
+  for(let i=1;i<uniq.length;i++){
+    runLen=uniq[i]===uniq[i-1]+1?runLen+1:1;
+    if(runLen>maxRun){maxRun=runLen;runEnd=uniq[i];}
+  }
+  const yachtMade=cnt.some(c=>c===5);
+  const bStrMade=hasRun(dice,5);
+  if(difficulty==='medium'){
+    if(yachtMade||bStrMade)return{stop:true,holds:held};
+    // keep the most frequent face
+    const holds=dice.map(v=>v===bestFace);
+    return{stop:false,holds};
+  }
+  // hard
+  if(yachtMade&&s.yacht===null)return{stop:true,holds:held};
+  if(bStrMade&&s.bStraight===null)return{stop:true,holds:held};
+  // full house made and both big straights gone → take it
+  if(calcScore('fullHouse',dice)>0&&s.fullHouse===null&&bestCnt<4)return{stop:true,holds:held};
+  let holds;
+  if(bestCnt>=3&&(s.yacht!==null||s.fourKind!==null||bestCnt>=4||Math.random()<0.7)){
+    // chase yacht / four of a kind / upper with the dominant face
+    holds=dice.map(v=>v===bestFace);
+  }else if(maxRun>=4&&s.bStraight===null){
+    // chase big straight: hold the 4-run
+    const runFaces=[];for(let f=runEnd-maxRun+1;f<=runEnd;f++)runFaces.push(f);
+    const used={};
+    holds=dice.map(v=>{
+      if(runFaces.includes(v)&&!used[v]){used[v]=true;return true;}
+      return false;
+    });
+  }else if(maxRun>=3&&(s.bStraight===null||s.sStraight===null)&&bestCnt<3){
+    const runFaces=[];for(let f=runEnd-maxRun+1;f<=runEnd;f++)runFaces.push(f);
+    const used={};
+    holds=dice.map(v=>{
+      if(runFaces.includes(v)&&!used[v]){used[v]=true;return true;}
+      return false;
+    });
+  }else{
+    // pairs → full house potential, else keep high-value faces for upper/choice
+    const pairFaces=[];for(let f=1;f<=6;f++)if(cnt[f]>=2)pairFaces.push(f);
+    if(pairFaces.length>=2&&s.fullHouse===null){
+      holds=dice.map(v=>pairFaces.includes(v));
+    }else{
+      holds=dice.map(v=>v===bestFace||v>=5&&UPPER.some((c,i)=>i+1===v&&s[c]===null));
+    }
+  }
+  return{stop:false,holds};
+}
+
+// Choose which category the CPU scores.
+function cpuChooseCat(){
+  const s=sheets[1],open=openCats(s);
+  const scored=open.map(c=>({c,v:calcScore(c,dice)}));
+  if(difficulty==='easy'){
+    scored.sort((a,b)=>b.v-a.v);
+    const top=scored.filter(x=>x.v===scored[0].v);
+    return top[Math.floor(Math.random()*top.length)].c;
+  }
+  if(difficulty==='medium'){
+    scored.sort((a,b)=>b.v-a.v);
+    if(scored[0].v>0)return scored[0].c;
+    // dump zero into the cheapest upper slot
+    const dump=open.find(c=>c==='aces')||open.find(c=>c==='twos')||scored[0].c;
+    return dump;
+  }
+  // hard: utility = score + strategic adjustments
+  let best=null,bestU=-Infinity;
+  const us=upperSum(s);
+  scored.forEach(({c,v})=>{
+    let u=v;
+    const ui=UPPER.indexOf(c);
+    if(ui>=0){
+      const face=ui+1;
+      if(v>=3*face)u+=4;           // at/above par → helps the 63 bonus
+      if(us<63&&us+v>=63)u+=20;    // clinches the bonus
+    }
+    if(v===0){
+      if(c==='yacht')u-=12;
+      else if(c==='bStraight')u-=8;
+      else if(c==='sStraight')u-=5;
+      else if(c==='fourKind')u-=4;
+      else if(c==='fullHouse')u-=4;
+      else if(c==='aces'||c==='twos')u+=2; // cheap dump slots
+    }
+    if(c==='choice')u-=6;          // save choice for a big sum
+    if(c==='choice'&&v>=22)u+=10;
+    u+=Math.random()*0.01;
+    if(u>bestU){bestU=u;best=c;}
+  });
+  return best;
+}
+
+async function cpuPlay(){
+  if(gameOver)return;
+  cpuBusy=true;renderStatus();
+  await sleep(650);
+  while(rollsLeft>0&&!gameOver){
+    rollsLeft--;
+    await new Promise(res=>doRoll(res));
+    await sleep(difficulty==='easy'?500:700);
+    if(rollsLeft===0)break;
+    const{stop,holds}=cpuDecide();
+    if(stop)break;
+    held=holds;renderDice();
+    await sleep(550);
+  }
+  if(gameOver){cpuBusy=false;return;}
+  const cat=cpuChooseCat();
+  await sleep(400);
+  cpuBusy=false;
+  scoreCat(cat,true);
+}
+
+// ── Online ───────────────────────────────────────────────────────
+function getState(){
+  return{dice:[...dice],held:[...held],rollsLeft,turn,
+    sheets:[{...sheets[0]},{...sheets[1]}],gameOver,winner,seq:++onlineSeq};
+}
+async function pushOnline(){
+  try{await NETPLAY.pushState(roomId,getState());}catch(e){console.error(e);}
+  afterTurnChange();
+}
+function applyState(st){
+  dice=[...st.dice];held=[...st.held];rollsLeft=st.rollsLeft;turn=st.turn;
+  sheets=[{...st.sheets[0]},{...st.sheets[1]}];
+  onlineSeq=st.seq;
+  if(st.gameOver&&!gameOver){endGame();}
+  else renderAll();
+}
+function onPoll(room){
+  if(!room.state||room.state.seq<=onlineSeq)return;
+  applyState(room.state);
+  afterTurnChange();
+}
+function initOnlineState(){
+  return{dice:[1,2,3,4,5],held:[false,false,false,false,false],rollsLeft:3,turn:0,
+    sheets:[emptySheet(),emptySheet()],gameOver:false,winner:-1,seq:0};
+}
+
+function leaveOnline(){
+  NETPLAY.stopPoll();
+  if(sbar){sbar.remove();sbar=null;}
+  gameMode='solo';myIdx=0;onlineRole=null;roomId=null;onlineSeq=-1;
+  $('leavebtn').style.display='none';
+  $('local2pbtn').style.display='';
+  $('onlinebtn').style.display='';
+  newGame();
+}
+
+// ── Buttons ──────────────────────────────────────────────────────
+$('backbtn').onclick=()=>{
+  NETPLAY.stopPoll();
+  if(sbar){sbar.remove();sbar=null;}
+  location.href='index.html';
+};
+$('rollbtn').onclick=playerRoll;
+$('local2pbtn').onclick=()=>{
+  if(gameMode==='online')return;
+  gameMode=gameMode==='local2p'?'solo':'local2p';
+  $('local2pbtn').textContent=gameMode==='local2p'?t('modeCpu'):t('local2p');
+  newGame();
+};
+$('onlinebtn').onclick=()=>{
+  NETPLAY.showLobby({
+    game:'yacht',lang,
+    initState:initOnlineState,
+    onHost:(id,room)=>{
+      roomId=id;gameMode='online';myIdx=0;onlineRole='host';onlineSeq=0;
+      $('local2pbtn').style.display='none';$('onlinebtn').style.display='none';
+      $('leavebtn').style.display='';
+      sbar=NETPLAY.statusBar(lang);sbar.online('host');
+      applyState(room.state||initOnlineState());
+      NETPLAY.startPoll(roomId,1500,onPoll);
+      SND.startBGM?.('game');
+      afterTurnChange();
+    },
+    onJoin:(room,tok)=>{
+      roomId=room.id;gameMode='online';myIdx=1;onlineRole='guest';
+      $('local2pbtn').style.display='none';$('onlinebtn').style.display='none';
+      $('leavebtn').style.display='';
+      sbar=NETPLAY.statusBar(lang);sbar.online('guest');
+      if(room.state){applyState(room.state);}
+      NETPLAY.startPoll(roomId,1500,onPoll);
+      SND.startBGM?.('game');
+      afterTurnChange();
+    },
+    onCancel:()=>{}
+  });
+};
+$('leavebtn').onclick=leaveOnline;
+
+// Difficulty buttons
+const DIFFS=[['easy','easy'],['medium','normal'],['hard','hard']]; // [value, label key]
+DIFFS.forEach(([d,lab])=>{
+  const b=document.createElement('button');
+  b.style.background=d===difficulty?'#14b8a6':'#374151';
+  b.textContent=t(lab);
+  b.onclick=()=>{
+    difficulty=d;localStorage.setItem('yacht_diff',d);
+    $('diffrow').querySelectorAll('button').forEach((x,i)=>{
+      x.style.background=DIFFS[i][0]===difficulty?'#14b8a6':'#374151';
+    });
+    if(gameMode==='solo')newGame();
+  };
+  $('diffrow').appendChild(b);
+});
+
+// ── Rating widget ────────────────────────────────────────────────
+const SB_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
+const SB_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+let rateSel=0;
+(function(){
+  const stars=$('ratestars');
+  for(let i=1;i<=5;i++){
+    const s=document.createElement('span');
+    s.className='star';s.textContent='★';
+    s.onclick=()=>{rateSel=i;stars.querySelectorAll('.star').forEach((x,j)=>x.classList.toggle('on',j<i));};
+    stars.appendChild(s);
+  }
+})();
+$('ratebtn').onclick=()=>$('ratepanel').classList.toggle('show');
+$('ratesub').onclick=async()=>{
+  if(!rateSel){$('ratemsg').textContent=t('ratePick');return;}
+  const me=JSON.parse(localStorage.getItem('arcade_user')||'null');
+  const body={game:'yacht',stars:rateSel,comment:$('ratecmt').value.trim()||null};
+  if(me){body.user_id=me.id;body.username=me.username;}
+  try{
+    await fetch(SB_URL+'/rest/v1/ratings',{method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify(body)});
+    $('ratemsg').textContent=t('rateThanks');
+    setTimeout(()=>{$('ratepanel').classList.remove('show');$('ratemsg').textContent='';},1200);
+  }catch(_){$('ratemsg').textContent='Error';}
+};
+
+// ── Init ─────────────────────────────────────────────────────────
+function applyLang(){
+  document.title=t('title');
+  $('title').textContent=t('title');
+  $('backbtn').textContent=t('back');
+  $('local2pbtn').textContent=gameMode==='local2p'?t('modeCpu'):t('local2p');
+  $('onlinebtn').textContent=t('online');
+  $('leavebtn').textContent=t('leave');
+  $('ratebtn').textContent=t('rate');
+  $('ratesub').textContent=t('rateSend');
+  $('ratecmt').placeholder=t('rateCmt');
+}
+applyLang();
+buildDice();
+newGame();
+if(typeof SND!=='undefined'){
+  SND.createBtn(document.body);
+  document.addEventListener('click',function sa(){SND.startBGM('game');document.removeEventListener('click',sa);},{once:true});
+}
+</script>
+</body>
+</html>

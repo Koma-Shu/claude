@@ -93,6 +93,7 @@
     .btn-memory { background: linear-gradient(135deg, #7c3aed, #120a24); color: #fff; font-weight: bold; }
     .btn-oldmaid { background: linear-gradient(135deg, #d97706, #7a3a08); color: #fff; font-weight: bold; }
     .btn-tennis { background: linear-gradient(135deg, #aadd00, #77aa00); color: #000; font-weight: bold; }
+    .btn-yacht { background: linear-gradient(135deg, #5eead4, #0d9488); color: #06141c; font-weight: bold; }
     #lang-btn { position:fixed; top:14px; left:14px; background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; z-index:10; }
     #auth-area { position:fixed; top:14px; right:14px; display:flex; gap:8px; z-index:10; }
     .auth-btn { background:#1e1e2e; border:1px solid #444; border-radius:6px; color:#888; font-family:'Courier New',monospace; font-size:0.72rem; padding:5px 10px; cursor:pointer; text-decoration:none; display:inline-block; transition:color 0.15s,border-color 0.15s; }
@@ -569,6 +570,32 @@
     </div>
   </div>
 
+  <!-- Yacht -->
+  <div class="card" data-game="yacht">
+    <canvas class="preview" id="yachtPreview" width="320" height="200"></canvas>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-title" style="color:#5eead4" id="yacht-title">ヨット</div>
+        <div class="avg-badge" id="avg-yacht"></div>
+      </div>
+      <p class="card-desc" id="desc-yacht"></p>
+      <div class="device-badge"><span class="icon">💻</span> PC &nbsp;|&nbsp; <span class="icon">📱</span> <span class="mobile-label"></span>&nbsp; <span class="both-label"></span></div>
+      <div class="controls">
+        <div class="controls-title pc-ctrl-title"></div>
+        <div class="controls-grid">
+          <span style="color:#888;font-size:0.72rem" class="tap-label">タップ</span>
+          <span class="ctrl-desc" id="yt-dice">ダイスをキープ / 役を選択</span>
+        </div>
+      </div>
+      <div class="card-tags">
+        <span class="tag">1–2 PLAYER</span>
+        <span class="tag">VS CPU</span>
+        <span class="tag">DICE</span>
+      </div>
+      <a href="yacht.html" class="play-btn btn-yacht">▶ PLAY</a>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -612,6 +639,9 @@ const ITEXT = {
     tennisMove: '左右移動',
     tennisSwing: 'サーブ / スイング',
     descMahjong: '2〜4人打ち麻雀。AI対戦 & フレンドとのオンライン対戦に対応。ツモ和了・ロン和了に対応。',
+    descYacht: '5つのダイスで役を作る世界的定番ゲーム！3回まで振り直して12の役にスコアを記入。合計63点以上でボーナス！CPU対戦（難易度3段階）・ローカル2P・オンライン対戦対応。',
+    yachtTitle: 'ヨット',
+    yachtDice: 'ダイスをキープ / 役を選択',
     mahjongClick: 'クリック',
     mahjongTile: '牌を選択・捨て牌',
     mahjongBtn: 'ボタン',
@@ -675,6 +705,9 @@ const ITEXT = {
     tennisMove: 'Move left/right',
     tennisSwing: 'Serve / Swing',
     descMahjong: 'Mahjong for 2-4 players. Play vs AI or online with friends. Supports Tsumo and Ron wins.',
+    descYacht: 'The classic 5-dice game! Roll up to 3 times and fill 12 categories. Score 63+ in the upper section for a bonus! VS CPU (3 levels), local 2P & online play.',
+    yachtTitle: 'YACHT DICE',
+    yachtDice: 'Hold dice / pick category',
     mahjongClick: 'Click',
     mahjongTile: 'Select &amp; discard tile',
     mahjongBtn: 'Button',
@@ -754,6 +787,9 @@ function applyLang() {
   document.getElementById('cb-swing').textContent = T('cbSwing');
   document.getElementById('cb-space').textContent = T('cbSwing');
   document.getElementById('desc-mahjong').textContent = T('descMahjong');
+  document.getElementById('desc-yacht').textContent = T('descYacht');
+  document.getElementById('yacht-title').textContent = T('yachtTitle');
+  document.getElementById('yt-dice').textContent = T('yachtDice');
   document.getElementById('mj-click').textContent = T('mahjongClick');
   document.getElementById('mj-tile').innerHTML = T('mahjongTile');
   document.getElementById('mj-btn').textContent = T('mahjongBtn');
@@ -823,6 +859,7 @@ const GAME_NAMES = {
   connect4:    {ja:'四目並べ',        en:'CONNECT FOUR'},
   bikerun:     {ja:'ニャンダッシュ',  en:'NYAN DASH'},
   tennis:      {ja:'テニス',         en:'TENNIS'},
+  yacht:       {ja:'ヨット',         en:'YACHT DICE'},
 };
 
 const gameStats = {}; // game → {avg, count, plays}
@@ -906,7 +943,7 @@ document.querySelectorAll('.play-btn').forEach(btn => {
 // Load ratings from Supabase (single bulk query)
 async function loadAllStats() {
   const GAMES = ['snake','symbiont','reversi','gomoku','chess','shogi','mahjong','capbaseball','keshibato',
-                  'blackjack','poker','daifugo','sevens','memory','oldmaid','connect4','mancala','bikerun','tennis'];
+                  'blackjack','poker','daifugo','sevens','memory','oldmaid','connect4','mancala','bikerun','tennis','yacht'];
   GAMES.forEach(g => {
     gameStats[g] = { avg: 0, count: 0, plays: parseInt(localStorage.getItem('plays_' + g) || '0') };
   });
@@ -1613,10 +1650,51 @@ document.addEventListener('keydown', function startAudioKey() {
   ctx.fillStyle='#aadd00';ctx.font='10px Courier New';ctx.textAlign='left';
   ctx.fillText('テニス  TENNIS  VS CPU / 2P',10,H-8);
 })();
+
+// --- Yacht preview ---
+(function(){
+  const c=document.getElementById('yachtPreview');
+  if(!c) return;
+  const ctx=c.getContext('2d'),W=c.width,H=c.height;
+  const g=ctx.createRadialGradient(W/2,H*0.25,20,W/2,H*0.5,W*0.7);
+  g.addColorStop(0,'#123a4a');g.addColorStop(1,'#06141c');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  // dice
+  const faces=[[0.5,0.5],[0.25,0.25,0.75,0.75],[0.25,0.25,0.5,0.5,0.75,0.75],
+               [0.25,0.25,0.75,0.25,0.25,0.75,0.75,0.75],
+               [0.25,0.25,0.75,0.25,0.5,0.5,0.25,0.75,0.75,0.75],
+               [0.25,0.22,0.75,0.22,0.25,0.5,0.75,0.5,0.25,0.78,0.75,0.78]];
+  function die(x,y,s,v,rot,held){
+    ctx.save();ctx.translate(x,y);ctx.rotate(rot);
+    ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=8;
+    ctx.fillStyle='#f5f5ec';
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(-s/2,-s/2,s,s,s*0.2);else ctx.rect(-s/2,-s/2,s,s);
+    ctx.fill();ctx.shadowBlur=0;
+    if(held){ctx.strokeStyle='#fbbf24';ctx.lineWidth=3;ctx.stroke();}
+    ctx.fillStyle=v===1?'#c0392b':'#1c2733';
+    const f=faces[v-1];
+    for(let i=0;i<f.length;i+=2){
+      ctx.beginPath();ctx.arc((f[i]-0.5)*s,(f[i+1]-0.5)*s,s*0.08,0,Math.PI*2);ctx.fill();
+    }
+    ctx.restore();
+  }
+  die(W*0.18,H*0.36,44,5,-0.18,false);
+  die(W*0.38,H*0.42,44,5,0.1,true);
+  die(W*0.58,H*0.34,44,5,-0.07,true);
+  die(W*0.78,H*0.42,44,2,0.22,false);
+  die(W*0.48,H*0.68,44,6,0.05,false);
+  // sparkle
+  ctx.fillStyle='#5eead4';ctx.font='bold 13px Courier New';ctx.textAlign='right';
+  ctx.fillText('YACHT 50!',W-12,26);
+  ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(0,H-26,W,26);
+  ctx.fillStyle='#5eead4';ctx.font='10px Courier New';ctx.textAlign='left';
+  ctx.fillText('ヨット  YACHT DICE  VS CPU / 2P / ONLINE',10,H-8);
+})();
 </script>
 
 <footer style="margin-top:48px;padding:16px 0 32px;text-align:center;font-family:'Courier New',monospace;font-size:0.7rem;color:#333;letter-spacing:2px;">
-  v3.4
+  v3.5
 </footer>
 <script>
 if ('serviceWorker' in navigator) {

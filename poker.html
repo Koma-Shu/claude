@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ポーカー</title>
 <script src="sound.js"></script>
+<script src="track.js"></script>
 <script src="cards.js"></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
@@ -87,6 +88,7 @@ const t=k=>(L[k]&&L[k][lang])||k;
 const C=window.CARDS,$=id=>document.getElementById(id);
 let mode=localStorage.getItem('poker_mode')||'draw'; // 'draw' | 'holdem'
 let difficulty=localStorage.getItem('poker_diff')||'medium';
+if(difficulty==='normal')difficulty='medium'; // legacy value from old button bug
 let deck,you,cpu,held,phase='deal',chips=500,msgKey='',msgCls='',busy=false;
 let community,street; // holdem: street 0=preflop,1=flop,2=turn,3=river,4=showdown
 const RNAMES=['hc','pair','twopair','trips','straight','flush','fh','quads','sf','rf'];
@@ -379,13 +381,14 @@ const pokerDiffRow=document.createElement('div');
 pokerDiffRow.style.cssText='position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;align-items:center;z-index:10;';
 const pokerDiffLbl=document.createElement('span');pokerDiffLbl.style.cssText='font-size:.75rem;color:#aaa;margin-right:4px;';pokerDiffLbl.textContent=t('diff')+':';
 pokerDiffRow.appendChild(pokerDiffLbl);
-['easy','normal','hard'].forEach(d=>{
+const DIFFS=[['easy','easy'],['medium','normal'],['hard','hard']]; // [value, label key]
+DIFFS.forEach(([d,lab])=>{
   const b=document.createElement('button');
   b.style.cssText=`font-size:.75rem;font-weight:bold;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;color:#fff;background:${d===difficulty?'#3b82f6':'#374151'};`;
-  b.textContent=t(d);
+  b.textContent=t(lab);
   b.onclick=()=>{
     difficulty=d;localStorage.setItem('poker_diff',d);
-    pokerDiffRow.querySelectorAll('button').forEach((x,i)=>{const ds=['easy','normal','hard'][i];x.style.background=ds===difficulty?'#3b82f6':'#374151';});
+    pokerDiffRow.querySelectorAll('button').forEach((x,i)=>{x.style.background=DIFFS[i][0]===difficulty?'#3b82f6':'#374151';});
   };
   pokerDiffRow.appendChild(b);
 });

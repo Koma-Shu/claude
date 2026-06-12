@@ -15,6 +15,7 @@
   --blue:#3b82f6;--blue2:rgba(59,130,246,.12);
   --purple:#a78bfa;--purple2:rgba(167,139,250,.12);
   --green:#4ade80;--green2:rgba(74,222,128,.12);
+  --orange:#fb923c;--orange2:rgba(251,146,60,.12);
 }
 body{background:var(--bg);min-height:100vh;font-family:'Courier New',monospace;color:var(--text);}
 
@@ -27,52 +28,53 @@ body{background:var(--bg);min-height:100vh;font-family:'Courier New',monospace;c
 .auth-box input:focus{border-color:var(--cyan);}
 .auth-box button{width:100%;padding:13px;background:linear-gradient(135deg,var(--cyan),#0088cc);border:none;border-radius:8px;color:#000;font-family:'Courier New',monospace;font-size:.85rem;letter-spacing:4px;font-weight:bold;cursor:pointer;transition:opacity .15s;}
 .auth-box button:hover{opacity:.85;}
+.auth-box button:disabled{opacity:.35;cursor:default;}
 .auth-err{color:var(--red);font-size:.72rem;min-height:18px;margin-top:10px;letter-spacing:1px;}
 
 /* ── Layout ─────────────────────────── */
 #dashboard{display:none;}
-header{background:var(--panel);border-bottom:1px solid var(--border2);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+header{background:var(--panel);border-bottom:1px solid var(--border2);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:8px;}
 .hd-logo{font-size:.95rem;letter-spacing:6px;color:var(--cyan);}
-.hd-right{display:flex;align-items:center;gap:14px;}
+.hd-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .hd-badge{font-size:.62rem;letter-spacing:2px;background:var(--red2);color:var(--red);border:1px solid var(--red);border-radius:20px;padding:3px 10px;}
 .hd-time{font-size:.62rem;color:var(--dim2);letter-spacing:1px;}
 .hd-btn{background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--dim);font-family:'Courier New',monospace;font-size:.65rem;letter-spacing:2px;padding:5px 10px;cursor:pointer;transition:all .15s;}
 .hd-btn:hover{border-color:var(--dim);color:var(--text);}
+.hd-btn.on{border-color:var(--cyan);color:var(--cyan);}
 main{padding:24px;max-width:1400px;margin:0 auto;}
+#last-upd{font-size:.6rem;color:var(--dim2);letter-spacing:1px;text-align:right;margin-bottom:10px;min-height:14px;}
+#load-err{font-size:.65rem;color:var(--red);letter-spacing:1px;text-align:center;margin-bottom:8px;}
 
 /* ── Tabs ───────────────────────────── */
-.tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid var(--border2);padding-bottom:0;}
-.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--dim2);font-family:'Courier New',monospace;font-size:.7rem;letter-spacing:3px;padding:10px 16px;cursor:pointer;transition:all .15s;margin-bottom:-1px;}
+.tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid var(--border2);overflow-x:auto;}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--dim2);font-family:'Courier New',monospace;font-size:.7rem;letter-spacing:3px;padding:10px 16px;cursor:pointer;transition:all .15s;margin-bottom:-1px;white-space:nowrap;}
 .tab:hover{color:var(--dim);}
 .tab.act{color:var(--cyan);border-bottom-color:var(--cyan);}
+.tab-panel{display:none;} .tab-panel.act{display:block;}
 
 /* ── KPI cards ──────────────────────── */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:28px;}
-.kpi{background:var(--panel);border:1px solid var(--border2);border-radius:12px;padding:18px 20px;}
-.kpi-label{font-size:.6rem;letter-spacing:3px;color:var(--dim2);margin-bottom:8px;}
-.kpi-val{font-size:1.8rem;font-weight:bold;letter-spacing:2px;}
-.kpi-sub{font-size:.62rem;color:var(--dim2);margin-top:4px;letter-spacing:1px;}
-.cyan{color:var(--cyan);}
-.red{color:var(--red);}
-.yellow{color:var(--yellow);}
-.green{color:var(--green);}
-.purple{color:var(--purple);}
-.blue{color:var(--blue);}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:14px;margin-bottom:28px;}
+.kpi{background:var(--panel);border:1px solid var(--border2);border-radius:12px;padding:16px 18px;}
+.kpi-label{font-size:.58rem;letter-spacing:2px;color:var(--dim2);margin-bottom:8px;}
+.kpi-val{font-size:1.55rem;font-weight:bold;letter-spacing:1px;}
+.kpi-sub{font-size:.6rem;color:var(--dim2);margin-top:4px;letter-spacing:1px;}
+.cyan{color:var(--cyan);} .red{color:var(--red);} .yellow{color:var(--yellow);}
+.green{color:var(--green);} .purple{color:var(--purple);} .blue{color:var(--blue);} .orange{color:var(--orange);}
 
 /* ── Section ────────────────────────── */
 .section{background:var(--panel);border:1px solid var(--border2);border-radius:12px;padding:22px 24px;margin-bottom:20px;}
-.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
 .sec-title{font-size:.62rem;letter-spacing:4px;color:var(--dim2);}
-.sec-badge{font-size:.6rem;letter-spacing:2px;background:var(--border);color:var(--dim);border-radius:20px;padding:2px 8px;}
 
 /* ── Table ──────────────────────────── */
-.tbl-wrap{overflow-x:auto;}
+.tbl-wrap{overflow-x:auto;max-height:560px;overflow-y:auto;}
 table{width:100%;border-collapse:collapse;font-size:.75rem;}
-thead th{text-align:left;padding:8px 10px;font-size:.58rem;letter-spacing:2px;color:var(--dim2);border-bottom:1px solid var(--border2);white-space:nowrap;}
+thead th{text-align:left;padding:8px 10px;font-size:.58rem;letter-spacing:2px;color:var(--dim2);border-bottom:1px solid var(--border2);white-space:nowrap;position:sticky;top:0;background:var(--panel);z-index:1;}
 tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
 tbody tr:last-child{border-bottom:none;}
 tbody tr:hover{background:rgba(255,255,255,.02);}
-td{padding:10px 10px;vertical-align:middle;white-space:nowrap;}
+tbody tr.clickable{cursor:pointer;}
+td{padding:9px 10px;vertical-align:middle;white-space:nowrap;}
 td.mono{font-family:'Courier New',monospace;}
 .pill{display:inline-block;border-radius:12px;padding:2px 8px;font-size:.58rem;letter-spacing:1px;font-weight:bold;}
 .pill-green{background:var(--green2);color:var(--green);}
@@ -83,31 +85,42 @@ td.mono{font-family:'Courier New',monospace;}
 .pill-gray{background:var(--border);color:var(--dim);}
 
 /* ── Bar chart ──────────────────────── */
-.bar-list{display:flex;flex-direction:column;gap:10px;}
+.bar-list{display:flex;flex-direction:column;gap:9px;}
 .bar-row{display:flex;align-items:center;gap:12px;}
-.bar-label{width:110px;font-size:.7rem;color:var(--dim);text-align:right;flex-shrink:0;letter-spacing:1px;}
+.bar-label{width:112px;font-size:.68rem;color:var(--dim);text-align:right;flex-shrink:0;letter-spacing:1px;}
 .bar-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
 .bar-fill{height:100%;border-radius:4px;transition:width .6s ease;}
-.bar-num{width:50px;font-size:.7rem;color:var(--text);text-align:right;letter-spacing:1px;}
+.bar-num{width:72px;font-size:.68rem;color:var(--text);text-align:right;letter-spacing:1px;white-space:nowrap;}
 
-/* ── Sparkline ──────────────────────── */
-.sparkline{display:inline-block;vertical-align:middle;}
-
-/* ── Search ─────────────────────────── */
-.search-row{display:flex;gap:10px;margin-bottom:14px;}
-.search-row input{background:var(--bg);border:1px solid var(--border2);border-radius:7px;padding:8px 12px;color:var(--text);font-family:'Courier New',monospace;font-size:.72rem;outline:none;width:220px;transition:border-color .2s;}
+/* ── Controls ───────────────────────── */
+.search-row{display:flex;gap:10px;margin:0;flex-wrap:wrap;align-items:center;}
+.search-row input{background:var(--bg);border:1px solid var(--border2);border-radius:7px;padding:8px 12px;color:var(--text);font-family:'Courier New',monospace;font-size:.72rem;outline:none;width:200px;transition:border-color .2s;}
 .search-row input:focus{border-color:var(--cyan);}
 .search-row select{background:var(--bg);border:1px solid var(--border2);border-radius:7px;padding:8px 10px;color:var(--dim);font-family:'Courier New',monospace;font-size:.72rem;outline:none;cursor:pointer;}
+.refresh-btn{background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--dim);font-family:'Courier New',monospace;font-size:.62rem;letter-spacing:2px;padding:5px 10px;cursor:pointer;transition:all .15s;}
+.refresh-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+.danger-btn{background:transparent;border:1px solid var(--red);border-radius:6px;color:var(--red);font-family:'Courier New',monospace;font-size:.62rem;letter-spacing:2px;padding:5px 10px;cursor:pointer;transition:all .15s;}
+.danger-btn:hover{background:var(--red2);}
+
+/* ── Modal ──────────────────────────── */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:300;padding:20px;}
+#modal.show{display:flex;}
+.modal-box{background:var(--panel);border:1px solid var(--border2);border-radius:14px;padding:26px;max-width:680px;width:100%;max-height:84vh;overflow-y:auto;}
+.modal-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.modal-title{font-size:.85rem;letter-spacing:3px;color:var(--cyan);}
+.modal-close{background:transparent;border:none;color:var(--dim);font-size:1.1rem;cursor:pointer;}
+.modal-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:16px;}
+.mk{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 12px;}
+.mk-l{font-size:.55rem;letter-spacing:1px;color:var(--dim2);margin-bottom:4px;}
+.mk-v{font-size:1rem;font-weight:bold;}
 
 /* ── Misc ───────────────────────────── */
 .loading{color:var(--dim2);font-size:.75rem;text-align:center;padding:32px;letter-spacing:2px;}
 .empty{color:var(--dim2);font-size:.72rem;text-align:center;padding:24px;letter-spacing:1px;}
 .stars{color:var(--yellow);letter-spacing:1px;}
-.refresh-btn{background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--dim);font-family:'Courier New',monospace;font-size:.62rem;letter-spacing:2px;padding:4px 10px;cursor:pointer;transition:all .15s;}
-.refresh-btn:hover{border-color:var(--cyan);color:var(--cyan);}
-.tab-panel{display:none;} .tab-panel.act{display:block;}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-@media(max-width:700px){.two-col{grid-template-columns:1fr;}}
+@media(max-width:760px){.two-col{grid-template-columns:1fr;}}
+.cmt{white-space:normal;max-width:300px;color:var(--dim);font-size:.7rem;}
 </style>
 </head>
 <body>
@@ -118,7 +131,7 @@ td.mono{font-family:'Courier New',monospace;}
     <div class="auth-logo">ARCADE</div>
     <div class="auth-sub">ADMIN DASHBOARD</div>
     <input type="password" id="admin-pw" placeholder="管理者パスワード" autocomplete="off">
-    <button onclick="checkAuth()">ログイン</button>
+    <button id="auth-btn" onclick="checkAuth()">ログイン</button>
     <div class="auth-err" id="auth-err"></div>
   </div>
 </div>
@@ -130,60 +143,86 @@ td.mono{font-family:'Courier New',monospace;}
     <div class="hd-right">
       <span class="hd-badge">🔒 ADMIN</span>
       <span class="hd-time" id="hd-time"></span>
+      <button class="hd-btn on" id="autoref-btn" onclick="toggleAutoRef()">⏱ 自動更新 ON</button>
       <button class="hd-btn" onclick="loadAll()">↻ 更新</button>
       <button class="hd-btn" onclick="logout()">ログアウト</button>
     </div>
   </header>
 
   <main>
+    <div id="load-err"></div>
+    <div id="last-upd"></div>
+
     <!-- KPI -->
-    <div class="kpi-grid" id="kpi-grid">
-      <div class="kpi"><div class="kpi-label">TOTAL USERS</div><div class="kpi-val cyan" id="kpi-users">–</div><div class="kpi-sub" id="kpi-users-sub">登録ユーザ数</div></div>
-      <div class="kpi"><div class="kpi-label">TOTAL GAMES PLAYED</div><div class="kpi-val yellow" id="kpi-games">–</div><div class="kpi-sub">対戦総数（全ゲーム合計）</div></div>
-      <div class="kpi"><div class="kpi-label">ACTIVE ROOMS</div><div class="kpi-val green" id="kpi-rooms">–</div><div class="kpi-sub">現在プレイ中のルーム</div></div>
-      <div class="kpi"><div class="kpi-label">RATINGS GIVEN</div><div class="kpi-val purple" id="kpi-ratings">–</div><div class="kpi-sub">星評価数（全ゲーム）</div></div>
-      <div class="kpi"><div class="kpi-label">NEW THIS WEEK</div><div class="kpi-val blue" id="kpi-new">–</div><div class="kpi-sub">今週の新規登録</div></div>
-      <div class="kpi"><div class="kpi-label">AVG GAMES / USER</div><div class="kpi-val red" id="kpi-avg">–</div><div class="kpi-sub">1人当たりの平均対戦数</div></div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">TOTAL USERS</div><div class="kpi-val cyan" id="kpi-users">–</div><div class="kpi-sub">登録ユーザ数</div></div>
+      <div class="kpi"><div class="kpi-label">SESSIONS</div><div class="kpi-val yellow" id="kpi-sessions">–</div><div class="kpi-sub">総利用回数（セッション）</div></div>
+      <div class="kpi"><div class="kpi-label">PLAY TIME</div><div class="kpi-val orange" id="kpi-time">–</div><div class="kpi-sub">総利用時間</div></div>
+      <div class="kpi"><div class="kpi-label">TODAY</div><div class="kpi-val green" id="kpi-today">–</div><div class="kpi-sub">今日のセッション数</div></div>
+      <div class="kpi"><div class="kpi-label">ACTIVE ROOMS</div><div class="kpi-val blue" id="kpi-rooms">–</div><div class="kpi-sub">現在プレイ中のルーム</div></div>
+      <div class="kpi"><div class="kpi-label">RATINGS</div><div class="kpi-val purple" id="kpi-ratings">–</div><div class="kpi-sub">星評価数（全ゲーム）</div></div>
+      <div class="kpi"><div class="kpi-label">NEW THIS WEEK</div><div class="kpi-val cyan" id="kpi-new">–</div><div class="kpi-sub">今週の新規登録</div></div>
+      <div class="kpi"><div class="kpi-label">AVG SESSION</div><div class="kpi-val red" id="kpi-avgsess">–</div><div class="kpi-sub">平均セッション時間</div></div>
     </div>
 
     <!-- Tabs -->
     <div class="tabs">
-      <button class="tab act" onclick="showTab('users')">ユーザ管理</button>
-      <button class="tab" onclick="showTab('games')">ゲーム統計</button>
-      <button class="tab" onclick="showTab('rooms')">ルーム履歴</button>
-      <button class="tab" onclick="showTab('ratings')">評価データ</button>
+      <button class="tab act" data-tab="overview" onclick="showTab('overview')">概要</button>
+      <button class="tab" data-tab="users" onclick="showTab('users')">ユーザ管理</button>
+      <button class="tab" data-tab="games" onclick="showTab('games')">ゲーム統計</button>
+      <button class="tab" data-tab="sessions" onclick="showTab('sessions')">セッション</button>
+      <button class="tab" data-tab="rooms" onclick="showTab('rooms')">ルーム</button>
+      <button class="tab" data-tab="ratings" onclick="showTab('ratings')">評価</button>
+    </div>
+
+    <!-- ── Tab: Overview ── -->
+    <div class="tab-panel act" id="tab-overview">
+      <div class="section">
+        <div class="sec-hd"><span class="sec-title">日別アクティビティ（直近14日 / セッション数・利用分数）</span></div>
+        <div id="daily-bars" class="bar-list"><div class="loading">読み込み中…</div></div>
+      </div>
+      <div class="two-col">
+        <div class="section">
+          <div class="sec-hd"><span class="sec-title">利用時間の多いゲーム TOP10</span></div>
+          <div id="time-bars" class="bar-list"><div class="loading">読み込み中…</div></div>
+        </div>
+        <div class="section">
+          <div class="sec-hd"><span class="sec-title">最近のセッション</span></div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>ゲーム</th><th>ユーザ</th><th>時間</th><th>開始</th></tr></thead>
+              <tbody id="recent-tbody"><tr><td colspan="4" class="loading">読み込み中…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ── Tab: Users ── -->
-    <div class="tab-panel act" id="tab-users">
+    <div class="tab-panel" id="tab-users">
       <div class="section">
         <div class="sec-hd">
-          <span class="sec-title">ユーザ一覧</span>
-          <div class="search-row" style="margin:0">
-            <input type="text" id="user-search" placeholder="名前 / IDで検索" oninput="filterUsers()">
-            <select id="user-sort" onchange="filterUsers()">
-              <option value="created_at_desc">登録日 ↓</option>
-              <option value="created_at_asc">登録日 ↑</option>
+          <span class="sec-title">ユーザ一覧（行クリックで詳細）</span>
+          <div class="search-row">
+            <input type="text" id="user-search" placeholder="名前 / ID / メールで検索" oninput="renderUsers()">
+            <select id="user-sort" onchange="renderUsers()">
+              <option value="created_desc">登録日 ↓</option>
+              <option value="created_asc">登録日 ↑</option>
+              <option value="time_desc">利用時間 ↓</option>
+              <option value="sessions_desc">利用回数 ↓</option>
               <option value="games_desc">対戦数 ↓</option>
-              <option value="username_asc">ID順</option>
+              <option value="name_asc">ID順</option>
             </select>
-            <button class="refresh-btn" onclick="loadUsers()">↻</button>
+            <button class="refresh-btn" onclick="exportUsersCSV()">⬇ CSV</button>
+            <button class="refresh-btn" onclick="loadAll()">↻</button>
           </div>
         </div>
         <div class="tbl-wrap">
           <table>
             <thead>
               <tr>
-                <th>#</th>
-                <th>ユーザID</th>
-                <th>氏名</th>
-                <th>メール</th>
-                <th>生年月日</th>
-                <th>登録日</th>
-                <th>対戦数</th>
-                <th>勝 / 敗 / 引</th>
-                <th>レーティング数</th>
-                <th>ステータス</th>
+                <th>#</th><th>ユーザID</th><th>氏名</th><th>メール</th><th>登録日</th>
+                <th>利用回数</th><th>利用時間</th><th>対戦数</th><th>勝 / 敗 / 引</th><th>ステータス</th>
               </tr>
             </thead>
             <tbody id="user-tbody"><tr><td colspan="10" class="loading">読み込み中…</td></tr></tbody>
@@ -196,7 +235,7 @@ td.mono{font-family:'Courier New',monospace;}
     <div class="tab-panel" id="tab-games">
       <div class="two-col">
         <div class="section">
-          <div class="sec-hd"><span class="sec-title">ゲーム別 プレイ数</span><button class="refresh-btn" onclick="loadGameStats()">↻</button></div>
+          <div class="sec-hd"><span class="sec-title">ゲーム別 セッション数</span></div>
           <div id="game-bars" class="bar-list"><div class="loading">読み込み中…</div></div>
         </div>
         <div class="section">
@@ -205,23 +244,40 @@ td.mono{font-family:'Courier New',monospace;}
         </div>
       </div>
       <div class="section">
-        <div class="sec-hd"><span class="sec-title">ゲーム別 詳細集計</span><button class="refresh-btn" onclick="loadGameStats()">↻</button></div>
+        <div class="sec-hd"><span class="sec-title">ゲーム別 詳細集計</span><button class="refresh-btn" onclick="loadAll()">↻</button></div>
         <div class="tbl-wrap">
           <table>
             <thead>
               <tr>
-                <th>ゲーム</th>
-                <th>総プレイ数</th>
-                <th>プレイユーザ数</th>
-                <th>総勝利</th>
-                <th>総敗北</th>
-                <th>総引分</th>
-                <th>平均レーティング</th>
-                <th>星評価数</th>
-                <th>平均星評価</th>
+                <th>ゲーム</th><th>セッション数</th><th>総利用時間</th><th>利用ユーザ数</th>
+                <th>対戦数</th><th>勝</th><th>敗</th><th>引</th><th>星評価数</th><th>平均星評価</th>
               </tr>
             </thead>
-            <tbody id="game-tbody"><tr><td colspan="9" class="loading">読み込み中…</td></tr></tbody>
+            <tbody id="game-tbody"><tr><td colspan="10" class="loading">読み込み中…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Sessions ── -->
+    <div class="tab-panel" id="tab-sessions">
+      <div class="section">
+        <div class="sec-hd">
+          <span class="sec-title">セッション履歴（直近500件）</span>
+          <div class="search-row">
+            <select id="sess-game" onchange="renderSessions()"><option value="all">全ゲーム</option></select>
+            <select id="sess-user" onchange="renderSessions()">
+              <option value="all">全ユーザ</option>
+              <option value="user">ログインユーザのみ</option>
+              <option value="guest">ゲストのみ</option>
+            </select>
+            <button class="refresh-btn" onclick="loadAll()">↻</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>ゲーム</th><th>ユーザ</th><th>プレイ時間</th><th>開始日時</th></tr></thead>
+            <tbody id="sess-tbody"><tr><td colspan="5" class="loading">読み込み中…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -231,14 +287,15 @@ td.mono{font-family:'Courier New',monospace;}
     <div class="tab-panel" id="tab-rooms">
       <div class="section">
         <div class="sec-hd">
-          <span class="sec-title">ルーム一覧（直近100件）</span>
-          <div style="display:flex;gap:8px;align-items:center">
-            <select id="room-filter" onchange="filterRooms()" style="background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;color:var(--dim);font-family:'Courier New',monospace;font-size:.65rem;outline:none;">
+          <span class="sec-title">オンライン対戦ルーム（直近100件）</span>
+          <div class="search-row">
+            <select id="room-filter" onchange="renderRooms()">
               <option value="all">全ステータス</option>
               <option value="playing">プレイ中</option>
               <option value="waiting">待機中</option>
             </select>
-            <button class="refresh-btn" onclick="loadRooms()">↻</button>
+            <button class="danger-btn" onclick="cleanupRooms()">🗑 24h以上前のルームを削除</button>
+            <button class="refresh-btn" onclick="loadAll()">↻</button>
           </div>
         </div>
         <div class="tbl-wrap">
@@ -255,13 +312,13 @@ td.mono{font-family:'Courier New',monospace;}
     <!-- ── Tab: Ratings ── -->
     <div class="tab-panel" id="tab-ratings">
       <div class="section">
-        <div class="sec-hd"><span class="sec-title">星評価一覧（直近200件）</span><button class="refresh-btn" onclick="loadRatingsData()">↻</button></div>
+        <div class="sec-hd"><span class="sec-title">星評価一覧（直近200件）</span><button class="refresh-btn" onclick="loadAll()">↻</button></div>
         <div class="tbl-wrap">
           <table>
             <thead>
-              <tr><th>#</th><th>ゲーム</th><th>評価</th><th>投稿日時</th></tr>
+              <tr><th>#</th><th>ゲーム</th><th>評価</th><th>ユーザ</th><th>コメント</th><th>投稿日時</th></tr>
             </thead>
-            <tbody id="ratings-tbody"><tr><td colspan="4" class="loading">読み込み中…</td></tr></tbody>
+            <tbody id="ratings-tbody"><tr><td colspan="6" class="loading">読み込み中…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -270,10 +327,27 @@ td.mono{font-family:'Courier New',monospace;}
   </main>
 </div>
 
+<!-- ── User detail modal ── -->
+<div id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <span class="modal-title" id="modal-title">USER DETAIL</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-kpis" id="modal-kpis"></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>ゲーム</th><th>セッション</th><th>利用時間</th><th>勝</th><th>敗</th><th>引</th><th>レート</th></tr></thead>
+        <tbody id="modal-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <script>
 const SB_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SB_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
-// SHA-256 of admin passphrase — change this to update the password
+// SHA-256 of admin passphrase — change this hash to update the password
 const ADMIN_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // "admin"
 
 const GAME_NAMES={
@@ -281,37 +355,52 @@ const GAME_NAMES={
   chess:'CHESS',shogi:'将棋',capbaseball:'キャップ野球',keshibato:'消しバト',
   blackjack:'BLACKJACK',poker:'POKER',daifugo:'大富豪',sevens:'七並べ',
   memory:'神経衰弱',oldmaid:'ババ抜き',connect4:'四目並べ',mancala:'マンカラ',
-  bikerun:'ニャンダッシュ',tennis:'TENNIS',mahjong:'麻雀'
+  bikerun:'ニャンダッシュ',tennis:'TENNIS',mahjong:'麻雀',yacht:'ヨット'
 };
+const gname=g=>GAME_NAMES[g]||g||'–';
 
+// ── Auth (with lockout after repeated failures) ──────────────────
+const MAX_TRIES=5,LOCK_MS=60000;
 async function hashPw(pw){
   const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-
+function lockedUntil(){return parseInt(sessionStorage.getItem('adm_lock')||'0');}
 async function checkAuth(){
+  const err=document.getElementById('auth-err');
+  const now=Date.now();
+  if(now<lockedUntil()){
+    err.textContent=`試行回数超過。${Math.ceil((lockedUntil()-now)/1000)}秒後に再試行できます`;
+    return;
+  }
   const pw=document.getElementById('admin-pw').value;
   const h=await hashPw(pw);
   if(h===ADMIN_HASH){
     sessionStorage.setItem('arcade_admin','1');
-    document.getElementById('auth-screen').style.display='none';
-    document.getElementById('dashboard').style.display='block';
-    startClock();loadAll();
+    sessionStorage.removeItem('adm_fails');sessionStorage.removeItem('adm_lock');
+    openDashboard();
   }else{
-    document.getElementById('auth-err').textContent='パスワードが正しくありません';
+    const fails=parseInt(sessionStorage.getItem('adm_fails')||'0')+1;
+    sessionStorage.setItem('adm_fails',fails);
+    if(fails>=MAX_TRIES){
+      sessionStorage.setItem('adm_lock',now+LOCK_MS);
+      sessionStorage.setItem('adm_fails','0');
+      err.textContent='試行回数超過。60秒間ロックされます';
+    }else{
+      err.textContent=`パスワードが正しくありません（残り${MAX_TRIES-fails}回）`;
+    }
     document.getElementById('admin-pw').value='';
   }
 }
 document.getElementById('admin-pw').addEventListener('keydown',e=>{if(e.key==='Enter')checkAuth();});
-
 function logout(){sessionStorage.removeItem('arcade_admin');location.reload();}
 
-// Resume session
-if(sessionStorage.getItem('arcade_admin')==='1'){
+function openDashboard(){
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('dashboard').style.display='block';
-  startClock();
+  startClock();loadAll();
 }
+if(sessionStorage.getItem('arcade_admin')==='1')openDashboard();
 
 function startClock(){
   const el=document.getElementById('hd-time');
@@ -319,170 +408,319 @@ function startClock(){
   tick();setInterval(tick,1000);
 }
 
+// ── Fetch helper ─────────────────────────────────────────────────
+let fetchErr=false;
 async function sb(path){
   try{
     const r=await fetch(SB_URL+path,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+    if(!r.ok){fetchErr=true;return[];}
     const t=await r.text();return t?JSON.parse(t):[];
-  }catch{return[];}
+  }catch{fetchErr=true;return[];}
+}
+async function sbDelete(path){
+  const r=await fetch(SB_URL+path,{method:'DELETE',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'}});
+  const t=await r.text();return t?JSON.parse(t):[];
 }
 
-// ── Cache ────────────────────────────────────────
-let _users=[],_userRatings=[],_ratings=[],_rooms=[];
+// ── Formatting ───────────────────────────────────────────────────
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtDur(sec){
+  sec=Math.round(sec||0);
+  if(sec>=3600)return`${Math.floor(sec/3600)}時間${Math.floor(sec%3600/60)}分`;
+  if(sec>=60)return`${Math.floor(sec/60)}分${sec%60}秒`;
+  return`${sec}秒`;
+}
+function fmtDT(iso){return iso?iso.slice(0,16).replace('T',' '):'–';}
+
+// ── Data cache ───────────────────────────────────────────────────
+let _users=[],_userRatings=[],_ratings=[],_rooms=[],_sessions=[];
 
 async function loadAll(){
-  await Promise.all([loadUsers(),loadGameStats(),loadRooms(),loadRatingsData()]);
-}
-
-// ── Users ─────────────────────────────────────────
-async function loadUsers(){
-  const [users,userRatings]=await Promise.all([
+  fetchErr=false;
+  [_users,_userRatings,_ratings,_rooms,_sessions]=await Promise.all([
     sb('/rest/v1/users?select=id,username,full_name,birth_date,created_at,email&order=created_at.desc&limit=500'),
-    sb('/rest/v1/user_ratings?select=user_id,game,wins,losses,draws,rating&limit=2000')
+    sb('/rest/v1/user_ratings?select=user_id,game,wins,losses,draws,rating&limit=5000'),
+    sb('/rest/v1/ratings?select=game,stars,comment,username,created_at&order=created_at.desc&limit=2000'),
+    sb('/rest/v1/rooms?select=id,game,status,updated_at,created_at&order=updated_at.desc&limit=100'),
+    sb('/rest/v1/play_sessions?select=game,user_id,username,seconds,started_at&order=started_at.desc&limit=2000'),
   ]);
-  _users=users||[];_userRatings=userRatings||[];
-
-  // KPI
-  const total=_users.length;
-  const weekAgo=new Date(Date.now()-7*86400000).toISOString();
-  const newThis=_users.filter(u=>u.created_at>=weekAgo).length;
-  let totalGames=0;
-  _userRatings.forEach(r=>{totalGames+=r.wins+r.losses+r.draws;});
-  document.getElementById('kpi-users').textContent=total;
-  document.getElementById('kpi-users-sub').textContent=`登録ユーザ数`;
-  document.getElementById('kpi-new').textContent=newThis;
-  document.getElementById('kpi-avg').textContent=total?Math.round(totalGames/total*10)/10:0;
-
-  filterUsers();
+  document.getElementById('load-err').textContent=
+    fetchErr?'⚠ 一部データの取得に失敗しました（play_sessions テーブル未作成の場合は supabase_migrate_v2.sql を実行してください）':'';
+  document.getElementById('last-upd').textContent=
+    '最終更新: '+new Date().toLocaleTimeString('ja-JP',{hour12:false});
+  renderKPIs();renderOverview();renderUsers();renderGames();
+  renderSessionFilters();renderSessions();renderRooms();renderRatings();
 }
 
-function filterUsers(){
-  const q=(document.getElementById('user-search')?.value||'').toLowerCase();
-  const sort=document.getElementById('user-sort')?.value||'created_at_desc';
+// ── KPIs ─────────────────────────────────────────────────────────
+function renderKPIs(){
+  const weekAgo=new Date(Date.now()-7*86400000).toISOString();
+  const today=new Date();today.setHours(0,0,0,0);
+  const todayISO=today.toISOString();
+  const totalSec=_sessions.reduce((a,s)=>a+(s.seconds||0),0);
+  document.getElementById('kpi-users').textContent=_users.length;
+  document.getElementById('kpi-sessions').textContent=_sessions.length;
+  document.getElementById('kpi-time').textContent=fmtDur(totalSec);
+  document.getElementById('kpi-today').textContent=_sessions.filter(s=>s.started_at>=todayISO).length;
+  document.getElementById('kpi-rooms').textContent=_rooms.filter(r=>r.status==='playing').length;
+  document.getElementById('kpi-ratings').textContent=_ratings.length;
+  document.getElementById('kpi-new').textContent=_users.filter(u=>u.created_at>=weekAgo).length;
+  document.getElementById('kpi-avgsess').textContent=_sessions.length?fmtDur(totalSec/_sessions.length):'–';
+}
 
-  // Aggregate ratings per user
-  const byUser={};
-  _userRatings.forEach(r=>{
-    if(!byUser[r.user_id])byUser[r.user_id]={games:0,wins:0,losses:0,draws:0,rCount:0};
-    byUser[r.user_id].games+=r.wins+r.losses+r.draws;
-    byUser[r.user_id].wins+=r.wins;
-    byUser[r.user_id].losses+=r.losses;
-    byUser[r.user_id].draws+=r.draws;
-    byUser[r.user_id].rCount++;
+// ── Overview ─────────────────────────────────────────────────────
+function renderOverview(){
+  // Daily activity: last 14 days
+  const days=[];
+  for(let i=13;i>=0;i--){
+    const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-i);
+    days.push(d);
+  }
+  const byDay=days.map(d=>{
+    const next=new Date(d.getTime()+86400000);
+    const rows=_sessions.filter(s=>{
+      const t=new Date(s.started_at);return t>=d&&t<next;
+    });
+    return{label:`${d.getMonth()+1}/${d.getDate()}`,
+      count:rows.length,min:Math.round(rows.reduce((a,s)=>a+(s.seconds||0),0)/60)};
   });
+  const maxC=Math.max(1,...byDay.map(d=>d.count));
+  const maxM=Math.max(1,...byDay.map(d=>d.min));
+  document.getElementById('daily-bars').innerHTML=byDay.map(d=>`
+    <div class="bar-row">
+      <div class="bar-label">${d.label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(d.count/maxC*100)}%;background:var(--cyan)"></div></div>
+      <div class="bar-num">${d.count}回</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(d.min/maxM*100)}%;background:var(--orange)"></div></div>
+      <div class="bar-num">${d.min}分</div>
+    </div>`).join('');
 
-  let filtered=_users.filter(u=>!q||u.username?.toLowerCase().includes(q)||u.full_name?.toLowerCase().includes(q)||u.email?.toLowerCase().includes(q));
+  // Top games by playtime
+  const byGame={};
+  _sessions.forEach(s=>{byGame[s.game]=(byGame[s.game]||0)+(s.seconds||0);});
+  const sorted=Object.entries(byGame).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const maxT=sorted[0]?.[1]||1;
+  const COLORS=['#00d4aa','#3b82f6','#a78bfa','#ffd700','#4ade80','#f87171','#fb923c','#e879f9','#22d3ee','#a3e635'];
+  document.getElementById('time-bars').innerHTML=sorted.length?sorted.map(([g,sec],i)=>`
+    <div class="bar-row">
+      <div class="bar-label">${esc(gname(g))}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(sec/maxT*100)}%;background:${COLORS[i%COLORS.length]}"></div></div>
+      <div class="bar-num">${fmtDur(sec)}</div>
+    </div>`).join(''):`<div class="empty">データなし</div>`;
 
-  filtered.sort((a,b)=>{
-    if(sort==='created_at_desc')return(b.created_at||'').localeCompare(a.created_at||'');
-    if(sort==='created_at_asc')return(a.created_at||'').localeCompare(b.created_at||'');
-    if(sort==='games_desc')return((byUser[b.id]?.games||0)-(byUser[a.id]?.games||0));
+  // Recent sessions
+  const recent=_sessions.slice(0,10);
+  document.getElementById('recent-tbody').innerHTML=recent.length?recent.map(s=>`
+    <tr>
+      <td>${esc(gname(s.game))}</td>
+      <td style="color:${s.username?'var(--cyan)':'var(--dim2)'}">${s.username?'@'+esc(s.username):'ゲスト'}</td>
+      <td style="color:var(--orange)">${fmtDur(s.seconds)}</td>
+      <td style="color:var(--dim)">${fmtDT(s.started_at)}</td>
+    </tr>`).join(''):`<tr><td colspan="4" class="empty">データなし</td></tr>`;
+}
+
+// ── Users ────────────────────────────────────────────────────────
+function userAgg(){
+  const wl={},sess={};
+  _userRatings.forEach(r=>{
+    if(!wl[r.user_id])wl[r.user_id]={games:0,wins:0,losses:0,draws:0};
+    wl[r.user_id].games+=r.wins+r.losses+r.draws;
+    wl[r.user_id].wins+=r.wins;wl[r.user_id].losses+=r.losses;wl[r.user_id].draws+=r.draws;
+  });
+  _sessions.forEach(s=>{
+    if(!s.user_id)return;
+    if(!sess[s.user_id])sess[s.user_id]={count:0,sec:0};
+    sess[s.user_id].count++;sess[s.user_id].sec+=s.seconds||0;
+  });
+  return{wl,sess};
+}
+
+function renderUsers(){
+  const q=(document.getElementById('user-search')?.value||'').toLowerCase();
+  const sort=document.getElementById('user-sort')?.value||'created_desc';
+  const{wl,sess}=userAgg();
+  let rows=_users.filter(u=>!q||
+    u.username?.toLowerCase().includes(q)||
+    u.full_name?.toLowerCase().includes(q)||
+    u.email?.toLowerCase().includes(q));
+  rows.sort((a,b)=>{
+    if(sort==='created_desc')return(b.created_at||'').localeCompare(a.created_at||'');
+    if(sort==='created_asc')return(a.created_at||'').localeCompare(b.created_at||'');
+    if(sort==='time_desc')return((sess[b.id]?.sec||0)-(sess[a.id]?.sec||0));
+    if(sort==='sessions_desc')return((sess[b.id]?.count||0)-(sess[a.id]?.count||0));
+    if(sort==='games_desc')return((wl[b.id]?.games||0)-(wl[a.id]?.games||0));
     return(a.username||'').localeCompare(b.username||'');
   });
-
   const tbody=document.getElementById('user-tbody');
-  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="10" class="empty">該当ユーザなし</td></tr>`;return;}
-
+  if(!rows.length){tbody.innerHTML=`<tr><td colspan="10" class="empty">該当ユーザなし</td></tr>`;return;}
   const weekAgo=new Date(Date.now()-7*86400000).toISOString();
-  tbody.innerHTML=filtered.map((u,i)=>{
-    const s=byUser[u.id]||{games:0,wins:0,losses:0,draws:0,rCount:0};
+  tbody.innerHTML=rows.map((u,i)=>{
+    const w=wl[u.id]||{games:0,wins:0,losses:0,draws:0};
+    const s=sess[u.id]||{count:0,sec:0};
     const isNew=u.created_at>=weekAgo;
-    return `<tr>
+    return`<tr class="clickable" onclick="showUserDetail('${u.id}')">
       <td style="color:var(--dim2)">${i+1}</td>
       <td class="mono" style="color:var(--cyan)">${esc(u.username||'-')}</td>
       <td>${esc(u.full_name||'-')}</td>
       <td style="color:var(--dim)">${esc(u.email||'-')}</td>
-      <td style="color:var(--dim)">${u.birth_date?u.birth_date.replace(/-/g,'/'):'–'}</td>
-      <td style="color:var(--dim)">${u.created_at?u.created_at.slice(0,10):'–'} ${isNew?'<span class="pill pill-green">NEW</span>':''}</td>
-      <td style="color:var(--yellow);font-weight:bold">${s.games}</td>
-      <td style="color:var(--dim)"><span style="color:var(--green)">${s.wins}</span> / <span style="color:var(--red)">${s.losses}</span> / ${s.draws}</td>
-      <td style="color:var(--purple)">${s.rCount}</td>
+      <td style="color:var(--dim)">${u.created_at?u.created_at.slice(0,10):'–'}</td>
+      <td style="color:var(--yellow);font-weight:bold">${s.count}</td>
+      <td style="color:var(--orange)">${s.count?fmtDur(s.sec):'–'}</td>
+      <td>${w.games}</td>
+      <td style="color:var(--dim)"><span style="color:var(--green)">${w.wins}</span> / <span style="color:var(--red)">${w.losses}</span> / ${w.draws}</td>
       <td><span class="pill ${isNew?'pill-green':'pill-gray'}">${isNew?'新規':'既存'}</span></td>
     </tr>`;
   }).join('');
 }
 
-// ── Game Stats ────────────────────────────────────
-async function loadGameStats(){
-  const [userRatings,ratings]=await Promise.all([
-    sb('/rest/v1/user_ratings?select=game,wins,losses,draws,rating,user_id&limit=5000'),
-    sb('/rest/v1/ratings?select=game,stars&limit=5000')
-  ]);
-  _userRatings=userRatings||[];
-  _ratings=ratings||[];
+function exportUsersCSV(){
+  const{wl,sess}=userAgg();
+  const head=['ユーザID','氏名','メール','生年月日','登録日','利用回数','利用時間(分)','対戦数','勝','敗','引'];
+  const lines=[head.join(',')];
+  _users.forEach(u=>{
+    const w=wl[u.id]||{games:0,wins:0,losses:0,draws:0};
+    const s=sess[u.id]||{count:0,sec:0};
+    const cell=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+    lines.push([u.username,u.full_name,u.email,u.birth_date,
+      u.created_at?.slice(0,10),s.count,Math.round(s.sec/60),
+      w.games,w.wins,w.losses,w.draws].map(cell).join(','));
+  });
+  const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`arcade_users_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();URL.revokeObjectURL(a.href);
+}
 
-  // Aggregate by game
+// ── User detail modal ────────────────────────────────────────────
+function showUserDetail(uid){
+  const u=_users.find(x=>x.id===uid);
+  if(!u)return;
+  document.getElementById('modal-title').textContent=`@${u.username||'?'} — ${u.full_name||''}`;
+  const myWL=_userRatings.filter(r=>r.user_id===uid);
+  const mySess=_sessions.filter(s=>s.user_id===uid);
+  const totSec=mySess.reduce((a,s)=>a+(s.seconds||0),0);
+  const totG=myWL.reduce((a,r)=>a+r.wins+r.losses+r.draws,0);
+  document.getElementById('modal-kpis').innerHTML=`
+    <div class="mk"><div class="mk-l">登録日</div><div class="mk-v" style="font-size:.8rem">${u.created_at?u.created_at.slice(0,10):'–'}</div></div>
+    <div class="mk"><div class="mk-l">利用回数</div><div class="mk-v yellow">${mySess.length}</div></div>
+    <div class="mk"><div class="mk-l">利用時間</div><div class="mk-v orange" style="font-size:.85rem">${fmtDur(totSec)}</div></div>
+    <div class="mk"><div class="mk-l">対戦数</div><div class="mk-v cyan">${totG}</div></div>`;
+  // per-game rows: union of games in sessions + W/L records
+  const games={};
+  mySess.forEach(s=>{
+    if(!games[s.game])games[s.game]={count:0,sec:0,w:0,l:0,d:0,rating:null};
+    games[s.game].count++;games[s.game].sec+=s.seconds||0;
+  });
+  myWL.forEach(r=>{
+    if(!games[r.game])games[r.game]={count:0,sec:0,w:0,l:0,d:0,rating:null};
+    games[r.game].w=r.wins;games[r.game].l=r.losses;games[r.game].d=r.draws;
+    games[r.game].rating=r.rating;
+  });
+  const rows=Object.entries(games).sort((a,b)=>b[1].sec-a[1].sec);
+  document.getElementById('modal-tbody').innerHTML=rows.length?rows.map(([g,d])=>`
+    <tr>
+      <td>${esc(gname(g))}</td>
+      <td style="color:var(--yellow)">${d.count}</td>
+      <td style="color:var(--orange)">${d.count?fmtDur(d.sec):'–'}</td>
+      <td style="color:var(--green)">${d.w}</td>
+      <td style="color:var(--red)">${d.l}</td>
+      <td>${d.d}</td>
+      <td style="color:var(--purple)">${d.rating??'–'}</td>
+    </tr>`).join(''):`<tr><td colspan="7" class="empty">プレイ記録なし</td></tr>`;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+// ── Games tab ────────────────────────────────────────────────────
+function renderGames(){
   const byGame={};
+  const ensure=g=>{if(!byGame[g])byGame[g]={sess:0,sec:0,users:new Set(),guest:0,plays:0,w:0,l:0,d:0,sSum:0,sCnt:0};return byGame[g];};
+  _sessions.forEach(s=>{
+    const d=ensure(s.game);
+    d.sess++;d.sec+=s.seconds||0;
+    if(s.user_id)d.users.add(s.user_id);else d.guest++;
+  });
   _userRatings.forEach(r=>{
-    if(!byGame[r.game])byGame[r.game]={plays:0,wins:0,losses:0,draws:0,rSum:0,rCnt:0,users:new Set()};
-    byGame[r.game].plays+=r.wins+r.losses+r.draws;
-    byGame[r.game].wins+=r.wins;byGame[r.game].losses+=r.losses;byGame[r.game].draws+=r.draws;
-    byGame[r.game].rSum+=r.rating;byGame[r.game].rCnt++;
-    byGame[r.game].users.add(r.user_id);
+    const d=ensure(r.game);
+    d.plays+=r.wins+r.losses+r.draws;d.w+=r.wins;d.l+=r.losses;d.d+=r.draws;
+    d.users.add(r.user_id);
   });
-  const byGameStar={};
-  _ratings.forEach(r=>{
-    if(!byGameStar[r.game])byGameStar[r.game]={sum:0,cnt:0};
-    byGameStar[r.game].sum+=r.stars;byGameStar[r.game].cnt++;
-  });
+  _ratings.forEach(r=>{const d=ensure(r.game);d.sSum+=r.stars;d.sCnt++;});
 
-  // KPI
-  let totalGames=0;Object.values(byGame).forEach(g=>totalGames+=g.plays);
-  let totalRatings=0;Object.values(byGameStar).forEach(g=>totalRatings+=g.cnt);
-  document.getElementById('kpi-games').textContent=totalGames;
-  document.getElementById('kpi-ratings').textContent=totalRatings;
-
-  // Bar chart: plays
-  const sortedPlay=Object.entries(byGame).sort((a,b)=>b[1].plays-a[1].plays);
-  const maxPlay=sortedPlay[0]?.[1]?.plays||1;
   const COLORS=['#00d4aa','#3b82f6','#a78bfa','#ffd700','#4ade80','#f87171','#fb923c','#e879f9','#22d3ee','#a3e635'];
-  document.getElementById('game-bars').innerHTML=sortedPlay.length?sortedPlay.map(([g,d],i)=>`
+  const bySess=Object.entries(byGame).sort((a,b)=>b[1].sess-a[1].sess);
+  const maxS=Math.max(1,bySess[0]?.[1]?.sess||0);
+  document.getElementById('game-bars').innerHTML=bySess.length?bySess.map(([g,d],i)=>`
     <div class="bar-row">
-      <div class="bar-label">${GAME_NAMES[g]||g}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(d.plays/maxPlay*100)}%;background:${COLORS[i%COLORS.length]}"></div></div>
-      <div class="bar-num">${d.plays}</div>
+      <div class="bar-label">${esc(gname(g))}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(d.sess/maxS*100)}%;background:${COLORS[i%COLORS.length]}"></div></div>
+      <div class="bar-num">${d.sess}</div>
     </div>`).join(''):`<div class="empty">データなし</div>`;
 
-  // Bar chart: star ratings
-  const sortedStar=Object.entries(byGameStar).sort((a,b)=>(b[1].sum/b[1].cnt)-(a[1].sum/a[1].cnt));
-  const renderStars=v=>'★'.repeat(Math.round(v))+'☆'.repeat(5-Math.round(v));
-  document.getElementById('rating-bars').innerHTML=sortedStar.length?sortedStar.map(([g,d],i)=>{
-    const avg=d.sum/d.cnt;
+  const byStar=Object.entries(byGame).filter(([,d])=>d.sCnt>0)
+    .sort((a,b)=>(b[1].sSum/b[1].sCnt)-(a[1].sSum/a[1].sCnt));
+  document.getElementById('rating-bars').innerHTML=byStar.length?byStar.map(([g,d])=>{
+    const avg=d.sSum/d.sCnt;
     return`<div class="bar-row">
-      <div class="bar-label">${GAME_NAMES[g]||g}</div>
+      <div class="bar-label">${esc(gname(g))}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${Math.round(avg/5*100)}%;background:var(--yellow)"></div></div>
-      <div class="bar-num">${avg.toFixed(1)}</div>
+      <div class="bar-num">${avg.toFixed(1)} ★</div>
     </div>`;}).join(''):`<div class="empty">データなし</div>`;
 
-  // Table
   const tbody=document.getElementById('game-tbody');
-  if(!sortedPlay.length){tbody.innerHTML=`<tr><td colspan="9" class="empty">データなし</td></tr>`;return;}
-  tbody.innerHTML=sortedPlay.map(([g,d])=>{
-    const star=byGameStar[g];
-    const avgR=d.rCnt?Math.round(d.rSum/d.rCnt):'-';
-    const avgS=star?star.sum/star.cnt:null;
+  if(!bySess.length){tbody.innerHTML=`<tr><td colspan="10" class="empty">データなし</td></tr>`;return;}
+  const renderStars=v=>'★'.repeat(Math.round(v))+'☆'.repeat(5-Math.round(v));
+  tbody.innerHTML=bySess.map(([g,d])=>{
+    const avgS=d.sCnt?d.sSum/d.sCnt:null;
     return`<tr>
-      <td style="color:var(--text);font-weight:bold">${GAME_NAMES[g]||g}</td>
-      <td style="color:var(--yellow);font-weight:bold">${d.plays}</td>
-      <td style="color:var(--cyan)">${d.users.size}</td>
-      <td style="color:var(--green)">${d.wins}</td>
-      <td style="color:var(--red)">${d.losses}</td>
-      <td>${d.draws}</td>
-      <td style="color:var(--purple)">${avgR}</td>
-      <td style="color:var(--dim)">${star?star.cnt:0}</td>
+      <td style="font-weight:bold">${esc(gname(g))}</td>
+      <td style="color:var(--yellow);font-weight:bold">${d.sess}</td>
+      <td style="color:var(--orange)">${d.sess?fmtDur(d.sec):'–'}</td>
+      <td style="color:var(--cyan)">${d.users.size}${d.guest?` <span style="color:var(--dim2)">+ゲスト${d.guest}</span>`:''}</td>
+      <td>${d.plays}</td>
+      <td style="color:var(--green)">${d.w}</td>
+      <td style="color:var(--red)">${d.l}</td>
+      <td>${d.d}</td>
+      <td style="color:var(--dim)">${d.sCnt}</td>
       <td class="stars">${avgS?avgS.toFixed(1)+' '+renderStars(avgS):'–'}</td>
     </tr>`;
   }).join('');
 }
 
-// ── Rooms ─────────────────────────────────────────
-async function loadRooms(){
-  _rooms=await sb('/rest/v1/rooms?select=id,game,status,state,updated_at,created_at&order=updated_at.desc&limit=100')||[];
-  const active=_rooms.filter(r=>r.status==='playing').length;
-  document.getElementById('kpi-rooms').textContent=active;
-  filterRooms();
+// ── Sessions tab ─────────────────────────────────────────────────
+function renderSessionFilters(){
+  const sel=document.getElementById('sess-game');
+  const cur=sel.value||'all';
+  const games=[...new Set(_sessions.map(s=>s.game))].sort();
+  sel.innerHTML=`<option value="all">全ゲーム</option>`+
+    games.map(g=>`<option value="${esc(g)}">${esc(gname(g))}</option>`).join('');
+  sel.value=games.includes(cur)?cur:'all';
+}
+function renderSessions(){
+  const g=document.getElementById('sess-game')?.value||'all';
+  const u=document.getElementById('sess-user')?.value||'all';
+  let rows=_sessions;
+  if(g!=='all')rows=rows.filter(s=>s.game===g);
+  if(u==='user')rows=rows.filter(s=>s.user_id);
+  if(u==='guest')rows=rows.filter(s=>!s.user_id);
+  rows=rows.slice(0,500);
+  const tbody=document.getElementById('sess-tbody');
+  if(!rows.length){tbody.innerHTML=`<tr><td colspan="5" class="empty">データなし</td></tr>`;return;}
+  tbody.innerHTML=rows.map((s,i)=>`
+    <tr>
+      <td style="color:var(--dim2)">${i+1}</td>
+      <td>${esc(gname(s.game))}</td>
+      <td style="color:${s.username?'var(--cyan)':'var(--dim2)'}">${s.username?'@'+esc(s.username):'ゲスト'}</td>
+      <td style="color:var(--orange)">${fmtDur(s.seconds)}</td>
+      <td style="color:var(--dim)">${fmtDT(s.started_at)}</td>
+    </tr>`).join('');
 }
 
-function filterRooms(){
+// ── Rooms tab ────────────────────────────────────────────────────
+function renderRooms(){
   const f=document.getElementById('room-filter')?.value||'all';
   const rows=f==='all'?_rooms:_rooms.filter(r=>r.status===f);
   const tbody=document.getElementById('room-tbody');
@@ -491,53 +729,61 @@ function filterRooms(){
   tbody.innerHTML=rows.map(r=>{
     const since=r.created_at?Math.floor((now-new Date(r.created_at))/60000):null;
     const elapsed=since===null?'–':since<60?`${since}分前`:`${Math.floor(since/60)}時間${since%60}分前`;
-    const updated=r.updated_at?r.updated_at.slice(0,16).replace('T',' '):'–';
-    const created=r.created_at?r.created_at.slice(0,16).replace('T',' '):'–';
     const pill=r.status==='playing'?'pill-green':r.status==='waiting'?'pill-yellow':'pill-gray';
     return`<tr>
       <td class="mono" style="color:var(--cyan);letter-spacing:2px">${esc(r.id)}</td>
-      <td>${GAME_NAMES[r.game]||esc(r.game||'–')}</td>
+      <td>${esc(gname(r.game))}</td>
       <td><span class="pill ${pill}">${esc(r.status||'–')}</span></td>
-      <td style="color:var(--dim)">${created}</td>
-      <td style="color:var(--dim)">${updated}</td>
+      <td style="color:var(--dim)">${fmtDT(r.created_at)}</td>
+      <td style="color:var(--dim)">${fmtDT(r.updated_at)}</td>
       <td style="color:var(--dim2)">${elapsed}</td>
     </tr>`;
   }).join('');
 }
 
-// ── Ratings data ──────────────────────────────────
-async function loadRatingsData(){
-  const rows=await sb('/rest/v1/ratings?select=game,stars,created_at&order=created_at.desc&limit=200')||[];
-  _ratings=rows;
+async function cleanupRooms(){
+  if(!confirm('最終更新から24時間以上経過したルームを削除します。よろしいですか？'))return;
+  try{
+    const cutoff=new Date(Date.now()-24*3600000).toISOString();
+    const deleted=await sbDelete(`/rest/v1/rooms?updated_at=lt.${cutoff}`);
+    alert(`${(deleted||[]).length}件のルームを削除しました`);
+    loadAll();
+  }catch(e){alert('削除に失敗しました: '+e.message);}
+}
+
+// ── Ratings tab ──────────────────────────────────────────────────
+function renderRatings(){
+  const rows=_ratings.slice(0,200);
   const tbody=document.getElementById('ratings-tbody');
-  if(!rows.length){tbody.innerHTML=`<tr><td colspan="4" class="empty">データなし</td></tr>`;return;}
-  tbody.innerHTML=rows.map((r,i)=>{
-    const stars='★'.repeat(r.stars)+'☆'.repeat(5-r.stars);
-    const dt=r.created_at?r.created_at.slice(0,16).replace('T',' '):'–';
-    return`<tr>
+  if(!rows.length){tbody.innerHTML=`<tr><td colspan="6" class="empty">データなし</td></tr>`;return;}
+  tbody.innerHTML=rows.map((r,i)=>`
+    <tr>
       <td style="color:var(--dim2)">${i+1}</td>
-      <td>${GAME_NAMES[r.game]||esc(r.game||'–')}</td>
-      <td class="stars">${stars} <span style="color:var(--dim);font-size:.65rem">(${r.stars})</span></td>
-      <td style="color:var(--dim)">${dt}</td>
-    </tr>`;
-  }).join('');
+      <td>${esc(gname(r.game))}</td>
+      <td class="stars">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)} <span style="color:var(--dim);font-size:.65rem">(${r.stars})</span></td>
+      <td style="color:${r.username?'var(--cyan)':'var(--dim2)'}">${r.username?'@'+esc(r.username):'–'}</td>
+      <td class="cmt">${r.comment?esc(r.comment):'–'}</td>
+      <td style="color:var(--dim)">${fmtDT(r.created_at)}</td>
+    </tr>`).join('');
 }
 
-// ── Tabs ──────────────────────────────────────────
+// ── Tabs ─────────────────────────────────────────────────────────
 function showTab(name){
-  document.querySelectorAll('.tab').forEach((el,i)=>{
-    const names=['users','games','rooms','ratings'];
-    el.classList.toggle('act',names[i]===name);
-  });
-  document.querySelectorAll('.tab-panel').forEach(el=>{
-    el.classList.toggle('act',el.id==='tab-'+name);
-  });
+  document.querySelectorAll('.tab').forEach(el=>el.classList.toggle('act',el.dataset.tab===name));
+  document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('act',el.id==='tab-'+name));
 }
 
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-// Auto-refresh every 60 seconds
-setInterval(()=>{if(sessionStorage.getItem('arcade_admin')==='1')loadAll();},60000);
+// ── Auto refresh ─────────────────────────────────────────────────
+let autoRef=true;
+function toggleAutoRef(){
+  autoRef=!autoRef;
+  const b=document.getElementById('autoref-btn');
+  b.textContent=autoRef?'⏱ 自動更新 ON':'⏱ 自動更新 OFF';
+  b.classList.toggle('on',autoRef);
+}
+setInterval(()=>{
+  if(autoRef&&sessionStorage.getItem('arcade_admin')==='1')loadAll();
+},60000);
 </script>
 </body>
 </html>
