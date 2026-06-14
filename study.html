@@ -144,6 +144,10 @@
     .explanation .exp-table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.76rem;}
     .explanation .exp-table th,.explanation .exp-table td{border:1px solid var(--line2);padding:6px 9px;text-align:left;}
     .explanation .exp-table th{background:#171723;color:var(--accent);}
+    /* tables embedded in question / explanation (玉手箱 表の空欄推測 等) */
+    .q-text .qtable,.explanation .qtable{border-collapse:collapse;margin:12px 0;font-size:.82rem;}
+    .q-text .qtable th,.q-text .qtable td,.explanation .qtable th,.explanation .qtable td{border:1px solid var(--line2);padding:6px 12px;text-align:center;}
+    .q-text .qtable th,.explanation .qtable th{background:#171723;color:var(--accent);}
     /* grade buttons */
     .grade-label{font-size:.68rem;color:var(--dim2);letter-spacing:2px;margin:20px 0 9px;text-align:center;}
     .grades{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
@@ -187,6 +191,8 @@
   <script src="study-data-ext-tgweb-num.js"></script>
   <script src="study-data-ext-tgweb-verb.js"></script>
   <script src="study-data-ext-tgweb-eng.js"></script>
+  <script src="study-data-ext-tgweb-num2.js"></script>
+  <script src="study-data-ext-tama-num2.js"></script>
 </head>
 <body>
 <button id="lang-btn">EN</button>

@@ -31,13 +31,13 @@ window.STUDY_META = {
   'spi-eng':   { ja:'SPI 英語', en:'SPI English',      short:'英語',   color:'#60a5fa', icon:'🔤',
     desc:{ ja:'同意語・反意語・文法・長文読解（ENG）。', en:'Synonyms, antonyms, grammar and reading (ENG).' } },
   'tama-num':  { ja:'玉手箱 計数', en:'Tamatebako Numerical', short:'計数', color:'#fbbf24', icon:'🧮',
-    desc:{ ja:'四則逆算・図表の読み取り。スピード勝負。', en:'Reverse arithmetic and table reading. A speed test.' } },
+    desc:{ ja:'四則逆算・図表の読み取り・表の空欄推測。1形式の反復でスピード勝負。', en:'Reverse arithmetic, table reading, blank-cell inference. A speed test.' } },
   'tama-verb': { ja:'玉手箱 言語', en:'Tamatebako Verbal', short:'言語', color:'#f59e0b', icon:'📖',
     desc:{ ja:'論理的読解(GAB)・趣旨判断(IMAGES)。', en:'Logical reading (GAB) and gist judgement (IMAGES).' } },
   'tama-eng':  { ja:'玉手箱 英語', en:'Tamatebako English', short:'英語', color:'#fb923c', icon:'🔤',
     desc:{ ja:'英語の論理的読解・長文読解。', en:'English logical reading and comprehension.' } },
   'tgweb-num': { ja:'TG-WEB 計数', en:'TG-WEB Numerical', short:'計数', color:'#a78bfa', icon:'🧩',
-    desc:{ ja:'数列・推論・暗号・図形など思考力重視。', en:'Sequences, logic, ciphers, figures.' } },
+    desc:{ ja:'図形(積み木・立方体・サイコロ)・暗号・数列・場合の数。思考力重視の難問。', en:'Figures (blocks, cubes, dice), ciphers, sequences, counting. Hard.' } },
   'tgweb-verb':{ ja:'TG-WEB 言語', en:'TG-WEB Verbal', short:'言語', color:'#c084fc', icon:'📖',
     desc:{ ja:'骨のある長文読解・並べ替え・空欄補充。', en:'Dense reading, ordering, fill-in-the-blank.' } },
   'tgweb-eng': { ja:'TG-WEB 英語', en:'TG-WEB English', short:'英語', color:'#818cf8', icon:'🔤',
@@ -662,7 +662,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 暗号は「<b>2つの例から規則を逆算</b>」が基本。数字なら五十音順・アルファベット順・逆順・ずらし（シフト）を疑います。</p>`
 },
 {
-  id:'tgweb-zukei-001', cat:'tgweb-num', topic:'図形（面積）', diff:2, type:'num',
+  id:'tgweb-zukei-001', cat:'spi-num', topic:'図形（面積）', diff:2, type:'num',
   q:`1辺6cmの正方形の中に、半径3cmの円がぴったり収まっている（内接している）。正方形の面積から円の面積を引いた値はいくらか。円周率は3.14とする。（単位：平方cm）`,
   answer:7.74, unit:'cm²',
   exp:`<p>正方形の面積 = 6 × 6 = 36 cm²。</p>
@@ -703,7 +703,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 「かつて」「現在」などの<b>時を表す語</b>と、「しかし」「その結果」の<b>接続語</b>が並べ替えの最大の手がかり。</p>`
 },
 {
-  id:'tgweb-keisan-001', cat:'tgweb-num', topic:'計数（新型・利益）', diff:1, type:'num',
+  id:'tgweb-keisan-001', cat:'spi-num', topic:'計数（新型・利益）', diff:1, type:'num',
   q:`ある商品は1個あたりの利益が250円である。今月は1,200個売れた。今月のこの商品の利益総額はいくらか。（単位：円）`,
   answer:300000, unit:'円',
   exp:`<p>利益総額 = 1個あたり利益 × 販売個数。</p>
