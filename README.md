@@ -1,16 +1,26 @@
 # claude
 repository for claude
 
+GitHub Pages で配信される PWA。入口（ポータル）で **ARCADE（ゲーム）** と
+**STUDY（就活対策）** の2つに分かれています。
+
+- 入口ポータル: `index.html`（ARCADE / STUDY を選ぶメニュー）
+- ARCADE（ゲーム一覧）: `arcade.html`
+- STUDY（就活対策）: `study.html`
+- 管理者画面: `admin.html`（登録ユーザ・利用回数・利用時間・評価などを表示）
+
+ARCADE と STUDY はユーザー視点で独立したアプリですが、ログインアカウント
+（`users` テーブル / `arcade_user`）は共通です。
+
 ## ARCADE
 
-GitHub Pages で配信されるブラウザゲーム集（PWA対応）。
-
-- ユーザ画面: `index.html`
-- 管理者画面: `admin.html`（登録ユーザ・利用回数・利用時間・評価などを表示）
+`arcade.html` はブラウザゲーム集（リバーシ・将棋・麻雀・カードゲーム等）。各ゲームの
+「← ARCADE」はこのゲーム一覧へ戻ります。
 
 ## STUDY — 就活対策トレーニング
 
-`study.html` は、就職活動の適性検査・面接対策を行う学習アプリです。トップページ（`index.html`）上部のバナーから入れます。
+`study.html` は、就職活動の適性検査・面接対策を行う学習アプリです。ポータル（`index.html`）
+の「STUDY」、または直接 `study.html` から入れます。
 
 - **対応分野**: SPI（言語・非言語）／玉手箱／TG-WEB／ケース面接／フェルミ推定
 - **問題バンク**: `study-data.js`（多数の問題＋充実した解説。選択式・数値入力・自己採点式）
