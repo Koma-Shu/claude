@@ -139,7 +139,7 @@
 //  玉手箱 (tama) 言語・英語 追加 12問
 // ════════════════════════════════════════════════════════════════════════
   {
-    id:'tama-v-x01', cat:'tama', topic:'論理的読解（GAB形式）', diff:2, type:'mc',
+    id:'tama-v-x01', cat:'tama-verb', topic:'論理的読解（GAB形式）', diff:2, type:'mc',
     q:`次の文章を読み、設問の文がどれにあたるか選べ。<br>
        <i>「当社の本社は東京にあり、社員数はおよそ500人である。昨年、大阪に新しい支社を開設した。」</i><br>
        <b>設問:「当社は大阪に支社を持っている。」</b>`,
@@ -149,7 +149,7 @@
        <p class="tip">▶ GABはA:正しい／B:誤り／C:判断できない。本文に直接書かれた事実を言い換えただけの設問はAです。</p>`
   },
   {
-    id:'tama-v-x02', cat:'tama', topic:'論理的読解（GAB形式）', diff:2, type:'mc',
+    id:'tama-v-x02', cat:'tama-verb', topic:'論理的読解（GAB形式）', diff:2, type:'mc',
     q:`次の文章を読み、設問の文がどれにあたるか選べ。<br>
        <i>「当社の本社は東京にあり、社員数はおよそ500人である。昨年、大阪に新しい支社を開設した。」</i><br>
        <b>設問:「当社の社員数はちょうど500人である。」</b>`,
@@ -159,7 +159,7 @@
        <p class="tip">▶ 「およそ・約・主に・多くの」を「ちょうど・すべて・〜だけ」と言い換えた設問は、本文より強い断定なのでB（誤り）になりがちです。</p>`
   },
   {
-    id:'tama-v-x03', cat:'tama', topic:'論理的読解（GAB形式）', diff:2, type:'mc',
+    id:'tama-v-x03', cat:'tama-verb', topic:'論理的読解（GAB形式）', diff:2, type:'mc',
     q:`次の文章を読み、設問の文がどれにあたるか選べ。<br>
        <i>「当社の本社は東京にあり、社員数はおよそ500人である。昨年、大阪に新しい支社を開設した。」</i><br>
        <b>設問:「大阪支社には100人の社員が勤務している。」</b>`,
@@ -169,7 +169,7 @@
        <p class="tip">▶ GABの鉄則:本文に書いていない数値・事実はC。常識や推測で人数を当てはめてA/Bにしてはいけません。</p>`
   },
   {
-    id:'tama-v-x04', cat:'tama', topic:'論理的読解（GAB形式）', diff:3, type:'mc',
+    id:'tama-v-x04', cat:'tama-verb', topic:'論理的読解（GAB形式）', diff:3, type:'mc',
     q:`次の文章を読み、設問の文がどれにあたるか選べ。<br>
        <i>「このカフェは平日の朝7時に開店し、夜10時に閉店する。週末は終日休業である。」</i><br>
        <b>設問:「このカフェは日曜日の昼に営業している。」</b>`,
@@ -179,7 +179,7 @@
        <p class="tip">▶ 「週末＝土日」「終日＝一日中」のように本文の語の意味から論理的に導けるものはA/B判定できます。「日曜の昼」も「週末・終日休業」に含まれるためBです。</p>`
   },
   {
-    id:'tama-v-x05', cat:'tama', topic:'論理的読解（GAB形式）', diff:2, type:'mc',
+    id:'tama-v-x05', cat:'tama-verb', topic:'論理的読解（GAB形式）', diff:2, type:'mc',
     q:`次の文章を読み、設問の文がどれにあたるか選べ。<br>
        <i>「ある調査によると、リモートワークを導入した企業の多くで、通勤時間の削減により従業員の自由時間が増えたと報告されている。」</i><br>
        <b>設問:「リモートワークを導入したすべての企業で、従業員の自由時間が増えた。」</b>`,
@@ -189,7 +189,7 @@
        <p class="tip">▶ 「多く・一部・主に」を「すべて・全員」に置き換えた設問は過剰一般化でB。量的な言葉のすり替えに注意しましょう。</p>`
   },
   {
-    id:'tama-v-x06', cat:'tama', topic:'趣旨判断（IMAGES形式）', diff:2, type:'mc',
+    id:'tama-v-x06', cat:'tama-verb', topic:'趣旨判断（IMAGES形式）', diff:2, type:'mc',
     q:`次の文章で筆者が最も訴えたいこと（趣旨）に最も近いものを選べ。<br>
        <i>「便利な検索ツールのおかげで、私たちは知りたいことをすぐに調べられるようになった。だが、すぐに答えが手に入る環境は、自分の頭でじっくり考える機会を奪ってもいる。便利さの裏側にある代償にも目を向けるべきだ。」</i>`,
     choices:['検索ツールは使うべきではない','便利さには見落とされがちな代償があることに目を向けるべきだ','自分で考えるより検索した方が効率的だ','情報は多ければ多いほどよい'], answer:1,
@@ -199,7 +199,7 @@
        <p class="tip">▶ 「だが・しかし」の後＝主張、「べきだ」＝筆者の提言。前半の便利さの肯定に引っ張られて選ばないこと。</p>`
   },
   {
-    id:'tama-v-x07', cat:'tama', topic:'趣旨判断（IMAGES形式）', diff:3, type:'mc',
+    id:'tama-v-x07', cat:'tama-verb', topic:'趣旨判断（IMAGES形式）', diff:3, type:'mc',
     q:`次の文章で筆者が最も訴えたいこと（趣旨）に最も近いものを選べ。<br>
        <i>「失敗を避けようとするあまり、新しい挑戦を一切しない人がいる。確かに失敗は痛みを伴う。しかし、失敗から学べることは、成功からは決して得られないほど大きい。失敗を恐れずに挑戦する姿勢こそが、人を成長させるのだ。」</i>`,
     choices:['失敗は避けるべき痛みでしかない','失敗を恐れず挑戦する姿勢が人を成長させる','成功からしか学べることはない','挑戦せず安定を選ぶのが賢明だ'], answer:1,
@@ -209,7 +209,7 @@
        <p class="tip">▶ 「こそ」は筆者が最も強調したい部分のサイン。逆接「しかし」とあわせて主張を特定します。</p>`
   },
   {
-    id:'tama-v-x08', cat:'tama', topic:'英語（論理的読解）', diff:2, type:'mc',
+    id:'tama-v-x08', cat:'tama-eng', topic:'英語（論理的読解）', diff:2, type:'mc',
     q:`Read the passage and decide whether the statement is true, false, or cannot be determined.<br>
        <i>"The museum opened in 1985 and welcomes visitors every day except Mondays. Admission is free for children under the age of twelve."</i><br>
        <b>Statement: "The museum is closed on Mondays."</b>`,
@@ -219,7 +219,7 @@
        <p class="tip">▶ "except"（〜を除いて）は重要キーワード。"every day except Mondays" は「月曜だけは開いていない」と論理的に判定できます。</p>`
   },
   {
-    id:'tama-v-x09', cat:'tama', topic:'英語（論理的読解）', diff:2, type:'mc',
+    id:'tama-v-x09', cat:'tama-eng', topic:'英語（論理的読解）', diff:2, type:'mc',
     q:`Read the passage and decide whether the statement is true, false, or cannot be determined.<br>
        <i>"The museum opened in 1985 and welcomes visitors every day except Mondays. Admission is free for children under the age of twelve."</i><br>
        <b>Statement: "Adults must pay an admission fee."</b>`,
@@ -229,7 +229,7 @@
        <p class="tip">▶ "free for children under twelve" は子どもの話のみ。大人について書かれていない以上、推測でTrueにせずCannot sayを選びます。</p>`
   },
   {
-    id:'tama-v-x10', cat:'tama', topic:'英語（論理的読解）', diff:3, type:'mc',
+    id:'tama-v-x10', cat:'tama-eng', topic:'英語（論理的読解）', diff:3, type:'mc',
     q:`Read the passage and decide whether the statement is true, false, or cannot be determined.<br>
        <i>"All employees at this office start work at nine in the morning. Mr. Tanaka is an employee at this office."</i><br>
        <b>Statement: "Mr. Tanaka starts work at nine in the morning."</b>`,
@@ -239,7 +239,7 @@
        <p class="tip">▶ 「全員がXである」＋「Aはそのメンバーだ」→「AもXである」という三段論法はTrue。"all" を含む全称命題は論理的に導ける典型です。</p>`
   },
   {
-    id:'tama-v-x11', cat:'tama', topic:'英語（長文読解）', diff:2, type:'mc',
+    id:'tama-v-x11', cat:'tama-eng', topic:'英語（長文読解）', diff:2, type:'mc',
     q:`Read the passage and answer the question.<br>
        <i>"Online courses allow students to learn at their own pace and from anywhere. However, they require strong self-discipline, as there is no teacher physically present to keep students on track."</i><br>
        <b>Question: According to the passage, what is a drawback of online courses?</b>`,
@@ -250,7 +250,7 @@
        <p class="tip">▶ "However" の後ろに筆者が指摘する難点（drawback）が来ます。設問が drawback を問うなら逆接の後を読むのが定石です。</p>`
   },
   {
-    id:'tama-v-x12', cat:'tama', topic:'英語（長文読解）', diff:3, type:'mc',
+    id:'tama-v-x12', cat:'tama-eng', topic:'英語（長文読解）', diff:3, type:'mc',
     q:`Read the passage and answer the question.<br>
        <i>"The report shows that the city's population grew steadily from 2010 to 2020. The main reason was an increase in young families moving into newly built residential areas near the station."</i><br>
        <b>Question: According to the passage, why did the city's population grow?</b>`,

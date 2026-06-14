@@ -1,4 +1,4 @@
-const CACHE = 'arcade-v3.10';
+const CACHE = 'arcade-v3.11';
 
 // Base path of the SW (e.g. '/claude/' on GitHub Pages, '/' on root)
 const BASE = self.location.pathname.replace(/sw\.js$/, '');
@@ -38,6 +38,13 @@ const GAME_FILES = [
   'study-data-verbal.js',
   'study-data-calc.js',
   'study-data-open.js',
+  'study-data-ext-spi.js',
+  'study-data-ext-tama-num.js',
+  'study-data-ext-tama-verb.js',
+  'study-data-ext-tama-eng.js',
+  'study-data-ext-tgweb-num.js',
+  'study-data-ext-tgweb-verb.js',
+  'study-data-ext-tgweb-eng.js',
   'manifest.json',
   'icon-192.png',
   'icon-512.png',

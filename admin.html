@@ -383,6 +383,13 @@ td.mono{font-family:'Courier New',monospace;}
 <script src="study-data-verbal.js"></script>
 <script src="study-data-calc.js"></script>
 <script src="study-data-open.js"></script>
+<script src="study-data-ext-spi.js"></script>
+<script src="study-data-ext-tama-num.js"></script>
+<script src="study-data-ext-tama-verb.js"></script>
+<script src="study-data-ext-tama-eng.js"></script>
+<script src="study-data-ext-tgweb-num.js"></script>
+<script src="study-data-ext-tgweb-verb.js"></script>
+<script src="study-data-ext-tgweb-eng.js"></script>
 <script>
 const SB_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SB_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
@@ -510,7 +517,7 @@ function renderStudy(){
   const totalProblems=(window.STUDY_DATA||[]).length;
   const catTotal={}; (window.STUDY_DATA||[]).forEach(p=>{catTotal[p.cat]=(catTotal[p.cat]||0)+1;});
   const uname={}; _users.forEach(u=>{uname[u.id]=u.username;});
-  const catLabel=t=>(META[t]?(META[t].short||META[t].ja):t);
+  const catLabel=t=>(META[t]?(META[t].ja||META[t].short):t);
 
   const learners=new Set();
   const perUser={}, perCat={};

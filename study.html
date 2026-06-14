@@ -51,7 +51,14 @@
     .sec-title{font-size:.72rem;letter-spacing:3px;color:var(--dim);margin:6px 0 14px;display:flex;align-items:center;gap:10px;}
     .sec-title::after{content:"";flex:1;height:1px;background:var(--line);}
     /* track grid */
-    .tracks{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:30px;}
+    .tracks{margin-bottom:30px;}
+    .group{margin-bottom:26px;}
+    .group-head{display:flex;align-items:center;gap:10px;padding:6px 2px 9px;border-bottom:1px solid var(--line);margin-bottom:14px;}
+    .group-icon{font-size:1.25rem;}
+    .group-name{font-size:1.05rem;font-weight:bold;letter-spacing:3px;}
+    .group-prog{margin-left:auto;font-size:.68rem;color:var(--dim2);letter-spacing:1px;}
+    .group-prog .due{color:var(--warn);}
+    .tracks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
     .track{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;transition:border-color .2s,transform .2s;}
     .track:hover{border-color:#444;transform:translateY(-3px);}
     .track-top{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
@@ -173,6 +180,13 @@
   <script src="study-data-verbal.js"></script>
   <script src="study-data-calc.js"></script>
   <script src="study-data-open.js"></script>
+  <script src="study-data-ext-spi.js"></script>
+  <script src="study-data-ext-tama-num.js"></script>
+  <script src="study-data-ext-tama-verb.js"></script>
+  <script src="study-data-ext-tama-eng.js"></script>
+  <script src="study-data-ext-tgweb-num.js"></script>
+  <script src="study-data-ext-tgweb-verb.js"></script>
+  <script src="study-data-ext-tgweb-eng.js"></script>
 </head>
 <body>
 <button id="lang-btn">EN</button>
@@ -265,6 +279,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const META = window.STUDY_META, TRACKS = window.STUDY_TRACKS, DATA = window.STUDY_DATA;
+const GROUPS = window.STUDY_GROUPS;
 const ALL_IDS = DATA.map(p=>p.id);
 const BY_ID = {}; DATA.forEach(p=>BY_ID[p.id]=p);
 const NEW_PER_SESSION = 8, SESSION_MAX = 20, REVIEW_MAX = 40;
@@ -432,29 +447,45 @@ function renderDash(){
   renderHeatmap();
 }
 
+function trackCardHTML(t, st){
+  const m = META[t], ids = trackIds(t);
+  const c = st.byCat[t] || {total:ids.length,studied:0,mastered:0,due:0,newCount:ids.length};
+  const due = SRS.dueList(ids).length;
+  const fresh = SRS.newList(ids).length;
+  const pct = c.total? Math.round(c.studied/c.total*100):0;
+  const mpct = c.total? Math.round(c.mastered/c.total*100):0;
+  const name = (m.short || m.ja);
+  const desc = (m.desc&&m.desc[lang])||'';
+  return `<div class="track">
+    <div class="track-top"><span class="track-icon">${m.icon}</span><span class="track-name" style="color:${m.color}">${name}</span></div>
+    <div class="track-desc">${desc}</div>
+    <div class="bar"><div style="width:${pct}%;background:${m.color}"></div></div>
+    <div class="track-meta">
+      <span>${T('trkProg')(c.studied,c.total)}</span>
+      <span>${due? `<span class="due">${T('trkDue')(due)}</span>`:''} ${mpct?('🏅'+mpct+'%'):''}</span>
+    </div>
+    <div class="track-btns">
+      <button class="t-btn solid" data-learn="${t}" ${(due+fresh)?'':'disabled'}>${T('learn')}</button>
+      <button class="t-btn" data-review="${t}" ${due?'':'disabled'}>${T('review')}${due?(' '+due):''}</button>
+    </div>
+  </div>`;
+}
+
 function renderTracks(st){
   const wrap = $('tracks');
-  wrap.innerHTML = TRACKS.map(t=>{
-    const m = META[t], ids = trackIds(t);
-    const c = st.byCat[t] || {total:ids.length,studied:0,mastered:0,due:0,newCount:ids.length};
-    const due = SRS.dueList(ids).length;
-    const fresh = SRS.newList(ids).length;
-    const pct = c.total? Math.round(c.studied/c.total*100):0;
-    const mpct = c.total? Math.round(c.mastered/c.total*100):0;
-    const name = lang==='ja'? m.ja : m.en;
-    const desc = (m.desc&&m.desc[lang])||'';
-    return `<div class="track">
-      <div class="track-top"><span class="track-icon">${m.icon}</span><span class="track-name">${name}</span></div>
-      <div class="track-desc">${desc}</div>
-      <div class="bar"><div style="width:${pct}%;background:${m.color}"></div></div>
-      <div class="track-meta">
-        <span>${T('trkProg')(c.studied,c.total)}</span>
-        <span>${due? `<span class="due">${T('trkDue')(due)}</span>`:''} ${mpct?('🏅'+mpct+'%'):''}</span>
+  const dueLbl = lang==='ja'?'復習':'Due';
+  wrap.innerHTML = GROUPS.map(g=>{
+    let gtot=0, gstud=0, gdue=0;
+    g.cats.forEach(t=>{ const ids=trackIds(t); const c=st.byCat[t]; gtot+=ids.length; gstud+=(c?c.studied:0); gdue+=SRS.dueList(ids).length; });
+    const gname = lang==='ja'? g.ja : (g.en||g.ja);
+    const cards = g.cats.map(t=>trackCardHTML(t, st)).join('');
+    return `<div class="group">
+      <div class="group-head">
+        <span class="group-icon">${g.icon||''}</span>
+        <span class="group-name" style="color:${g.color}">${gname}</span>
+        <span class="group-prog">${gstud} / ${gtot}${gdue? ' · <span class="due">'+dueLbl+' '+gdue+'</span>':''}</span>
       </div>
-      <div class="track-btns">
-        <button class="t-btn solid" data-learn="${t}" ${(due+fresh)?'':'disabled'}>${T('learn')}</button>
-        <button class="t-btn" data-review="${t}" ${due?'':'disabled'}>${T('review')}${due?(' '+due):''}</button>
-      </div>
+      <div class="tracks-grid">${cards}</div>
     </div>`;
   }).join('');
   wrap.querySelectorAll('[data-learn]').forEach(b=>b.onclick=()=>{
@@ -583,7 +614,7 @@ function renderQuestion(){
   $('sess-prog-bar').style.width = Math.round(S.i/S.total*100)+'%';
   $('sess-count').textContent = (S.i+1)+' / '+S.total;
   const m=META[p.cat];
-  const catName = lang==='ja'?(m.short||m.ja):m.en;
+  const catName = lang==='ja'? m.ja : m.en;
   let body = `<div class="q-head">
       <span class="q-badge cat">${m.icon} ${catName}</span>
       <span class="q-badge">${p.topic}</span>
