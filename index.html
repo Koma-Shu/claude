@@ -109,6 +109,15 @@
     .sort-btn:hover { border-color:#555; color:#aaa; }
     .sort-btn.active { border-color:#00d4aa; color:#00d4aa; background:rgba(0,212,170,0.07); }
     #no-results { color:#333; letter-spacing:3px; font-size:0.75rem; text-align:center; padding:40px; display:none; width:100%; }
+    /* Study app launcher banner */
+    #study-banner { display:flex; align-items:center; gap:16px; width:100%; max-width:760px; margin-bottom:30px; background:linear-gradient(135deg,#10202a,#13131f); border:1px solid #1c3a36; border-radius:12px; padding:16px 22px; text-decoration:none; color:#eee; transition:transform .2s, border-color .2s, box-shadow .2s; }
+    #study-banner:hover { border-color:#2fd6b0; transform:translateY(-2px); box-shadow:0 10px 30px rgba(0,0,0,0.4); }
+    #study-banner .sb-icon { font-size:2rem; }
+    #study-banner .sb-text { flex:1; display:flex; flex-direction:column; gap:3px; }
+    #study-banner .sb-text b { font-size:1rem; letter-spacing:1px; color:#00d4aa; }
+    #study-banner .sb-text span { font-size:0.7rem; color:#888; letter-spacing:1px; }
+    #study-banner .sb-go { font-size:0.78rem; letter-spacing:2px; color:#00d4aa; border:1px solid #00d4aa; border-radius:6px; padding:7px 13px; white-space:nowrap; }
+    @media(max-width:560px){ #study-banner .sb-go { display:none; } #study-banner { gap:12px; padding:14px 16px; } }
   </style>
   <script src="sound.js"></script>
 </head>
@@ -118,6 +127,12 @@
 <div id="auth-area"></div>
 <h1>ARCADE</h1>
 <p class="subtitle" id="subtitle">SELECT YOUR GAME</p>
+
+<a href="study.html" id="study-banner">
+  <span class="sb-icon">🎓</span>
+  <span class="sb-text"><b id="sb-title">就活対策トレーニング</b><span id="sb-sub">SPI・玉手箱・TG-WEB・ケース面接・フェルミ推定</span></span>
+  <span class="sb-go">START →</span>
+</a>
 
 <div id="search-sort">
   <input type="text" id="game-search" placeholder="SEARCH…" autocomplete="off">
@@ -602,6 +617,8 @@
 const ITEXT = {
   ja: {
     subtitle: 'SELECT YOUR GAME',
+    sbTitle: '就活対策トレーニング',
+    sbSub: 'SPI・玉手箱・TG-WEB・ケース面接・フェルミ推定',
     descSnake: 'クラシックなスネークゲーム。エサを食べるほどヘビが成長する。壁や自分の体に当たるとゲームオーバー。',
     descSymbiont: '光と闇、2つの生命体を同時に操作する唯一無二のゲーム。糸で繋がれた2体を天敵から守りながら栄養を集めろ。',
     descReversi: 'クラシックなリバーシ（オセロ）。相手の石を挑んでひっくり返せ。CPU 対戦＆オンライン 2P に対応。時間制限・投了機能付き。',
@@ -668,6 +685,8 @@ const ITEXT = {
   },
   en: {
     subtitle: 'SELECT YOUR GAME',
+    sbTitle: 'Job-Hunt Aptitude Trainer',
+    sbSub: 'SPI · Tamatebako · TG-WEB · Case Interview · Fermi',
     descSnake: 'Classic snake game. Eat food to grow longer. Hit walls or your own body and it\'s game over.',
     descSymbiont: 'Control two life forms simultaneously in this unique game. Protect two creatures linked by a thread from predators while collecting nutrients.',
     descReversi: 'Classic Reversi (Othello). Flank opponent\'s pieces to flip them. CPU battle & Online 2P with time controls and resign function.',
@@ -741,6 +760,8 @@ function T(k) { return ITEXT[lang][k] || ITEXT.ja[k] || k; }
 function applyLang() {
   document.getElementById('lang-btn').textContent = lang === 'ja' ? 'EN' : 'JA';
   document.getElementById('subtitle').textContent = T('subtitle');
+  document.getElementById('sb-title').textContent = T('sbTitle');
+  document.getElementById('sb-sub').textContent = T('sbSub');
   document.getElementById('desc-snake').textContent = T('descSnake');
   document.getElementById('desc-symbiont').textContent = T('descSymbiont');
   document.getElementById('desc-reversi').textContent = T('descReversi');
