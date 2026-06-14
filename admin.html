@@ -170,6 +170,7 @@ td.mono{font-family:'Courier New',monospace;}
       <button class="tab act" data-tab="overview" onclick="showTab('overview')">概要</button>
       <button class="tab" data-tab="users" onclick="showTab('users')">ユーザ管理</button>
       <button class="tab" data-tab="games" onclick="showTab('games')">ゲーム統計</button>
+      <button class="tab" data-tab="study" onclick="showTab('study')">STUDY 学習</button>
       <button class="tab" data-tab="sessions" onclick="showTab('sessions')">セッション</button>
       <button class="tab" data-tab="rooms" onclick="showTab('rooms')">ルーム</button>
       <button class="tab" data-tab="ratings" onclick="showTab('ratings')">評価</button>
@@ -324,6 +325,39 @@ td.mono{font-family:'Courier New',monospace;}
       </div>
     </div>
 
+    <!-- ── Tab: Study ── -->
+    <div class="tab-panel" id="tab-study">
+      <div class="kpi-grid" id="study-kpis"><div class="loading">読み込み中…</div></div>
+      <div class="two-col">
+        <div class="section">
+          <div class="sec-hd"><span class="sec-title">分野別 延べ学習項目数（ユーザ×問題）</span></div>
+          <div id="study-cat-bars" class="bar-list"><div class="loading">読み込み中…</div></div>
+        </div>
+        <div class="section">
+          <div class="sec-hd"><span class="sec-title">分野別 正答率</span></div>
+          <div id="study-acc-bars" class="bar-list"><div class="loading">読み込み中…</div></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="sec-hd"><span class="sec-title">ユーザ別 学習状況（STUDY）</span><button class="refresh-btn" onclick="loadAll()">↻</button></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>ユーザ</th><th>学習問題数</th><th>総解答数</th><th>正答率</th><th>定着</th><th>最終学習</th></tr></thead>
+            <tbody id="study-user-tbody"><tr><td colspan="7" class="loading">読み込み中…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="section">
+        <div class="sec-hd"><span class="sec-title">分野別 詳細集計</span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>分野</th><th>学習者数</th><th>学習済問題</th><th>カバー率</th><th>延べ学習</th><th>総解答</th><th>正答率</th><th>定着</th></tr></thead>
+            <tbody id="study-cat-tbody"><tr><td colspan="8" class="loading">読み込み中…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -344,6 +378,7 @@ td.mono{font-family:'Courier New',monospace;}
   </div>
 </div>
 
+<script src="study-data.js"></script>
 <script>
 const SB_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SB_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
@@ -400,7 +435,16 @@ function openDashboard(){
   document.getElementById('dashboard').style.display='block';
   startClock();loadAll();
 }
-if(sessionStorage.getItem('arcade_admin')==='1')openDashboard();
+// Grant access automatically when the MENU-logged-in user is "admin"
+// (in addition to the password gate, which remains for direct access).
+function loggedInUser(){try{return JSON.parse(localStorage.getItem('arcade_user')||'null');}catch{return null;}}
+(function(){
+  const u=loggedInUser();
+  if(sessionStorage.getItem('arcade_admin')==='1' || (u&&u.username==='admin')){
+    sessionStorage.setItem('arcade_admin','1');
+    openDashboard();
+  }
+})();
 
 function startClock(){
   const el=document.getElementById('hd-time');
@@ -434,23 +478,108 @@ function fmtDur(sec){
 function fmtDT(iso){return iso?iso.slice(0,16).replace('T',' '):'–';}
 
 // ── Data cache ───────────────────────────────────────────────────
-let _users=[],_userRatings=[],_ratings=[],_rooms=[],_sessions=[];
+let _users=[],_userRatings=[],_ratings=[],_rooms=[],_sessions=[],_study=[];
 
 async function loadAll(){
   fetchErr=false;
-  [_users,_userRatings,_ratings,_rooms,_sessions]=await Promise.all([
+  [_users,_userRatings,_ratings,_rooms,_sessions,_study]=await Promise.all([
     sb('/rest/v1/users?select=id,username,full_name,birth_date,created_at,email&order=created_at.desc&limit=500'),
     sb('/rest/v1/user_ratings?select=user_id,game,wins,losses,draws,rating&limit=5000'),
     sb('/rest/v1/ratings?select=game,stars,comment,username,created_at&order=created_at.desc&limit=2000'),
     sb('/rest/v1/rooms?select=id,game,status,updated_at,created_at&order=updated_at.desc&limit=100'),
     sb('/rest/v1/play_sessions?select=game,user_id,username,seconds,started_at&order=started_at.desc&limit=2000'),
+    sb('/rest/v1/study_progress?select=user_id,item_id,attempts,correct,interval_days,reps,lapses,last_reviewed&limit=20000'),
   ]);
   document.getElementById('load-err').textContent=
-    fetchErr?'⚠ 一部データの取得に失敗しました（play_sessions テーブル未作成の場合は supabase_migrate_v2.sql を実行してください）':'';
+    fetchErr?'⚠ 一部データの取得に失敗しました（テーブル未作成の場合: ゲーム利用記録は supabase_migrate_v2.sql、STUDY 学習記録は supabase_migrate_v3.sql を実行してください）':'';
   document.getElementById('last-upd').textContent=
     '最終更新: '+new Date().toLocaleTimeString('ja-JP',{hour12:false});
-  renderKPIs();renderOverview();renderUsers();renderGames();
+  renderKPIs();renderOverview();renderUsers();renderGames();renderStudy();
   renderSessionFilters();renderSessions();renderRooms();renderRatings();
+}
+
+// ── Study tab ────────────────────────────────────────────────────
+const STUDY_COLORS=['#00d4aa','#34d399','#ffd700','#a78bfa','#f472b6','#60a5fa','#fb923c','#22d3ee'];
+function renderStudy(){
+  const META=window.STUDY_META||{}, TRACKS=window.STUDY_TRACKS||[];
+  const idx={}; (window.STUDY_DATA||[]).forEach(p=>{idx[p.id]=p;});
+  const totalProblems=(window.STUDY_DATA||[]).length;
+  const catTotal={}; (window.STUDY_DATA||[]).forEach(p=>{catTotal[p.cat]=(catTotal[p.cat]||0)+1;});
+  const uname={}; _users.forEach(u=>{uname[u.id]=u.username;});
+  const catLabel=t=>(META[t]?(META[t].short||META[t].ja):t);
+
+  const learners=new Set();
+  const perUser={}, perCat={};
+  let totAtt=0,totCor=0,mastered=0,studiedItems=0;
+  _study.forEach(r=>{
+    const p=idx[r.item_id]; const cat=p?p.cat:'?';
+    const att=r.attempts||0, cor=r.correct||0, isM=(r.interval_days||0)>=21;
+    learners.add(r.user_id); totAtt+=att; totCor+=cor; if(isM)mastered++; studiedItems++;
+    const pu=perUser[r.user_id]||(perUser[r.user_id]={items:0,att:0,cor:0,mast:0,last:null});
+    pu.items++; pu.att+=att; pu.cor+=cor; if(isM)pu.mast++;
+    if(r.last_reviewed&&(!pu.last||r.last_reviewed>pu.last))pu.last=r.last_reviewed;
+    const pc=perCat[cat]||(perCat[cat]={items:0,att:0,cor:0,mast:0,learners:new Set(),itemSet:new Set()});
+    pc.items++; pc.att+=att; pc.cor+=cor; if(isM)pc.mast++; pc.learners.add(r.user_id); pc.itemSet.add(r.item_id);
+  });
+  const acc=totAtt?Math.round(totCor/totAtt*100):null;
+
+  // KPIs
+  document.getElementById('study-kpis').innerHTML=[
+    ['学習者数',learners.size,'cyan','STUDYを利用したユーザ'],
+    ['延べ学習項目',studiedItems,'blue','ユーザ×問題の学習レコード'],
+    ['総解答数',totAtt,'yellow','全ユーザの解答回数'],
+    ['平均正答率',acc==null?'–':acc+'%','green','正答 / 解答'],
+    ['定着',mastered,'purple','復習間隔21日以上に到達'],
+    ['登録問題数',totalProblems,'orange','問題バンクの総数'],
+  ].map(([l,v,c,s])=>`<div class="kpi"><div class="kpi-label">${esc(l)}</div><div class="kpi-val ${c}">${v}</div><div class="kpi-sub">${esc(s)}</div></div>`).join('');
+
+  // category bars (volume + accuracy)
+  const cats=TRACKS.filter(t=>perCat[t]);
+  const maxItems=Math.max(1,...cats.map(t=>perCat[t].items));
+  document.getElementById('study-cat-bars').innerHTML=cats.length?cats.map((t,i)=>`
+    <div class="bar-row">
+      <div class="bar-label">${esc(catLabel(t))}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(perCat[t].items/maxItems*100)}%;background:${STUDY_COLORS[i%STUDY_COLORS.length]}"></div></div>
+      <div class="bar-num">${perCat[t].items}</div>
+    </div>`).join(''):`<div class="empty">データなし</div>`;
+  document.getElementById('study-acc-bars').innerHTML=cats.length?cats.map(t=>{
+    const d=perCat[t], a=d.att?d.cor/d.att*100:0;
+    return`<div class="bar-row">
+      <div class="bar-label">${esc(catLabel(t))}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(a)}%;background:var(--green)"></div></div>
+      <div class="bar-num">${d.att?Math.round(a)+'%':'–'}</div>
+    </div>`;}).join(''):`<div class="empty">データなし</div>`;
+
+  // per-user table
+  const utbody=document.getElementById('study-user-tbody');
+  const urows=Object.entries(perUser).sort((a,b)=>b[1].items-a[1].items);
+  utbody.innerHTML=urows.length?urows.map(([uid,d],i)=>{
+    const a=d.att?Math.round(d.cor/d.att*100):null;
+    return`<tr>
+      <td style="color:var(--dim2)">${i+1}</td>
+      <td class="mono" style="color:${uname[uid]?'var(--cyan)':'var(--dim2)'}">${uname[uid]?'@'+esc(uname[uid]):esc((uid||'?').slice(0,8))}</td>
+      <td style="color:var(--blue);font-weight:bold">${d.items}</td>
+      <td style="color:var(--yellow)">${d.att}</td>
+      <td style="color:${a!=null&&a>=70?'var(--green)':'var(--text)'}">${a==null?'–':a+'%'}</td>
+      <td style="color:var(--purple)">${d.mast}</td>
+      <td style="color:var(--dim)">${d.last?fmtDT(d.last):'–'}</td>
+    </tr>`;}).join(''):`<tr><td colspan="7" class="empty">STUDYの学習記録がありません</td></tr>`;
+
+  // per-category detail
+  const ctbody=document.getElementById('study-cat-tbody');
+  ctbody.innerHTML=cats.length?cats.map(t=>{
+    const d=perCat[t], a=d.att?Math.round(d.cor/d.att*100):null;
+    const cov=catTotal[t]?Math.round(d.itemSet.size/catTotal[t]*100):0;
+    return`<tr>
+      <td style="font-weight:bold">${esc(catLabel(t))}</td>
+      <td style="color:var(--cyan)">${d.learners.size}</td>
+      <td>${d.itemSet.size} <span style="color:var(--dim2)">/ ${catTotal[t]||0}</span></td>
+      <td style="color:var(--dim)">${cov}%</td>
+      <td style="color:var(--blue)">${d.items}</td>
+      <td style="color:var(--yellow)">${d.att}</td>
+      <td style="color:${a!=null&&a>=70?'var(--green)':'var(--text)'}">${a==null?'–':a+'%'}</td>
+      <td style="color:var(--purple)">${d.mast}</td>
+    </tr>`;}).join(''):`<tr><td colspan="8" class="empty">データなし</td></tr>`;
 }
 
 // ── KPIs ─────────────────────────────────────────────────────────

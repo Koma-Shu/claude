@@ -92,6 +92,15 @@
     .sess-prog{flex:1;height:8px;background:#0a0a14;border-radius:5px;overflow:hidden;}
     .sess-prog>div{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s;}
     .sess-count{font-size:.72rem;color:var(--dim);min-width:48px;text-align:right;}
+    .sess-timer{font-size:.72rem;color:var(--dim);white-space:nowrap;flex-shrink:0;}
+    .sess-timer.over{color:var(--warn);}
+    .sess-timer .t-tgt{color:var(--dim2);}
+    .time-row{margin-top:12px;font-size:.8rem;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 12px;}
+    .time-row b{color:var(--txt);}
+    .time-row .sep{color:var(--dim2);margin:0 5px;}
+    .time-row .judge{margin-left:8px;font-weight:bold;}
+    .time-row.in .judge{color:var(--good);}
+    .time-row.over .judge{color:var(--warn);}
     .q-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;}
     .q-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
     .q-badge{font-size:.62rem;padding:4px 10px;border-radius:20px;border:1px solid var(--line2);color:var(--dim);letter-spacing:1px;}
@@ -231,6 +240,7 @@
     <button class="sess-back" id="sess-back">✕</button>
     <div class="sess-prog"><div id="sess-prog-bar" style="width:0%"></div></div>
     <div class="sess-count" id="sess-count">0 / 0</div>
+    <div class="sess-timer" id="sess-timer"></div>
   </div>
   <div class="q-card" id="q-card"></div>
 </div>
@@ -287,7 +297,8 @@ const L = {
     again:'もう一度', hard:'難しい', good:'できた', easy:'簡単',
     againI:'10分後', next:'次へ', finish:'結果を見る',
     sumH:'セッション完了', sumDone:'お疲れさまでした！',
-    sumSolved:'解答数', sumCorrect:'正答', sumAcc:'正答率',
+    sumSolved:'解答数', sumCorrect:'正答', sumAcc:'正答率', sumAvgTime:'平均時間',
+    target:'目標', timeTaken:'解答時間', inTime:'✓ 目標内', overTime:'⏱ 目標超過',
     sumBack:'ダッシュボードに戻る',
     sumMsg:(a,n)=>`${n}問を学習しました。正答率は <b>${a}%</b>。<br>復習スケジュールに自動で組み込まれました。明日また会いましょう。`,
     submit:'解答', placeholder:'数値を入力',
@@ -321,7 +332,8 @@ const L = {
     again:'Again', hard:'Hard', good:'Good', easy:'Easy',
     againI:'10 min', next:'Next', finish:'See results',
     sumH:'Session complete', sumDone:'Well done!',
-    sumSolved:'Solved', sumCorrect:'Correct', sumAcc:'Accuracy',
+    sumSolved:'Solved', sumCorrect:'Correct', sumAcc:'Accuracy', sumAvgTime:'Avg time',
+    target:'Target', timeTaken:'Time', inTime:'✓ within target', overTime:'⏱ over target',
     sumBack:'Back to dashboard',
     sumMsg:(a,n)=>`Studied ${n} cards · accuracy <b>${a}%</b>.<br>They are scheduled for review. See you tomorrow!`,
     submit:'Submit', placeholder:'Enter a number',
@@ -531,12 +543,34 @@ function show(view){
   window.scrollTo(0,0);
 }
 
+// ── per-question timer (目標解答時間 vs かかった時間) ──────────────────────
+let qTimer=null, qStart=0, qTarget=0;
+// Target solving time (seconds) — per-problem override `p.time`, else by
+// category / topic, scaled by difficulty. Reflects the pace these timed tests
+// actually demand (玉手箱の四則逆算は速さ勝負、TG-WEBは思考重視で長め、など)。
+function targetTime(p){
+  if(p.time) return p.time;
+  if(p.type==='open') return 300;            // ケース/フェルミは目安5分
+  let base = ({'spi-num':75,'spi-verb':50,'tama':40,'tgweb':90})[p.cat] || 60;
+  if(p.cat==='tama') base = /四則逆算/.test(p.topic)?25 : /英語/.test(p.topic)?70 : 45;
+  const mult = p.diff===1?0.85 : p.diff===3?1.25 : 1.0;
+  return Math.max(10, Math.round(base*mult/5)*5);
+}
+function mmss(sec){ sec=Math.max(0,Math.round(sec)); const m=Math.floor(sec/60), s=sec%60; return m+':'+String(s).padStart(2,'0'); }
+function startQTimer(target){ qStart=Date.now(); qTarget=target; updateTimer(); if(qTimer)clearInterval(qTimer); qTimer=setInterval(updateTimer,500); }
+function updateTimer(){
+  const e=Math.round((Date.now()-qStart)/1000); const el=$('sess-timer');
+  if(el){ el.innerHTML='⏱ '+mmss(e)+' <span class="t-tgt">/ '+T('target')+' '+mmss(qTarget)+'</span>'; el.classList.toggle('over', e>qTarget); }
+}
+function stopQTimer(){ if(qTimer){clearInterval(qTimer);qTimer=null;} return Math.max(0,Math.round((Date.now()-qStart)/1000)); }
+function recordTime(){ const el=stopQTimer(); S.lastTime=el; S.lastTarget=qTarget; S.timeSum=(S.timeSum||0)+el; S.timeCnt=(S.timeCnt||0)+1; }
+
 function startSession(ids, mode, track){
   if(!ids || !ids.length) return;            // nothing to study — stay on dashboard
-  S = { queue: ids.slice(), i:0, mode, track, solved:0, correct:0, requeued:new Set(), total:ids.length };
+  S = { queue: ids.slice(), i:0, mode, track, solved:0, correct:0, requeued:new Set(), total:ids.length, timeSum:0, timeCnt:0 };
   show('view-session'); renderQuestion();
 }
-function endSessionToDash(){ S=null; show('view-dash'); renderDash(); }
+function endSessionToDash(){ if(qTimer){clearInterval(qTimer);qTimer=null;} S=null; show('view-dash'); renderDash(); }
 
 $('sess-back').onclick = endSessionToDash;
 
@@ -577,11 +611,13 @@ function renderQuestion(){
   } else {
     $('reveal').onclick=()=>revealOpen(p);
   }
+  startQTimer(targetTime(p));
 }
 
 function parseNum(s){ if(s==null) return NaN; return parseFloat(String(s).replace(/[,，\s%％]/g,'').replace(/[^0-9.\-]/g,'')); }
 
 function answerMC(p, ix){
+  recordTime();
   const ok = ix===p.answer;
   $('choices').querySelectorAll('.choice').forEach((b,i)=>{ b.disabled=true;
     if(i===p.answer) b.classList.add('correct');
@@ -593,6 +629,7 @@ function answerMC(p, ix){
 function submitNum(p){
   const raw=$('num-input').value; const val=parseNum(raw);
   if(isNaN(val)) { $('num-input').focus(); return; }
+  recordTime();
   const tol = p.tolerance!=null? p.tolerance : Math.max(0.01, Math.abs(p.answer)*1e-6);
   const ok = Math.abs(val-p.answer)<=tol;
   $('num-input').disabled=true; const sb=$('num-submit'); if(sb) sb.disabled=true;
@@ -602,6 +639,7 @@ function submitNum(p){
   showResult(p, ok, ok? T('correct'): T('wrong'), ansStr);
 }
 function revealOpen(p){
+  recordTime();
   $('reveal').remove();
   sfx('click');
   showResult(p, null, null, null); // self-graded
@@ -615,6 +653,9 @@ function showResult(p, ok, label, ansStr){
   } else {
     html += `<div class="result neutral">📝 <span>${T('selfCheck')}</span></div>`;
   }
+  // 解答にかかった時間 vs 目標解答時間
+  { const tEl=S.lastTime||0, tgt=S.lastTarget||qTarget, within=tEl<=tgt;
+    html += `<div class="time-row ${within?'in':'over'}">⏱ ${T('timeTaken')}: <b>${mmss(tEl)}</b> <span class="sep">/</span> ${T('target')}: ${mmss(tgt)}<span class="judge">${within?T('inTime'):T('overTime')}</span></div>`; }
   html += `<div class="explanation">${p.exp}</div>`;
   html += `<div class="grade-label">${T('gradeLabel')}</div><div class="grades" id="grades"></div>`;
   post.innerHTML = html;
@@ -651,7 +692,8 @@ function finishSession(){
   $('sum-stats').innerHTML = [
     ['sumSolved', S.solved, 'var(--accent)'],
     ['sumCorrect', S.correct, 'var(--good)'],
-    ['sumAcc', acc+'%', acc>=50?'var(--good)':'var(--warn)']
+    ['sumAcc', acc+'%', acc>=50?'var(--good)':'var(--warn)'],
+    ['sumAvgTime', S.timeCnt? mmss(S.timeSum/S.timeCnt) : '–', 'var(--blue)']
   ].map(([k,v,c])=>`<div class="sum-stat"><div class="v" style="color:${c}">${v}</div><div class="l">${T(k)}</div></div>`).join('');
   $('sum-msg').innerHTML = T('sumMsg')(acc, S.solved);
   show('view-summary');
