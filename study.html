@@ -259,7 +259,7 @@ const NEW_PER_SESSION = 8, SESSION_MAX = 20, REVIEW_MAX = 40;
 const L = {
   ja:{
     subtitle:'適性検査・ケース面接 トレーニング',
-    login:'ログイン', register:'登録', home:'← HOME',
+    login:'ログイン', register:'登録', home:'← HOME', menu:'≡ メニュー', toStudy:'← STUDY',
     greetNew:'ようこそ。まずは1分、始めてみましょう。',
     greetStreak:n=>`<b>${n}日連続</b>で学習中です。この調子！`,
     greetBack:'おかえりなさい。今日も少しずつ。',
@@ -294,7 +294,7 @@ const L = {
   },
   en:{
     subtitle:'Aptitude-test & case-interview trainer',
-    login:'LOGIN', register:'REGISTER', home:'← HOME',
+    login:'LOGIN', register:'REGISTER', home:'← HOME', menu:'≡ MENU', toStudy:'← STUDY',
     greetNew:'Welcome. Start with just one minute.',
     greetStreak:n=>`<b>${n}-day streak</b> — keep it up!`,
     greetBack:'Welcome back. A little every day goes a long way.',
@@ -343,7 +343,7 @@ function renderAuth(){
 function applyChrome(){
   document.documentElement.lang = lang;
   $('lang-btn').textContent = lang==='ja'?'EN':'JA';
-  $('home-btn').textContent = T('home');
+  { const hb=$('home-btn'); hb.textContent=T('menu'); hb.setAttribute('href','index.html'); hb.onclick=null; }
   $('t-subtitle').textContent = T('subtitle');
   $('t-hero-h').textContent = T('heroH');
   $('t-due-unit').textContent = T('dueUnit');
@@ -359,7 +359,12 @@ function applyChrome(){
   $('sum-back').textContent = T('sumBack');
   renderAuth();
 }
-$('lang-btn').addEventListener('click',()=>{ lang = lang==='ja'?'en':'ja'; localStorage.setItem('lang',lang); applyChrome(); renderDash(); });
+$('lang-btn').addEventListener('click',()=>{
+  lang = lang==='ja'?'en':'ja'; localStorage.setItem('lang',lang);
+  applyChrome(); renderDash();                    // refresh dashboard + chrome
+  if(S && curView==='view-session'){ show('view-session'); renderQuestion(); }
+  else if(curView==='view-summary'){ show('view-summary'); }
+});
 
 // ── helpers ────────────────────────────────────────────────────────────────
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
@@ -511,9 +516,23 @@ function renderHeatmap(){
 
 // ── SESSION ────────────────────────────────────────────────────────────────
 let S = null; // session state
-function show(view){ ['view-dash','view-session','view-summary'].forEach(v=>{ $(v).style.display = (v===view)?'':'none'; }); window.scrollTo(0,0); }
+let curView = 'view-dash';
+function show(view){
+  curView = view;
+  // NOTE: use an explicit 'block' — '' would fall back to the CSS rule
+  // (#view-session/#view-summary are display:none by default), hiding the view.
+  ['view-dash','view-session','view-summary'].forEach(v=>{ $(v).style.display = (v===view)?'block':'none'; });
+  // HOME button is context-aware: portal from the dashboard, back-to-STUDY from a session.
+  const hb=$('home-btn');
+  if(hb){
+    if(view==='view-dash'){ hb.textContent=T('menu'); hb.setAttribute('href','index.html'); hb.onclick=null; }
+    else { hb.textContent=T('toStudy'); hb.setAttribute('href','#'); hb.onclick=function(e){ if(e)e.preventDefault(); endSessionToDash(); }; }
+  }
+  window.scrollTo(0,0);
+}
 
 function startSession(ids, mode, track){
+  if(!ids || !ids.length) return;            // nothing to study — stay on dashboard
   S = { queue: ids.slice(), i:0, mode, track, solved:0, correct:0, requeued:new Set(), total:ids.length };
   show('view-session'); renderQuestion();
 }
