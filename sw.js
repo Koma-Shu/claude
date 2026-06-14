@@ -1,4 +1,4 @@
-const CACHE = 'arcade-v3.9';
+const CACHE = 'arcade-v3.10';
 
 // Base path of the SW (e.g. '/claude/' on GitHub Pages, '/' on root)
 const BASE = self.location.pathname.replace(/sw\.js$/, '');
@@ -34,6 +34,10 @@ const GAME_FILES = [
   'study.html',
   'srs.js',
   'study-data.js',
+  'study-data-spinum.js',
+  'study-data-verbal.js',
+  'study-data-calc.js',
+  'study-data-open.js',
   'manifest.json',
   'icon-192.png',
   'icon-512.png',
