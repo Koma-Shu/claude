@@ -36,6 +36,9 @@
     .app-card.study:hover{border-color:#34d399;}
     .app-card.study .app-title{color:#34d399;}
     .app-card.study .app-go{background:linear-gradient(135deg,#34d399,#0d9488);color:#001a16;}
+    .app-card.admin:hover{border-color:#fb923c;}
+    .app-card.admin .app-title{color:#fb923c;}
+    .app-card.admin .app-go{background:linear-gradient(135deg,#fb923c,#b45309);color:#1a0f00;}
     .footnote{color:#3a3a48;font-size:0.66rem;letter-spacing:1px;margin-top:42px;text-align:center;}
     @media(max-width:560px){ h1{font-size:1.6rem;letter-spacing:6px;} .app-desc{min-height:0;} }
   </style>
@@ -72,6 +75,16 @@
     <div class="app-desc" id="desc-study">就活対策トレーニング。SPI・玉手箱・TG-WEB・ケース面接・フェルミ推定。忘却曲線に基づく間隔反復で記憶を定着。</div>
     <div class="app-go" id="go-study">学ぶ →</div>
   </a>
+
+  <a href="admin.html" class="app-card admin" id="admin-card" style="display:none">
+    <div class="app-icon">🛠️</div>
+    <div class="app-title">ADMIN</div>
+    <div class="app-tags">
+      <span class="app-tag" id="tag-d1">管理者</span>
+    </div>
+    <div class="app-desc" id="desc-admin">管理者ダッシュボード。ユーザー・利用状況・STUDY の学習データを可視化。</div>
+    <div class="app-go" id="go-admin">開く →</div>
+  </a>
 </div>
 
 <p class="footnote" id="footnote">PWA 対応 — ホーム画面に追加できます。</p>
@@ -83,12 +96,14 @@ const T_ = {
     descArcade:'ブラウザゲーム集。リバーシ・将棋・麻雀・カードゲームなど多数。CPU対戦・ローカル/オンライン2P対応。', goArcade:'遊ぶ →',
     tagS1:'就活対策', tagS2:'適性検査', tagS3:'面接',
     descStudy:'就活対策トレーニング。SPI・玉手箱・TG-WEB・ケース面接・フェルミ推定。忘却曲線に基づく間隔反復で記憶を定着。', goStudy:'学ぶ →',
+    tagD1:'管理者', descAdmin:'管理者ダッシュボード。ユーザー・利用状況・STUDY の学習データを可視化。', goAdmin:'開く →',
     login:'ログイン', register:'登録', footnote:'PWA 対応 — ホーム画面に追加できます。' },
   en:{ subtitle:'SELECT AN APP', lead:'Two apps — play and study. One shared account.',
     tagA1:'Games', tagA2:'Versus', tagA3:'CPU / Online',
     descArcade:'A collection of browser games: Reversi, Shogi, Mahjong, card games and more. CPU, local & online 2P.', goArcade:'PLAY →',
     tagS1:'Job hunt', tagS2:'Aptitude', tagS3:'Interview',
     descStudy:'Aptitude-test & case-interview trainer: SPI, Tamatebako, TG-WEB, case & Fermi. Spaced repetition for lasting memory.', goStudy:'LEARN →',
+    tagD1:'Admin', descAdmin:'Admin dashboard — users, usage and STUDY learning analytics.', goAdmin:'OPEN →',
     login:'LOGIN', register:'REGISTER', footnote:'PWA ready — add to your home screen.' }
 };
 let lang = localStorage.getItem('lang') || 'ja';
@@ -103,6 +118,7 @@ function applyLang(){
   set('desc-arcade','descArcade'); set('go-arcade','goArcade');
   set('tag-s1','tagS1'); set('tag-s2','tagS2'); set('tag-s3','tagS3');
   set('desc-study','descStudy'); set('go-study','goStudy');
+  set('tag-d1','tagD1'); set('desc-admin','descAdmin'); set('go-admin','goAdmin');
 }
 function renderAuth(){
   const u = JSON.parse(localStorage.getItem('arcade_user') || 'null');
@@ -110,6 +126,9 @@ function renderAuth(){
   area.innerHTML = u
     ? `<a href="profile.html" class="auth-btn primary">@${u.username}</a>`
     : `<a href="login.html" class="auth-btn">${T('login')}</a><a href="register.html" class="auth-btn primary">${T('register')}</a>`;
+  // The admin dashboard card is only shown to the user named "admin".
+  const ac = document.getElementById('admin-card');
+  if (ac) ac.style.display = (u && u.username === 'admin') ? 'flex' : 'none';
 }
 document.getElementById('lang-btn').addEventListener('click', ()=>{
   lang = lang==='ja' ? 'en' : 'ja';
