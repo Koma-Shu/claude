@@ -5,7 +5,7 @@
   //  玉手箱 計数 (tama) — 四則逆算 8問 + 図表の読み取り 6問
   // ════════════════════════════════════════════════════════════════════════
   {
-    id:'tama-c-x01', cat:'tama', topic:'四則逆算', diff:1, type:'num',
+    id:'tama-c-x01', cat:'tama-num', topic:'四則逆算', diff:1, type:'num',
     q:`□に入る数を求めよ。<br><b>□ × 16 = 864</b>`,
     answer:54,
     exp:`<p>掛け算の逆＝<b>割り算</b>で求めます。</p>
@@ -14,7 +14,7 @@
          <p class="tip">▶「□×A=B → □=B÷A」を反射的に。玉手箱の四則逆算は1問十数秒の速さ勝負です。</p>`
   },
   {
-    id:'tama-c-x02', cat:'tama', topic:'四則逆算', diff:1, type:'num',
+    id:'tama-c-x02', cat:'tama-num', topic:'四則逆算', diff:1, type:'num',
     q:`□に入る数を求めよ。<br><b>□ ÷ 24 = 18</b>`,
     answer:432,
     exp:`<p>割り算の逆＝<b>掛け算</b>。割られる数（□）を求めます。</p>
@@ -23,7 +23,7 @@
          <p class="tip">▶「□÷A=B → □=B×A」。□が割られる数のときは掛け算に直します。</p>`
   },
   {
-    id:'tama-c-x03', cat:'tama', topic:'四則逆算（分数）', diff:2, type:'num',
+    id:'tama-c-x03', cat:'tama-num', topic:'四則逆算（分数）', diff:2, type:'num',
     q:`□に入る数を求めよ。<br><b>□ × 3/8 = 51</b>`,
     answer:136,
     exp:`<p>分数を掛ける式の逆は、<b>逆数を掛ける</b>（＝割る）です。</p>
@@ -32,7 +32,7 @@
          <p class="tip">▶ 分数で割る＝<b>逆数を掛ける</b>。3/8 で割るなら 8/3 を掛けます。</p>`
   },
   {
-    id:'tama-c-x04', cat:'tama', topic:'四則逆算', diff:2, type:'num',
+    id:'tama-c-x04', cat:'tama-num', topic:'四則逆算', diff:2, type:'num',
     q:`□に入る数を求めよ。<br><b>720 ÷ □ = 15</b>`,
     answer:48,
     exp:`<p>割る数（□）を求めるときは「A÷□=B → □=A÷B」。</p>
@@ -41,7 +41,7 @@
          <p class="tip">▶ □の位置（割られる数か割る数か）で式変形が変わります。割る数が□なら A÷B。</p>`
   },
   {
-    id:'tama-c-x05', cat:'tama', topic:'四則逆算（小数）', diff:2, type:'num',
+    id:'tama-c-x05', cat:'tama-num', topic:'四則逆算（小数）', diff:2, type:'num',
     q:`□に入る数を求めよ。<br><b>□ × 0.45 = 27</b>`,
     answer:60,
     exp:`<p>掛け算の逆＝割り算。□ = 27 ÷ 0.45。</p>
@@ -50,7 +50,7 @@
          <p class="tip">▶ 小数の割り算は、割る数が整数になるよう<b>同じ数を掛けて</b>から計算すると速いです。</p>`
   },
   {
-    id:'tama-c-x06', cat:'tama', topic:'四則逆算（複合）', diff:2, type:'num',
+    id:'tama-c-x06', cat:'tama-num', topic:'四則逆算（複合）', diff:2, type:'num',
     q:`□に入る数を求めよ。<br><b>( □ + 15 ) × 4 = 140</b>`,
     answer:20,
     exp:`<p>外側の計算から順にほどきます。まず ×4 の逆＝÷4。</p>
@@ -60,7 +60,7 @@
          <p class="tip">▶ ( )つきの式は<b>外側の演算から逆算</b>。最後にした計算を最初に戻します。</p>`
   },
   {
-    id:'tama-c-x07', cat:'tama', topic:'四則逆算（複合）', diff:2, type:'num',
+    id:'tama-c-x07', cat:'tama-num', topic:'四則逆算（複合）', diff:2, type:'num',
     q:`□に入る数を求めよ。<br><b>( □ − 8 ) ÷ 6 = 13</b>`,
     answer:86,
     exp:`<p>外側の ÷6 の逆＝×6。□ − 8 = 13 × 6 = 78。</p>
@@ -69,7 +69,7 @@
          <p class="tip">▶「最後にした計算から順に逆をかける」。÷の逆は×、−の逆は＋。</p>`
   },
   {
-    id:'tama-c-x08', cat:'tama', topic:'四則逆算（複合）', diff:3, type:'num',
+    id:'tama-c-x08', cat:'tama-num', topic:'四則逆算（複合）', diff:3, type:'num',
     q:`□に入る数を求めよ。<br><b>□ × 0.6 − 12 = 60</b>`,
     answer:120,
     exp:`<p>後ろの −12 を先に戻します。□ × 0.6 = 60 + 12 = 72。</p>
@@ -78,7 +78,7 @@
          <p class="tip">▶ 加減と乗除が混じる式は、<b>足し引きを先に戻して</b>から掛け割りを逆算します。</p>`
   },
   {
-    id:'tama-c-x09', cat:'tama', topic:'図表の読み取り（構成比）', diff:1, type:'num',
+    id:'tama-c-x09', cat:'tama-num', topic:'図表の読み取り（構成比）', diff:1, type:'num',
     q:`ある店の1日の来客数は 4,000 人だった。そのうち 25% が会員だったとき、会員の来客数は何人か。（単位：人）`,
     answer:1000, unit:'人',
     exp:`<p>構成比（割合）×全体＝実数。</p>
@@ -87,7 +87,7 @@
          <p class="tip">▶「25%＝1/4」のように<b>割合を分数に直す</b>と暗算が速い。4,000 ÷ 4 = 1,000。</p>`
   },
   {
-    id:'tama-c-x10', cat:'tama', topic:'図表の読み取り（前年比）', diff:2, type:'num',
+    id:'tama-c-x10', cat:'tama-num', topic:'図表の読み取り（前年比）', diff:2, type:'num',
     q:`ある商品の売上は、昨年が 250 万円だった。今年は昨年より 16% 増加した。今年の売上は何万円か。（単位：万円）`,
     answer:290, unit:'万円',
     exp:`<p>「16% 増加」は <b>×1.16</b> です。</p>
@@ -96,7 +96,7 @@
          <p class="tip">▶「○% 増 → ×(1+○/100)」「○% 減 → ×(1−○/100)」。前年比は掛け算で一発です。</p>`
   },
   {
-    id:'tama-c-x11', cat:'tama', topic:'図表の読み取り（増減率）', diff:2, type:'num',
+    id:'tama-c-x11', cat:'tama-num', topic:'図表の読み取り（増減率）', diff:2, type:'num',
     q:`ある工場の生産量は、昨年が 800 個、今年が 920 個だった。昨年に対する増加率は何%か。（単位：%）`,
     answer:15, unit:'%',
     exp:`<p>増加率 = 増加量 ÷ もとの量 × 100。</p>
@@ -106,7 +106,7 @@
          <p class="tip">▶ 増減率は必ず<b>「もとの量（昨年）」を分母</b>に。今年を分母にしないよう注意。</p>`
   },
   {
-    id:'tama-c-x12', cat:'tama', topic:'図表の読み取り（倍率）', diff:1, type:'num',
+    id:'tama-c-x12', cat:'tama-num', topic:'図表の読み取り（倍率）', diff:1, type:'num',
     q:`A市の人口は 480 万人、B市の人口は 60 万人である。A市の人口はB市の何倍か。（単位：倍）`,
     answer:8, unit:'倍',
     exp:`<p>倍率 = 比べる量 ÷ もとにする量。</p>
@@ -115,7 +115,7 @@
          <p class="tip">▶「AはBの何倍か」は <b>A ÷ B</b>。基準（〜の）になる方で割ります。</p>`
   },
   {
-    id:'tama-c-x13', cat:'tama', topic:'図表の読み取り（構成比）', diff:2, type:'num',
+    id:'tama-c-x13', cat:'tama-num', topic:'図表の読み取り（構成比）', diff:2, type:'num',
     q:`あるアンケートの回答者は 1,500 人で、そのうち「満足」と答えた人は 360 人だった。「満足」の割合は何%か。（単位：%）`,
     answer:24, unit:'%',
     exp:`<p>割合(%) = 部分 ÷ 全体 × 100。</p>
@@ -124,7 +124,7 @@
          <p class="tip">▶ 実数から構成比を出すときは<b>部分 ÷ 全体</b>。約分（360/1500 = 6/25 = 0.24）でも確認できます。</p>`
   },
   {
-    id:'tama-c-x14', cat:'tama', topic:'図表の読み取り（実数算出）', diff:3, type:'num',
+    id:'tama-c-x14', cat:'tama-num', topic:'図表の読み取り（実数算出）', diff:3, type:'num',
     q:`ある会社の今年の売上は 7,200 万円で、これは昨年の売上の 120% にあたる。昨年の売上は何万円か。（単位：万円）`,
     answer:6000, unit:'万円',
     exp:`<p>今年 = 昨年 × 1.2 なので、昨年 = 今年 ÷ 1.2。</p>
@@ -137,7 +137,7 @@
   //  TG-WEB — 数列5 / 暗号2 / 図形3 / 推論2 / 新型計数2
   // ════════════════════════════════════════════════════════════════════════
   {
-    id:'tgweb-x01', cat:'tgweb', topic:'数列（階差）', diff:2, type:'num',
+    id:'tgweb-x01', cat:'tgweb-num', topic:'数列（階差）', diff:2, type:'num',
     q:`次の数列の□に入る数を求めよ。<br><b>3, 4, 7, 12, 19, □</b>`,
     answer:28,
     exp:`<p>隣り合う数の<b>差（階差）</b>を見ます: 1, 3, 5, 7, …（2ずつ増える奇数）。</p>
@@ -145,7 +145,7 @@
          <p class="tip">▶ 差が一定でないときは<b>差の差（階差数列）</b>を見ると規則が浮かびます。</p>`
   },
   {
-    id:'tgweb-x02', cat:'tgweb', topic:'数列（等比）', diff:1, type:'num',
+    id:'tgweb-x02', cat:'tgweb-num', topic:'数列（等比）', diff:1, type:'num',
     q:`次の数列の□に入る数を求めよ。<br><b>2, 6, 18, 54, □</b>`,
     answer:162,
     exp:`<p>各項が前の項の<b>3倍</b>になっている<b>等比数列</b>です。</p>
@@ -153,7 +153,7 @@
          <p class="tip">▶ 隣の項の<b>比</b>が一定なら等比数列。×2、×3、÷2 などを見抜きます。</p>`
   },
   {
-    id:'tgweb-x03', cat:'tgweb', topic:'数列（フィボナッチ型）', diff:2, type:'num',
+    id:'tgweb-x03', cat:'tgweb-num', topic:'数列（フィボナッチ型）', diff:2, type:'num',
     q:`次の数列の□に入る数を求めよ。<br><b>2, 3, 5, 8, 13, □</b>`,
     answer:21,
     exp:`<p><b>前の2つの数の和</b>が次の数になる<b>フィボナッチ型</b>です。</p>
@@ -161,7 +161,7 @@
          <p class="tip">▶ 差も比も一定でないときは「<b>前2項の和</b>」を疑う。頻出パターンです。</p>`
   },
   {
-    id:'tgweb-x04', cat:'tgweb', topic:'数列（立方数）', diff:2, type:'num',
+    id:'tgweb-x04', cat:'tgweb-num', topic:'数列（立方数）', diff:2, type:'num',
     q:`次の数列の□に入る数を求めよ。<br><b>1, 8, 27, 64, □</b>`,
     answer:125,
     exp:`<p>1=1³、8=2³、27=3³、64=4³ … と<b>立方数</b>が並んでいます。</p>
@@ -169,7 +169,7 @@
          <p class="tip">▶ 1,4,9,16（平方数）／1,8,27,64（立方数）は<b>暗記</b>しておくと一瞬で見抜けます。</p>`
   },
   {
-    id:'tgweb-x05', cat:'tgweb', topic:'数列（二重数列）', diff:3, type:'num',
+    id:'tgweb-x05', cat:'tgweb-num', topic:'数列（二重数列）', diff:3, type:'num',
     q:`次の数列の□に入る数を求めよ。<br><b>1, 10, 2, 20, 3, 30, 4, □</b>`,
     answer:40,
     exp:`<p>奇数番目（1, 2, 3, 4 …）と偶数番目（10, 20, 30, …）の<b>2つの数列が交互</b>に並んでいます。</p>
@@ -178,7 +178,7 @@
          <p class="tip">▶ 値が大小に激しく揺れる数列は「<b>1つおきに2つの数列が混ざっている</b>」と疑い、項を1つ飛ばしで見ます。</p>`
   },
   {
-    id:'tgweb-x06', cat:'tgweb', topic:'暗号', diff:2, type:'mc',
+    id:'tgweb-x06', cat:'tgweb-num', topic:'暗号', diff:2, type:'mc',
     q:`あるルールで英単語を数の並びに変換する。<br>
        ・CAT → 3, 1, 20<br>
        ・DOG → 4, 15, 7<br>
@@ -190,7 +190,7 @@
          <p class="tip">▶ 暗号は2例から規則を特定。文字→数なら「五十音順／アルファベット順の番号」をまず疑います。</p>`
   },
   {
-    id:'tgweb-x07', cat:'tgweb', topic:'暗号', diff:3, type:'mc',
+    id:'tgweb-x07', cat:'tgweb-num', topic:'暗号', diff:3, type:'mc',
     q:`あるルールで英単語を別の文字列に変換する。<br>
        ・CAT → DBU<br>
        ・DOG → EPH<br>
@@ -202,7 +202,7 @@
          <p class="tip">▶ 文字→文字の暗号は<b>ずらし（シフト）</b>を疑う。+1, +2, −1 など、ずれ幅を2例で確認します。</p>`
   },
   {
-    id:'tgweb-x08', cat:'tgweb', topic:'図形（面積差）', diff:2, type:'num',
+    id:'tgweb-x08', cat:'tgweb-num', topic:'図形（面積差）', diff:2, type:'num',
     q:`1辺が 10cm の正方形の中に、その正方形に<b>ぴったり内接する円</b>（直径10cm）を1つ描いた。正方形から円を除いた部分の面積は何cm²か。円周率は π=3.14 とする。（単位：cm²）`,
     answer:21.5, unit:'cm²',
     exp:`<p>正方形の面積 = 10 × 10 = 100 cm²。</p>
@@ -211,7 +211,7 @@
          <p class="tip">▶ 正方形に内接する円は<b>直径＝正方形の1辺</b>。半径は辺の半分です。</p>`
   },
   {
-    id:'tgweb-x09', cat:'tgweb', topic:'図形（角度）', diff:1, type:'num',
+    id:'tgweb-x09', cat:'tgweb-num', topic:'図形（角度）', diff:1, type:'num',
     q:`二等辺三角形があり、頂角（2つの等しい辺にはさまれた角）が 40° である。このとき、底角の1つの大きさは何度か。（単位：度）`,
     answer:70, unit:'度',
     exp:`<p>三角形の内角の和は 180°。二等辺三角形の<b>2つの底角は等しい</b>。</p>
@@ -220,7 +220,7 @@
          <p class="tip">▶ 二等辺三角形は「底角が等しい」。内角の和180°から頂角を引き、2で割ります。</p>`
   },
   {
-    id:'tgweb-x10', cat:'tgweb', topic:'図形（最短経路）', diff:2, type:'num',
+    id:'tgweb-x10', cat:'tgweb-num', topic:'図形（最短経路）', diff:2, type:'num',
     q:`碁盤の目状の道がある。横に3区画、縦に2区画の長方形の格子で、左下の角Aから右上の角Bへ、<b>右または上にだけ</b>進んで最短で行く。経路は全部で何通りあるか。（単位：通り）`,
     answer:10, unit:'通り',
     exp:`<p>右へ3回、上へ2回、合計5回の移動をどの順で行うかの<b>組み合わせ</b>です。</p>
@@ -228,7 +228,7 @@
          <p class="tip">▶ 格子の最短経路は「右a回・上b回の並べ替え」＝ <b>(a+b)! ÷ (a! × b!)</b> で求まります。</p>`
   },
   {
-    id:'tgweb-x11', cat:'tgweb', topic:'推論（順序）', diff:2, type:'mc',
+    id:'tgweb-x11', cat:'tgweb-num', topic:'推論（順序）', diff:2, type:'mc',
     q:`A・B・C・Dの4人の身長について、次のことがわかっている。<br>
        ① BはAより高い<br>
        ② CはAより低い<br>
@@ -241,7 +241,7 @@
          <p class="tip">▶ 順序の推論は<b>1本の不等号の列</b>に並べきれれば勝ち。最大・最小の手がかりから固定します。</p>`
   },
   {
-    id:'tgweb-x12', cat:'tgweb', topic:'推論（嘘つき）', diff:3, type:'mc',
+    id:'tgweb-x12', cat:'tgweb-num', topic:'推論（嘘つき）', diff:3, type:'mc',
     q:`A・B・Cの3人のうち1人が犯人である。<b>犯人は必ず嘘をつき、犯人でない者は必ず本当のことを言う</b>。3人の発言は次の通り。<br>
        ・A「犯人はBだ」<br>
        ・B「私は犯人ではない」<br>
@@ -258,7 +258,7 @@
          <p class="tip">▶ 嘘つき問題は<b>「○○が犯人と仮定」して全発言の真偽が矛盾しないか</b>を総当たりで確認します。</p>`
   },
   {
-    id:'tgweb-x13', cat:'tgweb', topic:'新型計数（文章題）', diff:2, type:'num',
+    id:'tgweb-x13', cat:'tgweb-num', topic:'新型計数（文章題）', diff:2, type:'num',
     q:`りんご2個とみかん3個を買うと 480 円、りんご3個とみかん2個を買うと 520 円である。りんご1個の値段は何円か。（単位：円）`,
     answer:120, unit:'円',
     exp:`<p>りんごを a 円、みかんを m 円とすると 2a + 3m = 480、3a + 2m = 520。</p>
@@ -269,7 +269,7 @@
          <p class="tip">▶ 2つの文章から<b>連立方程式</b>を立て、和や差を取って文字を1つ消すのが定石です。</p>`
   },
   {
-    id:'tgweb-x14', cat:'tgweb', topic:'新型計数（文章題）', diff:2, type:'num',
+    id:'tgweb-x14', cat:'tgweb-num', topic:'新型計数（文章題）', diff:2, type:'num',
     q:`ある仕事をAさん1人ですると6日、Bさん1人ですると12日かかる。2人で一緒に働くと、この仕事は何日で終わるか。（単位：日）`,
     answer:4, unit:'日',
     exp:`<p>全体の仕事量を 1 とすると、1日あたりの仕事量は Aが 1/6、Bが 1/12。</p>

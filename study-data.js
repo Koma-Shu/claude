@@ -19,22 +19,45 @@
    exp    : explanation / model answer (trusted HTML)
    ------------------------------------------------------------------------- */
 
+// Each test (SPI / 玉手箱 / TG-WEB) is split into three sections — 非言語(計数) /
+// 言語 / 英語 — plus the two interview tracks. STUDY_META is keyed by the
+// fine-grained category id; STUDY_GROUPS defines how they are grouped on the
+// dashboard. STUDY_TRACKS is the flat ordered list (used by the admin view).
 window.STUDY_META = {
-  'spi-num':  { ja:'SPI 非言語', en:'SPI Numerical',   short:'SPI非言語', color:'#00d4aa', icon:'🔢',
-    desc:{ ja:'推論・確率・損益算・速度算・仕事算など、計算と論理の問題。', en:'Reasoning, probability, profit/loss, speed and work problems.' } },
-  'spi-verb': { ja:'SPI 言語', en:'SPI Verbal',         short:'SPI言語',   color:'#34d399', icon:'📖',
-    desc:{ ja:'二語の関係・語句の意味・並べ替え・長文読解など言語分野。', en:'Word relations, vocabulary, ordering and reading comprehension.' } },
-  'tama':     { ja:'玉手箱', en:'Tamatebako',           short:'玉手箱',     color:'#fbbf24', icon:'🧮',
-    desc:{ ja:'四則逆算・図表の読み取り・論理的読解・英語。スピード勝負。', en:'Reverse arithmetic, table reading, logical reading, English. A speed test.' } },
-  'tgweb':    { ja:'TG-WEB', en:'TG-WEB',               short:'TG-WEB',    color:'#a78bfa', icon:'🧩',
-    desc:{ ja:'数列・推論・暗号・図形など、思考力重視の難問が中心。', en:'Sequences, logic, ciphers and figures — a thinking-heavy test.' } },
-  'case':     { ja:'ケース面接', en:'Case Interview',   short:'ケース面接', color:'#f472b6', icon:'💼',
-    desc:{ ja:'論理的に問題を構造化し、打ち手を提案する。自己採点式。', en:'Structure a business problem logically and propose actions. Self-graded.' } },
-  'fermi':    { ja:'フェルミ推定', en:'Fermi Estimation', short:'フェルミ推定', color:'#60a5fa', icon:'📊',
-    desc:{ ja:'未知の数量を、仮定を積み上げて概算する。自己採点式。', en:'Estimate unknown quantities by building up assumptions. Self-graded.' } }
+  'spi-num':   { ja:'SPI 非言語', en:'SPI Numerical',  short:'非言語', color:'#00d4aa', icon:'🔢',
+    desc:{ ja:'推論・確率・損益算・速度算・仕事算など、計算と論理。', en:'Reasoning, probability, profit/loss, speed, work.' } },
+  'spi-verb':  { ja:'SPI 言語', en:'SPI Verbal',       short:'言語',   color:'#34d399', icon:'📖',
+    desc:{ ja:'二語の関係・語句の意味・並べ替え・長文読解など。', en:'Word relations, vocabulary, ordering, reading.' } },
+  'spi-eng':   { ja:'SPI 英語', en:'SPI English',      short:'英語',   color:'#60a5fa', icon:'🔤',
+    desc:{ ja:'同意語・反意語・文法・長文読解（ENG）。', en:'Synonyms, antonyms, grammar and reading (ENG).' } },
+  'tama-num':  { ja:'玉手箱 計数', en:'Tamatebako Numerical', short:'計数', color:'#fbbf24', icon:'🧮',
+    desc:{ ja:'四則逆算・図表の読み取り。スピード勝負。', en:'Reverse arithmetic and table reading. A speed test.' } },
+  'tama-verb': { ja:'玉手箱 言語', en:'Tamatebako Verbal', short:'言語', color:'#f59e0b', icon:'📖',
+    desc:{ ja:'論理的読解(GAB)・趣旨判断(IMAGES)。', en:'Logical reading (GAB) and gist judgement (IMAGES).' } },
+  'tama-eng':  { ja:'玉手箱 英語', en:'Tamatebako English', short:'英語', color:'#fb923c', icon:'🔤',
+    desc:{ ja:'英語の論理的読解・長文読解。', en:'English logical reading and comprehension.' } },
+  'tgweb-num': { ja:'TG-WEB 計数', en:'TG-WEB Numerical', short:'計数', color:'#a78bfa', icon:'🧩',
+    desc:{ ja:'数列・推論・暗号・図形など思考力重視。', en:'Sequences, logic, ciphers, figures.' } },
+  'tgweb-verb':{ ja:'TG-WEB 言語', en:'TG-WEB Verbal', short:'言語', color:'#c084fc', icon:'📖',
+    desc:{ ja:'骨のある長文読解・並べ替え・空欄補充。', en:'Dense reading, ordering, fill-in-the-blank.' } },
+  'tgweb-eng': { ja:'TG-WEB 英語', en:'TG-WEB English', short:'英語', color:'#818cf8', icon:'🔤',
+    desc:{ ja:'英語長文読解（主旨・推論・語彙）。', en:'English reading: main idea, inference, vocab.' } },
+  'case':      { ja:'ケース面接', en:'Case Interview',   short:'ケース面接', color:'#f472b6', icon:'💼',
+    desc:{ ja:'論理的に問題を構造化し、打ち手を提案する。自己採点式。', en:'Structure a business problem and propose actions. Self-graded.' } },
+  'fermi':     { ja:'フェルミ推定', en:'Fermi Estimation', short:'フェルミ推定', color:'#22d3ee', icon:'📊',
+    desc:{ ja:'未知の数量を、仮定を積み上げて概算する。自己採点式。', en:'Estimate unknown quantities from assumptions. Self-graded.' } }
 };
 
-window.STUDY_TRACKS = ['spi-num','spi-verb','tama','tgweb','case','fermi'];
+// Dashboard grouping: each test shows its three sections together.
+window.STUDY_GROUPS = [
+  { key:'spi',   ja:'SPI',        en:'SPI',        icon:'📝', color:'#00d4aa', cats:['spi-num','spi-verb','spi-eng'] },
+  { key:'tama',  ja:'玉手箱',     en:'Tamatebako', icon:'🧮', color:'#fbbf24', cats:['tama-num','tama-verb','tama-eng'] },
+  { key:'tgweb', ja:'TG-WEB',     en:'TG-WEB',     icon:'🧩', color:'#a78bfa', cats:['tgweb-num','tgweb-verb','tgweb-eng'] },
+  { key:'case',  ja:'ケース面接', en:'Case Interview', icon:'💼', color:'#f472b6', cats:['case'] },
+  { key:'fermi', ja:'フェルミ推定', en:'Fermi Estimation', icon:'📊', color:'#22d3ee', cats:['fermi'] }
+];
+
+window.STUDY_TRACKS = ['spi-num','spi-verb','spi-eng','tama-num','tama-verb','tama-eng','tgweb-num','tgweb-verb','tgweb-eng','case','fermi'];
 
 window.STUDY_DATA = [
 
@@ -425,7 +448,7 @@ window.STUDY_DATA = [
 //  玉手箱 (Tamatebako)
 // ════════════════════════════════════════════════════════════════════════
 {
-  id:'tama-shisoku-001', cat:'tama', topic:'四則逆算', diff:1, type:'num',
+  id:'tama-shisoku-001', cat:'tama-num', topic:'四則逆算', diff:1, type:'num',
   q:`□に入る数を求めよ。<br><b>□ × 8 = 96</b>`,
   answer:12,
   exp:`<p>掛け算の逆＝<b>割り算</b>で求めます。</p>
@@ -433,7 +456,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 玉手箱の計数（四則逆算）は<b>1問あたり十数秒</b>の速さ勝負。「□×A=B → □=B÷A」を反射的に。</p>`
 },
 {
-  id:'tama-shisoku-002', cat:'tama', topic:'四則逆算', diff:1, type:'num',
+  id:'tama-shisoku-002', cat:'tama-num', topic:'四則逆算', diff:1, type:'num',
   q:`□に入る数を求めよ。<br><b>□ ÷ 7 = 21</b>`,
   answer:147,
   exp:`<p>割り算の逆＝<b>掛け算</b>。</p>
@@ -441,7 +464,7 @@ window.STUDY_DATA = [
        <p class="tip">▶「□÷A=B → □=B×A」。割られる数を求めるときは掛け算に直します。</p>`
 },
 {
-  id:'tama-shisoku-003', cat:'tama', topic:'四則逆算（分数）', diff:2, type:'num',
+  id:'tama-shisoku-003', cat:'tama-num', topic:'四則逆算（分数）', diff:2, type:'num',
   q:`□に入る数を求めよ。<br><b>□ × 3/4 = 60</b>`,
   answer:80,
   exp:`<p>分数を掛ける式の逆は、<b>逆数を掛ける</b>（＝割る）です。</p>
@@ -449,7 +472,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 分数で割る＝<b>逆数を掛ける</b>。3/4 で割るなら 4/3 を掛けます。</p>`
 },
 {
-  id:'tama-shisoku-004', cat:'tama', topic:'四則逆算', diff:1, type:'num',
+  id:'tama-shisoku-004', cat:'tama-num', topic:'四則逆算', diff:1, type:'num',
   q:`□に入る数を求めよ。<br><b>48 ÷ □ = 6</b>`,
   answer:8,
   exp:`<p>「48 を □ で割ると 6」。□ = 48 ÷ 6 = <b>8</b>。</p>
@@ -457,7 +480,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 割る数（分母）が□のときは「A÷□=B → □=A÷B」。位置によって式変形が変わるので注意。</p>`
 },
 {
-  id:'tama-shisoku-005', cat:'tama', topic:'四則逆算（小数）', diff:2, type:'num',
+  id:'tama-shisoku-005', cat:'tama-num', topic:'四則逆算（小数）', diff:2, type:'num',
   q:`□に入る数を求めよ。<br><b>□ × 0.25 = 35</b>`,
   answer:140,
   exp:`<p>0.25 = 1/4 なので、×0.25 は「4で割る」のと同じ。逆に□を求めるには<b>4倍</b>します。</p>
@@ -465,7 +488,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 0.25=1/4、0.5=1/2、0.125=1/8、0.2=1/5 など、<b>小数⇔分数の変換</b>を覚えると暗算が速くなります。</p>`
 },
 {
-  id:'tama-shisoku-006', cat:'tama', topic:'四則逆算（複合）', diff:3, type:'num',
+  id:'tama-shisoku-006', cat:'tama-num', topic:'四則逆算（複合）', diff:3, type:'num',
   q:`□に入る数を求めよ。<br><b>( □ + 15 ) × 2 = 70</b>`,
   answer:20,
   exp:`<p>外側の演算から順にほどきます（逆算）。</p>
@@ -473,7 +496,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 複合式は「<b>最後にした計算を最初に戻す</b>」。カッコの外→中の順にほどくのが鉄則です。</p>`
 },
 {
-  id:'tama-shisoku-007', cat:'tama', topic:'四則逆算（複合）', diff:3, type:'num',
+  id:'tama-shisoku-007', cat:'tama-num', topic:'四則逆算（複合）', diff:3, type:'num',
   q:`□に入る数を求めよ。<br><b>□ × 1.5 − 10 = 50</b>`,
   answer:40,
   exp:`<p>① −10 を戻す: □ × 1.5 = 50 + 10 = 60。<br>② ×1.5 を戻す: □ = 60 ÷ 1.5 = <b>40</b>。</p>
@@ -481,7 +504,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ ÷1.5 は「×2÷3」と考えると暗算しやすい: 60×2=120、120÷3=40。</p>`
 },
 {
-  id:'tama-zuhyo-001', cat:'tama', topic:'図表の読み取り', diff:2, type:'num',
+  id:'tama-zuhyo-001', cat:'tama-num', topic:'図表の読み取り', diff:2, type:'num',
   q:`ある会社の事業部別売上（億円）は次の通り。<br>
      A事業部 240 / B事業部 360 / C事業部 200 / D事業部 200（合計1,000億円）<br>
      B事業部の売上は全体の何%を占めるか。（単位：%）`,
@@ -491,7 +514,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 玉手箱の図表問題は<b>電卓使用可</b>のことが多い一方で問題数が多い。割り算を素早く処理する練習を。合計が与えられているか必ず確認。</p>`
 },
 {
-  id:'tama-zuhyo-002', cat:'tama', topic:'図表の読み取り（増加率）', diff:2, type:'num',
+  id:'tama-zuhyo-002', cat:'tama-num', topic:'図表の読み取り（増加率）', diff:2, type:'num',
   q:`ある商品の売上は、前年が150万円、今年が180万円だった。今年の売上は前年に比べて何%増加したか。（単位：%）`,
   answer:20, unit:'%',
   exp:`<p>増加率 = (今年 − 前年) ÷ 前年 × 100。基準は<b>前年</b>。</p>
@@ -499,7 +522,7 @@ window.STUDY_DATA = [
        <p class="tip">▶「前年比120%」と「前年比20%増」は同じこと。問われ方（〜比なのか〜増なのか）を読み違えないように。</p>`
 },
 {
-  id:'tama-zuhyo-003', cat:'tama', topic:'図表の読み取り（実数）', diff:1, type:'num',
+  id:'tama-zuhyo-003', cat:'tama-num', topic:'図表の読み取り（実数）', diff:1, type:'num',
   q:`あるアンケートで、回答者500人のうち42%が「満足」と回答した。「満足」と回答した人数は何人か。（単位：人）`,
   answer:210, unit:'人',
   exp:`<p>割合から実数を求める基本問題です。</p>
@@ -507,7 +530,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 「全体 × 割合 = 部分」。%は小数（42%→0.42）に直して掛けます。</p>`
 },
 {
-  id:'tama-zuhyo-004', cat:'tama', topic:'図表の読み取り（倍率）', diff:1, type:'num',
+  id:'tama-zuhyo-004', cat:'tama-num', topic:'図表の読み取り（倍率）', diff:1, type:'num',
   q:`ある日の来客数は、A店1,200人、B店1,500人、C店800人だった。A店の来客数はC店の何倍か。（単位：倍）`,
   answer:1.5, unit:'倍',
   exp:`<p>「AはCの何倍か」＝ A ÷ C。基準（割る方）は<b>C</b>です。</p>
@@ -515,7 +538,7 @@ window.STUDY_DATA = [
        <p class="tip">▶「BはAの何倍」なら B÷A。日本語の「〜の」の後ろが分母（基準）になります。</p>`
 },
 {
-  id:'tama-gab-001', cat:'tama', topic:'論理的読解（GAB形式）', diff:2, type:'mc',
+  id:'tama-gab-001', cat:'tama-verb', topic:'論理的読解（GAB形式）', diff:2, type:'mc',
   q:`次の文章を読み、設問の文がどれにあたるか選べ。<br>
      <i>「当社の新製品は、発売後3か月で売上が前年同期比50%増加した。これは主に20代の若年層の購入が大きく伸びたためである。」</i><br>
      <b>設問:「この新製品は、30代以上にはまったく売れていない。」</b>`,
@@ -526,7 +549,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ GABの鉄則:<b>本文に書いていないこと＝C（判断できない）</b>。常識や推測で補ってA/Bにしないこと。</p>`
 },
 {
-  id:'tama-gab-002', cat:'tama', topic:'論理的読解（GAB形式）', diff:2, type:'mc',
+  id:'tama-gab-002', cat:'tama-verb', topic:'論理的読解（GAB形式）', diff:2, type:'mc',
   q:`次の文章を読み、設問の文がどれにあたるか選べ。<br>
      <i>「当社の新製品は、発売後3か月で売上が前年同期比50%増加した。これは主に20代の若年層の購入が大きく伸びたためである。」</i><br>
      <b>設問:「この新製品の売上は、前年の同じ時期より増えている。」</b>`,
@@ -536,7 +559,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 本文の数値・事実をそのまま言い換えた設問はA（正しい）。逆のことを言えばB（誤り）。書いていなければC。</p>`
 },
 {
-  id:'tama-images-001', cat:'tama', topic:'趣旨判断（IMAGES形式）', diff:2, type:'mc',
+  id:'tama-images-001', cat:'tama-verb', topic:'趣旨判断（IMAGES形式）', diff:2, type:'mc',
   q:`次の文章で筆者が最も訴えたいこと（趣旨）に近いものを選べ。<br>
      <i>「効率を追い求めるあまり、私たちは『無駄』を一概に悪とみなしがちである。しかし、一見無駄に見える寄り道や雑談こそが、新しい発想や人間関係を育む土壌になることも多い。」</i>`,
   choices:['効率を何よりも最優先すべきだ','一見無駄に見えるものにも価値がある','雑談は仕事の妨げにしかならない','寄り道は時間の浪費である'], answer:1,
@@ -546,7 +569,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 趣旨判断は<b>「しかし」「むしろ」「こそ」</b>の直後を最重要視。筆者が打ち消している前半に引っ張られないこと。</p>`
 },
 {
-  id:'tama-eng-001', cat:'tama', topic:'英語（論理的読解）', diff:2, type:'mc',
+  id:'tama-eng-001', cat:'tama-eng', topic:'英語（論理的読解）', diff:2, type:'mc',
   q:`Read the passage and decide whether the statement is true, false, or cannot be determined.<br>
      <i>"The company introduced a remote work policy last year. Since then, employee satisfaction has risen, although some managers report that team communication has become more difficult."</i><br>
      <b>Statement: "Employee satisfaction increased after the remote work policy was introduced."</b>`,
@@ -557,7 +580,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 玉手箱の英語もGAB同様 <b>True / False / Cannot say</b>。本文のキーセンテンスを特定し、設問と照合します。</p>`
 },
 {
-  id:'tama-eng-002', cat:'tama', topic:'英語（長文読解）', diff:2, type:'mc',
+  id:'tama-eng-002', cat:'tama-eng', topic:'英語（長文読解）', diff:2, type:'mc',
   q:`Read the passage and answer the question.<br>
      <i>"Although the new smartphone is more expensive than its competitors, its battery lasts twice as long and it is more durable."</i><br>
      <b>Question: According to the passage, what is an advantage of the new smartphone?</b>`,
@@ -571,7 +594,7 @@ window.STUDY_DATA = [
 //  TG-WEB
 // ════════════════════════════════════════════════════════════════════════
 {
-  id:'tgweb-suuretsu-001', cat:'tgweb', topic:'数列', diff:2, type:'num',
+  id:'tgweb-suuretsu-001', cat:'tgweb-num', topic:'数列', diff:2, type:'num',
   q:`次の数列の□に入る数を求めよ。<br><b>2, 6, 12, 20, 30, □</b>`,
   answer:42,
   exp:`<p>隣り合う数の<b>差（階差）</b>を見ます: 4, 6, 8, 10, …（2ずつ増える）。</p>
@@ -580,7 +603,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 数列は①差をとる(階差)②比をとる③n番目の式を疑う、の順で規則を探します。</p>`
 },
 {
-  id:'tgweb-suuretsu-002', cat:'tgweb', topic:'数列（フィボナッチ）', diff:2, type:'num',
+  id:'tgweb-suuretsu-002', cat:'tgweb-num', topic:'数列（フィボナッチ）', diff:2, type:'num',
   q:`次の数列の□に入る数を求めよ。<br><b>1, 1, 2, 3, 5, 8, □</b>`,
   answer:13,
   exp:`<p><b>前の2つの数の和</b>が次の数になる<b>フィボナッチ数列</b>です。</p>
@@ -588,7 +611,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 差も比も一定でないときは「<b>前2項の和（または差）</b>」を疑う。フィボナッチは頻出パターンです。</p>`
 },
 {
-  id:'tgweb-suuretsu-003', cat:'tgweb', topic:'数列（等比）', diff:1, type:'num',
+  id:'tgweb-suuretsu-003', cat:'tgweb-num', topic:'数列（等比）', diff:1, type:'num',
   q:`次の数列の□に入る数を求めよ。<br><b>3, 6, 12, 24, 48, □</b>`,
   answer:96,
   exp:`<p>各項が前の項の<b>2倍</b>になっている<b>等比数列</b>です。</p>
@@ -596,7 +619,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 隣の項の<b>比</b>が一定なら等比数列。×2、×3、÷2 などを見抜きます。</p>`
 },
 {
-  id:'tgweb-suuretsu-004', cat:'tgweb', topic:'数列（平方数）', diff:2, type:'num',
+  id:'tgweb-suuretsu-004', cat:'tgweb-num', topic:'数列（平方数）', diff:2, type:'num',
   q:`次の数列の□に入る数を求めよ。<br><b>1, 4, 9, 16, 25, □</b>`,
   answer:36,
   exp:`<p>1=1²、4=2²、9=3²、16=4²、25=5² … と<b>平方数</b>が並んでいます。</p>
@@ -604,7 +627,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 1,4,9,16,25（平方数）／1,8,27,64（立方数）／2,3,5,7,11（素数）は<b>暗記</b>しておくと一瞬で見抜けます。</p>`
 },
 {
-  id:'tgweb-suiron-001', cat:'tgweb', topic:'推論（対応関係）', diff:2, type:'mc',
+  id:'tgweb-suiron-001', cat:'tgweb-num', topic:'推論（対応関係）', diff:2, type:'mc',
   q:`P・Q・Rの3人の職業は、医者・教師・弁護士のいずれかで、全員異なる。次のことがわかっている。<br>
      ① Pは医者ではない<br>
      ② Qは教師である<br>
@@ -616,7 +639,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 対応関係の推論は<b>○×の表</b>を書くのが最速。1つ確定すると芋づる式に他も確定します。</p>`
 },
 {
-  id:'tgweb-suiron-002', cat:'tgweb', topic:'推論（順序）', diff:3, type:'mc',
+  id:'tgweb-suiron-002', cat:'tgweb-num', topic:'推論（順序）', diff:3, type:'mc',
   q:`A・B・C・Dの4人が一列に並んでいる。次のことがわかっている。<br>
      ① AはBのすぐ前（直前）にいる<br>
      ② Dは先頭である<br>
@@ -630,7 +653,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 「すぐ前／隣」の条件は<b>ブロック（かたまり）</b>として扱い、置ける場所を数え上げると漏れがありません。</p>`
 },
 {
-  id:'tgweb-ango-001', cat:'tgweb', topic:'暗号', diff:2, type:'mc',
+  id:'tgweb-ango-001', cat:'tgweb-num', topic:'暗号', diff:2, type:'mc',
   q:`ある暗号では、<b>CAT</b> は「3-1-20」、<b>DOG</b> は「4-15-7」と表される。同じ規則で「16-5-14」が表す英単語はどれか。`,
   choices:['PEN','CUP','SUN','BAT'], answer:0,
   exp:`<p>規則を見抜きます。C=3, A=1, T=20 … これは<b>アルファベットの順番</b>（A=1, B=2, …, Z=26）です。</p>
@@ -639,7 +662,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 暗号は「<b>2つの例から規則を逆算</b>」が基本。数字なら五十音順・アルファベット順・逆順・ずらし（シフト）を疑います。</p>`
 },
 {
-  id:'tgweb-zukei-001', cat:'tgweb', topic:'図形（面積）', diff:2, type:'num',
+  id:'tgweb-zukei-001', cat:'tgweb-num', topic:'図形（面積）', diff:2, type:'num',
   q:`1辺6cmの正方形の中に、半径3cmの円がぴったり収まっている（内接している）。正方形の面積から円の面積を引いた値はいくらか。円周率は3.14とする。（単位：平方cm）`,
   answer:7.74, unit:'cm²',
   exp:`<p>正方形の面積 = 6 × 6 = 36 cm²。</p>
@@ -648,7 +671,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 正方形に内接する円は「<b>直径＝正方形の1辺</b>」。半径は辺の半分。図形は公式と「直径と半径の関係」を正確に。</p>`
 },
 {
-  id:'tgweb-dokkai-001', cat:'tgweb', topic:'長文読解（主旨）', diff:3, type:'mc',
+  id:'tgweb-dokkai-001', cat:'tgweb-verb', topic:'長文読解（主旨）', diff:3, type:'mc',
   q:`次の文章の主旨として最も適切なものを選べ。<br>
      <i>「言語は単なる伝達の道具ではない。私たちはことばによって世界を分節し、認識している。たとえば、虹がいくつの色に見えるかが文化によって異なるのは、色そのものではなく、色を区切ることばの違いによる。」</i>`,
   choices:['言語は伝達の道具にすぎない','言語は人間の認識のしかたを形づくる','虹は世界共通で必ず7色に見える','文化が違っても物の見え方は同じだ'], answer:1,
@@ -657,7 +680,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ TG-WEBの長文は抽象度が高め。<b>具体例は主張の証拠</b>と捉え、抽象的な主張文（多くは冒頭か末尾）を主旨として選びます。</p>`
 },
 {
-  id:'tgweb-kuukan-001', cat:'tgweb', topic:'空欄補充', diff:2, type:'mc',
+  id:'tgweb-kuukan-001', cat:'tgweb-verb', topic:'空欄補充', diff:2, type:'mc',
   q:`空欄に入る最も適切な語を選べ。<br>
      「科学の進歩は、必ずしも人間の幸福に直結するわけではない。（　　）、原子力の発見は、発電という恩恵と核兵器という脅威の両方をもたらした。」`,
   choices:['しかし','たとえば','したがって','なぜなら'], answer:1,
@@ -667,7 +690,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 空欄の後ろが<b>具体的事例</b>なら「たとえば」、<b>理由</b>なら「なぜなら」、<b>結論</b>なら「したがって」。後続の文の性質で判断します。</p>`
 },
 {
-  id:'tgweb-narabe-001', cat:'tgweb', topic:'文の並べ替え', diff:2, type:'mc',
+  id:'tgweb-narabe-001', cat:'tgweb-verb', topic:'文の並べ替え', diff:2, type:'mc',
   q:`次のア〜エを意味が通るように並べ替えたとき、正しい順序はどれか。<br>
      ア その結果、森林は急速に失われていった。<br>
      イ かつて、この地域は豊かな森に覆われていた。<br>
@@ -680,7 +703,7 @@ window.STUDY_DATA = [
        <p class="tip">▶ 「かつて」「現在」などの<b>時を表す語</b>と、「しかし」「その結果」の<b>接続語</b>が並べ替えの最大の手がかり。</p>`
 },
 {
-  id:'tgweb-keisan-001', cat:'tgweb', topic:'計数（新型・利益）', diff:1, type:'num',
+  id:'tgweb-keisan-001', cat:'tgweb-num', topic:'計数（新型・利益）', diff:1, type:'num',
   q:`ある商品は1個あたりの利益が250円である。今月は1,200個売れた。今月のこの商品の利益総額はいくらか。（単位：円）`,
   answer:300000, unit:'円',
   exp:`<p>利益総額 = 1個あたり利益 × 販売個数。</p>
