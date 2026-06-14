@@ -10,7 +10,7 @@ const SB_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SB_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
 
 const game=(location.pathname.split('/').pop()||'').replace(/\.html$/,'');
-const SKIP=['','index','login','register','profile','admin','chat','friends'];
+const SKIP=['','index','arcade','login','register','profile','admin','chat','friends'];
 if(SKIP.includes(game)){w.TRACK={game:null,result:()=>{}};return;}
 
 let user=null;
