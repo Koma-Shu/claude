@@ -58,9 +58,9 @@ table.sheet{border-collapse:collapse;font-size:.78rem;background:rgba(0,0,0,.28)
 .topbtn{position:fixed;top:10px;background:#374151;color:#fff;border-radius:8px;
   padding:7px 15px;font-size:14px;font-weight:bold;cursor:pointer;border:none;z-index:20;}
 #backbtn{left:10px;}
-#local2pbtn{right:10px;background:#7c3aed;}
-#onlinebtn{right:110px;background:#0ea5e9;}
-#leavebtn{right:10px;background:#dc2626;display:none;}
+#local2pbtn{left:10px;background:#7c3aed;}
+#onlinebtn{left:120px;background:#0ea5e9;}
+#leavebtn{left:10px;background:#dc2626;display:none;}
 
 .diffrow{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;}
 .diffrow button{font-size:12px;font-weight:bold;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;color:#fff;}
@@ -700,5 +700,6 @@ if(typeof SND!=='undefined'){
   document.addEventListener('click',function sa(){SND.startBGM('game');document.removeEventListener('click',sa);},{once:true});
 }
 </script>
+<script src="nav.js"></script>
 </body>
 </html>

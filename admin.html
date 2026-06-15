@@ -133,6 +133,7 @@ td.mono{font-family:'Courier New',monospace;}
     <input type="password" id="admin-pw" placeholder="管理者パスワード" autocomplete="off">
     <button id="auth-btn" onclick="checkAuth()">ログイン</button>
     <div class="auth-err" id="auth-err"></div>
+    <a href="index.html" style="display:inline-block;margin-top:18px;color:var(--dim2);font-size:.7rem;letter-spacing:3px;text-decoration:none;">← HOME</a>
   </div>
 </div>
 
@@ -143,6 +144,7 @@ td.mono{font-family:'Courier New',monospace;}
     <div class="hd-right">
       <span class="hd-badge">🔒 ADMIN</span>
       <span class="hd-time" id="hd-time"></span>
+      <a class="hd-btn" href="index.html" style="text-decoration:none">🏠 HOME</a>
       <button class="hd-btn on" id="autoref-btn" onclick="toggleAutoRef()">⏱ 自動更新 ON</button>
       <button class="hd-btn" onclick="loadAll()">↻ 更新</button>
       <button class="hd-btn" onclick="logout()">ログアウト</button>
