@@ -351,10 +351,11 @@ function createRoom(){
   playerNames=[myName,'','',''];
   olLobbyShow(code);
   setOlMsg(T('waiting'));
-  // register the room so guests can verify it exists, then start relaying
-  sbReq('/rest/v1/rooms',{method:'POST',body:JSON.stringify({id:'kb-'+code,game:'keshibato',state:{},status:'waiting'})})
+  // Verify the relay (room_messages) is reachable, then start polling.
+  // keshibato needs ONLY room_messages — no `rooms` table dependency.
+  sbReq('/rest/v1/room_messages',{method:'POST',body:JSON.stringify({room:code,sender:'host',payload:{type:'host-ready'}})})
     .then(()=>rmStart(hostOnMsg))
-    .catch(e=>setOlMsg(e.message==='NO_TABLE'?T('need_tables'):T('error')));
+    .catch(e=>setOlMsg(e.message==='NO_TABLE'?T('need_tables'):T('error')+': '+e.message));
 }
 
 // Host: handle a message from a guest (sender = that guest's id).
@@ -393,16 +394,14 @@ async function joinRoom(){
   IS_HOST=false; LOCAL_IDX=-1;
   RM_ROOM=code; RM_ME='g'+Math.random().toString(36).slice(2,9); RM_SEQ=0; myPeerId=RM_ME;
   setOlMsg(T('connecting'));
-  let rows;
-  try{ rows=await sbReq(`/rest/v1/rooms?id=eq.kb-${code}&game=eq.keshibato&select=id`); }
-  catch(e){ RM_ROOM=null; setOlMsg(e.message==='NO_TABLE'?T('need_tables'):T('connect_fail')); return; }
-  if(!rows||!rows.length){ RM_ROOM=null; setOlMsg(T('connect_fail')); return; }   // room not found
+  // Announce ourselves to the host via the relay (verifies room_messages too).
+  try{
+    await sbReq('/rest/v1/room_messages',{method:'POST',body:JSON.stringify({room:RM_ROOM,sender:RM_ME,payload:{type:'hello',name:myName}})});
+  }catch(e){ RM_ROOM=null; setOlMsg(e.message==='NO_TABLE'?T('need_tables'):T('error')+': '+e.message); return; }
   rmStart(guestOnMsg);
-  rmSend({type:'hello',name:myName});
   document.getElementById('ol-join').style.display='none';
   olLobbyShow(code,false);
-  setOlMsg(T('connected'));
-  // if the host never answers with a lobby, warn the user
+  // if the host never answers with a lobby, the code is wrong or no host is present
   setTimeout(()=>{ if(!IS_HOST && LOCAL_IDX<0) setOlMsg(T('connect_fail')); },15000);
 }
 
