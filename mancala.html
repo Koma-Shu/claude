@@ -747,7 +747,7 @@ function leaveOnline(){
   initBoard();SND.startBGM?.('mahjong');
 }
 
-local2pBtn=addBtn(t('local2p'),'background:#7c3aed;color:#fff;top:10px;right:10px;',()=>{
+local2pBtn=addBtn(t('local2p'),'background:#7c3aed;color:#fff;top:10px;left:10px;',()=>{
   if(gameMode==='local2p'){gameMode='solo';myIdx=0;local2pBtn.textContent=t('local2p');initBoard();return;}
   gameMode='local2p';myIdx=0;
   local2pBtn.textContent=t('modeCpu');
@@ -766,7 +766,7 @@ onlineBtn=addBtn(t('online'),'background:#0ea5e9;color:#fff;top:10px;right:120px
     onHost:(id,room)=>{
       roomId=id;gameMode='online';myIdx=0;onlineRole='host';onlineSeq=0;
       local2pBtn.style.display='none';onlineBtn.style.display='none';
-      if(!leaveBtn)leaveBtn=addBtn(t('leave'),'background:#dc2626;color:#fff;top:10px;right:10px;',leaveOnline);
+      if(!leaveBtn)leaveBtn=addBtn(t('leave'),'background:#dc2626;color:#fff;top:10px;left:10px;',leaveOnline);
       else leaveBtn.style.display='';
       sbar=NETPLAY.statusBar(lang);sbar.online('host');
       if(room.state)applyState(room.state);
@@ -776,7 +776,7 @@ onlineBtn=addBtn(t('online'),'background:#0ea5e9;color:#fff;top:10px;right:120px
     onJoin:(room,tok)=>{
       roomId=room.id;gameMode='online';myIdx=1;onlineRole='guest';
       local2pBtn.style.display='none';onlineBtn.style.display='none';
-      if(!leaveBtn)leaveBtn=addBtn(t('leave'),'background:#dc2626;color:#fff;top:10px;right:10px;',leaveOnline);
+      if(!leaveBtn)leaveBtn=addBtn(t('leave'),'background:#dc2626;color:#fff;top:10px;left:10px;',leaveOnline);
       else leaveBtn.style.display='';
       sbar=NETPLAY.statusBar(lang);sbar.online('guest');
       if(room.state){applyState(room.state);onlineSeq=room.state.seq||0;}
@@ -816,5 +816,6 @@ if(typeof SND!=='undefined'){
 
 requestAnimationFrame(gameLoop);
 </script>
+<script src="nav.js"></script>
 </body>
 </html>

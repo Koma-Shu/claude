@@ -1,4 +1,4 @@
-const CACHE = 'arcade-v3.12';
+const CACHE = 'arcade-v3.13';
 
 // Base path of the SW (e.g. '/claude/' on GitHub Pages, '/' on root)
 const BASE = self.location.pathname.replace(/sw\.js$/, '');
@@ -11,6 +11,7 @@ const GAME_FILES = [
   'cards.js',
   'netplay.js',
   'track.js',
+  'nav.js',
   'snake.html',
   'symbiont.html',
   'reversi.html',
