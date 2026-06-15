@@ -8,12 +8,35 @@ const SB_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SB_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
 
 async function sb(path,opts={}){
-  const r=await fetch(SB_URL+path,{
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,
-      'Content-Type':'application/json','Prefer':'return=representation',...opts.headers},
-    ...opts});
-  if(!r.ok&&r.status!==201)throw new Error(await r.text());
+  let r;
+  try{
+    r=await fetch(SB_URL+path,{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,
+        'Content-Type':'application/json','Prefer':'return=representation',...opts.headers},
+      ...opts});
+  }catch(netErr){ throw new Error('NETWORK'); }   // DNS/CORS/offline
+  if(!r.ok&&r.status!==201){
+    let body=''; try{ body=await r.text(); }catch(_){}
+    if(r.status===404 || /relation [^ ]*rooms[^ ]* does not exist|42P01|Could not find the table|PGRST205/i.test(body)) throw new Error('NO_TABLE');
+    if(r.status===401 || r.status===403) throw new Error('FORBIDDEN');
+    throw new Error('HTTP '+r.status+(body?(': '+body.slice(0,160)):''));
+  }
   const txt=await r.text();return txt?JSON.parse(txt):null;
+}
+
+// Map a low-level error to a clear, user-facing message.
+function npErr(e,T){
+  switch(e&&e.message){
+    case 'NO_TABLE':  return T('オンライン対戦用テーブル(rooms)が未作成です。Supabaseで supabase_migrate_v4.sql を実行してください。',
+                              'The online "rooms" table is missing — run supabase_migrate_v4.sql in Supabase.');
+    case 'NETWORK':   return T('サーバーに接続できません。通信環境をご確認ください。',
+                              'Cannot reach the server. Check your connection.');
+    case 'FORBIDDEN': return T('アクセスが拒否されました（RLS設定をご確認ください）。',
+                              'Access denied (check the table RLS policy).');
+    case 'ROOM_NOT_FOUND': return T('ルームが見つかりません','Room not found');
+    case 'ROOM_STARTED':   return T('ルームは満員です','Room is full');
+    default: return (e&&e.message)||T('エラーが発生しました','An error occurred');
+  }
 }
 
 function genCode(){
@@ -137,7 +160,7 @@ function showLobby(opts){
           if(room&&room.status==='playing'){clearInterval(waitTid);closeLobby();opts.onHost&&opts.onHost(id,room);}
         }catch(_){}
       },1500);
-    }catch(e){createBtn.disabled=false;status.textContent=T('エラー: ','Error: ')+e.message;}
+    }catch(e){createBtn.disabled=false;status.textContent=npErr(e,T);}
   };
 
   joinBtn.onclick=async()=>{
@@ -149,9 +172,7 @@ function showLobby(opts){
       closeLobby();opts.onJoin&&opts.onJoin(room,tok);
     }catch(e){
       joinBtn.disabled=false;
-      const msg=e.message==='ROOM_NOT_FOUND'?T('ルームが見つかりません','Room not found'):
-                e.message==='ROOM_STARTED'?T('ルームは満員です','Room is full'):e.message;
-      status.textContent=msg;
+      status.textContent=npErr(e,T);
     }
   };
 
@@ -211,5 +232,5 @@ function el(tag,cls,txt){
 }
 
 w.NETPLAY={createRoom,joinRoom,pushState,getRoom,startPoll,stopPoll,
-           showLobby,showHandoff,playerCountPicker,statusBar,genCode,genTok};
+           showLobby,showHandoff,playerCountPicker,statusBar,genCode,genTok,npErr};
 })(window);
