@@ -6,7 +6,6 @@
 <title>消しバト</title>
 <script src="sound.js"></script>
 <script src="track.js"></script>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0d0d1a;color:#eee;font-family:'Helvetica Neue',Arial,sans-serif;
@@ -183,6 +182,7 @@ ja:{
   waiting:'他のプレイヤーを待っています…', connecting:'接続中…',
   connected:'接続しました', disconnected:'切断されました', error:'エラー',
   connect_fail:'接続できませんでした。コードを確認し、もう一度お試しください（通信環境によっては繋がらない場合があります）',
+  need_tables:'オンライン対戦用のテーブルが未作成です。Supabaseで supabase_migrate_v4.sql と supabase_migrate_v5.sql を実行してください',
   your_turn:'あなたのターン ✦ ドラッグで投げる',
   turn_of:'{0} のターン',
   round_start:'ラウンド {0} 開始！',
@@ -215,6 +215,7 @@ en:{
   waiting:'Waiting for players…', connecting:'Connecting…',
   connected:'Connected', disconnected:'Disconnected', error:'Error',
   connect_fail:'Could not connect. Check the code and try again (some networks may block the connection).',
+  need_tables:'Online tables are missing — run supabase_migrate_v4.sql and v5.sql in Supabase.',
   your_turn:'Your Turn ✦ Drag to throw',
   turn_of:'{0}\'s Turn',
   round_start:'Round {0} Start!',
@@ -308,52 +309,76 @@ function genCode(){
   return Array.from({length:4},()=>c[Math.floor(Math.random()*c.length)]).join('');
 }
 
-// WebRTC ICE config: STUN + free TURN relay. TURN is essential for connecting
-// across strict / mobile (cellular) NATs — without it, P2P frequently fails to
-// establish ("エラー"). If TURN is unreachable it transparently falls back to STUN.
-const PEER_CFG={debug:0,config:{iceServers:[
-  {urls:'stun:stun.l.google.com:19302'},
-  {urls:'stun:stun1.l.google.com:19302'},
-  {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
-  {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
-  {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'}
-]}};
+// ── Online transport: Supabase relay (replaces WebRTC/PeerJS) ───────────────
+// WebRTC P2P needs a TURN server to cross strict/mobile NATs, which the free
+// PeerJS cloud lacks — so connections failed. Instead, host & guests exchange
+// messages through an append-only `room_messages` log (see migrate v5): each
+// side INSERTs its messages and polls for new rows. No write conflicts, works
+// on any network (plain HTTPS, same backend as login). Host is authoritative.
+const SB_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
+const SB_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+let RM_ROOM=null, RM_ME=null, RM_SEQ=0, RM_TID=null;
+async function sbReq(path,opts={}){
+  const r=await fetch(SB_URL+path,{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,
+    'Content-Type':'application/json',...(opts.headers||{})},...opts});
+  if(!r.ok&&r.status!==201){ let b=''; try{b=await r.text();}catch(_){}
+    if(r.status===404||/does not exist|42P01|PGRST205|Could not find the table/i.test(b)) throw new Error('NO_TABLE');
+    throw new Error('HTTP'+r.status); }
+  const t=await r.text(); return t?JSON.parse(t):null;
+}
+function rmSend(payload){
+  if(!RM_ROOM) return;
+  sbReq('/rest/v1/room_messages',{method:'POST',body:JSON.stringify({room:RM_ROOM,sender:RM_ME,payload})}).catch(()=>{});
+}
+function rmStart(onMsg){
+  rmStop();
+  RM_TID=setInterval(async()=>{
+    if(!RM_ROOM) return;
+    try{
+      const rows=await sbReq(`/rest/v1/room_messages?room=eq.${RM_ROOM}&seq=gt.${RM_SEQ}&order=seq.asc&select=seq,sender,payload`);
+      if(rows) for(const m of rows){ if(m.seq>RM_SEQ)RM_SEQ=m.seq; if(m.sender!==RM_ME) onMsg(m.sender,m.payload); }
+    }catch(e){}
+  },1100);
+}
+function rmStop(){ if(RM_TID){clearInterval(RM_TID);RM_TID=null;} }
 
 function createRoom(){
   const myName=(document.getElementById('ol-name').value.trim()||T('player_n',1)).slice(0,10);
   const code=genCode();
-  myPeerId=`kb-${code}`;
+  RM_ROOM=code; RM_ME='host'; RM_SEQ=0; myPeerId='host';
   IS_HOST=true; LOCAL_IDX=0;
-  lobbySlots=[{peerId:myPeerId,name:myName,idx:0}];
+  lobbySlots=[{peerId:'host',name:myName,idx:0}];
   playerNames=[myName,'','',''];
-
   olLobbyShow(code);
   setOlMsg(T('waiting'));
+  // register the room so guests can verify it exists, then start relaying
+  sbReq('/rest/v1/rooms',{method:'POST',body:JSON.stringify({id:'kb-'+code,game:'keshibato',state:{},status:'waiting'})})
+    .then(()=>rmStart(hostOnMsg))
+    .catch(e=>setOlMsg(e.message==='NO_TABLE'?T('need_tables'):T('error')));
+}
 
-  peer=new Peer(myPeerId,PEER_CFG);
-  peer.on('open',()=>{});
-  peer.on('disconnected',()=>{try{peer.reconnect();}catch(_){}});  // keep host registered
-  peer.on('connection',conn=>{
-    conn.on('open',()=>{
-      if(lobbySlots.length>=4){conn.send({type:'full'});conn.close();return;}
-      const idx=lobbySlots.length;
-      const name=`${T('player_n',idx+1)}`;
-      lobbySlots.push({peerId:conn.peer,name,idx,conn});
-      guestConns.push(conn);
-      updateLobbyUI();
-      broadcastLobby();
-      updateOnlineStartBtn();
-    });
-    conn.on('data',d=>hostReceive(conn,d));
-    conn.on('close',()=>{
-      lobbySlots=lobbySlots.filter(s=>s.peerId!==conn.peer);
-      guestConns=guestConns.filter(c=>c!==conn);
-      lobbySlots.forEach((s,i)=>s.idx=i);
-      updateLobbyUI(); broadcastLobby(); updateOnlineStartBtn();
-    });
-    conn.on('error',()=>{});
-  });
-  peer.on('error',err=>setOlMsg(T('error')+': '+err.type));
+// Host: handle a message from a guest (sender = that guest's id).
+function hostOnMsg(sender,d){
+  if(!IS_HOST||!d) return;
+  if(d.type==='hello'){
+    let s=lobbySlots.find(x=>x.peerId===sender);
+    if(!s){
+      if(lobbySlots.length>=4){ rmSend({type:'full',to:sender}); return; }
+      s={peerId:sender,name:d.name||T('player_n',lobbySlots.length+1),idx:lobbySlots.length};
+      lobbySlots.push(s);
+    } else if(d.name){ s.name=d.name; }
+    updateLobbyUI(); broadcastLobby(); updateOnlineStartBtn();
+  } else if(d.type==='flick' && phase==='aiming' && d.erIdx!=null){
+    const er=erasers[d.erIdx];
+    if(er && er.player===cur) doFlick(d.angle,d.power,d.erIdx);
+  }
+}
+
+// Guest: handle a message from the host (ignore messages aimed at other guests).
+function guestOnMsg(sender,d){
+  if(IS_HOST||sender!=='host'||!d) return;
+  if(d.to && d.to!==RM_ME) return;
+  guestReceive(d);
 }
 
 function showJoin(){
@@ -361,31 +386,24 @@ function showJoin(){
   document.getElementById('ol-join').style.display='flex';
 }
 
-function joinRoom(){
+async function joinRoom(){
   const code=(document.getElementById('join-code').value||'').trim().toUpperCase();
   if(code.length<4){setOlMsg(T('code_short'));return;}
-  const hostId=`kb-${code}`;
   const myName=(document.getElementById('ol-name').value.trim()||T('player_n',2)).slice(0,10);
-  IS_HOST=false;
+  IS_HOST=false; LOCAL_IDX=-1;
+  RM_ROOM=code; RM_ME='g'+Math.random().toString(36).slice(2,9); RM_SEQ=0; myPeerId=RM_ME;
   setOlMsg(T('connecting'));
-  peer=new Peer(undefined,PEER_CFG);
-  peer.on('disconnected',()=>{try{peer.reconnect();}catch(_){}});
-  peer.on('open',id=>{
-    myPeerId=id;
-    hostConn=peer.connect(hostId,{reliable:true});
-    const connTimer=setTimeout(()=>{ if(!hostConn.open) setOlMsg(T('connect_fail')); },15000);
-    hostConn.on('open',()=>{
-      clearTimeout(connTimer);
-      setOlMsg(T('connected'));
-      hostConn.send({type:'hello',name:myName});
-      document.getElementById('ol-join').style.display='none';
-      olLobbyShow(code,false);
-    });
-    hostConn.on('data',d=>guestReceive(d));
-    hostConn.on('close',()=>setOlMsg(T('disconnected')));
-    hostConn.on('error',e=>setOlMsg(T('error')+': '+((e&&e.type)||'connect')));
-  });
-  peer.on('error',err=>setOlMsg(T('error')+': '+err.type));
+  let rows;
+  try{ rows=await sbReq(`/rest/v1/rooms?id=eq.kb-${code}&game=eq.keshibato&select=id`); }
+  catch(e){ RM_ROOM=null; setOlMsg(e.message==='NO_TABLE'?T('need_tables'):T('connect_fail')); return; }
+  if(!rows||!rows.length){ RM_ROOM=null; setOlMsg(T('connect_fail')); return; }   // room not found
+  rmStart(guestOnMsg);
+  rmSend({type:'hello',name:myName});
+  document.getElementById('ol-join').style.display='none';
+  olLobbyShow(code,false);
+  setOlMsg(T('connected'));
+  // if the host never answers with a lobby, warn the user
+  setTimeout(()=>{ if(!IS_HOST && LOCAL_IDX<0) setOlMsg(T('connect_fail')); },15000);
 }
 
 function olLobbyShow(code,showHostOpts=true){
@@ -444,9 +462,7 @@ function broadcastState(){
   sendToAll({type:'state',g:netState()});
 }
 
-function sendToAll(msg){
-  guestConns.forEach(c=>{try{c.send(msg);}catch(e){}});
-}
+function sendToAll(msg){ rmSend(msg); }   // host broadcasts via the Supabase relay
 
 function netState(){
   return {erasers:erasers.map(e=>({...e})),cur,phase,roundNum,roundWins:[...roundWins],lastFellMsg};
@@ -494,7 +510,7 @@ function updateOnlineStartBtn(){
 }
 
 function leaveOnline(){
-  if(peer){peer.destroy();peer=null;}
+  rmStop(); RM_ROOM=null;
   hostConn=null; guestConns=[]; lobbySlots=[];
   document.getElementById('ol-entry').style.display='flex';
   document.getElementById('ol-join').style.display='none';
@@ -628,7 +644,7 @@ function runPhysics(){
     const moving=erasers.some(e=>e.alive&&(Math.abs(e.vx)+Math.abs(e.vy))>MIN_V);
     if(moving){
       animRaf=requestAnimationFrame(step);
-      if(MODE==='online'&&IS_HOST&&++broadcastTick%4===0) broadcastState();
+      // (no per-frame streaming over the relay — guest snaps to the settled state below)
     } else {
       erasers.forEach(e=>{e.vx=0;e.vy=0;e.av=0;});
       render();
@@ -909,7 +925,7 @@ function onUp(e){
   const angle=Math.atan2(dy,dx)+Math.PI;
   const power=Math.min(dist/MAX_DRAG,1);
   if(MODE==='online'&&!IS_HOST){
-    hostConn?.send({type:'flick',angle,power,erIdx});
+    rmSend({type:'flick',angle,power,erIdx});   // guest sends its flick to the host
   } else {
     doFlick(angle,power,erIdx);
   }

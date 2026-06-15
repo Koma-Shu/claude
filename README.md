@@ -46,9 +46,12 @@ ARCADE と STUDY はユーザー視点で独立したアプリですが、ログ
 2. `supabase_migrate_v2.sql` — **play_sessions テーブル（利用回数・利用時間の記録に必須）**
 3. `supabase_migrate_v3.sql` — **study_progress テーブル（STUDY の学習進捗・復習スケジュールの保存に必須）**
 4. `supabase_migrate_v4.sql` — **rooms テーブル（オンライン対戦に必須）**
+5. `supabase_migrate_v5.sql` — **room_messages テーブル（消しバトのオンライン対戦に必須）**
 
 `supabase_migrate_v2.sql` を実行しないと、各ゲームの `track.js` によるプレイ時間記録が保存されず、管理者画面の「利用回数」「利用時間」が空のままになります。
 
 `supabase_migrate_v3.sql` を実行しないと、ログイン時の学習進捗が Supabase に保存されず、端末をまたいだ同期ができません（未ログイン同様、端末内保存のみになります）。
 
 `supabase_migrate_v4.sql` を実行しないと、各ゲームの**オンライン対戦が機能しません**（ルーム作成・参加時に「rooms テーブルが未作成」エラーになります）。ログインは動くがオンライン対戦だけできない場合、まずこの SQL を実行してください。
+
+`supabase_migrate_v5.sql` は**消しバト(keshibato)のオンライン対戦に必須**です。消しバトは元々 WebRTC(P2P) を使っていましたが、TURN サーバが無いと多くの回線で接続できないため、他ゲームと同じ Supabase 中継方式（`rooms` + `room_messages`）へ変更しました。消しバトのオンラインには **v4 と v5 の両方**が必要です。
