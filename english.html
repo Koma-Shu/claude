@@ -287,17 +287,17 @@
     <div class="hero-sub" id="hero-sub"></div>
   </div>
 
-  <div class="sec-title" id="t-sec-today">今日やること <span class="hint" id="t-today-hint">— Progrit で学習したらタップして記録</span></div>
+  <div class="sec-title"><span id="t-sec-today">今日やること</span> <span class="hint" id="t-today-hint">— Progrit で学習したらタップして記録</span></div>
   <div class="plan-list" id="plan-list"></div>
 
   <!-- ───────── PINNED ───────── -->
   <div id="pin-section" class="hidden">
-    <div class="sec-title" id="t-sec-pin">📌 ピン留め中の問題 <span class="hint" id="t-pin-hint">— 苦手として集中復習</span></div>
+    <div class="sec-title"><span id="t-sec-pin">📌 ピン留め中の問題</span> <span class="hint" id="t-pin-hint">— 苦手として集中復習</span></div>
     <div class="pin-list" id="pin-list"></div>
   </div>
 
   <!-- ───────── DIARY ───────── -->
-  <div class="sec-title" id="t-sec-diary">✍️ 英語日記 <span class="hint" id="t-diary-hint">— 口頭入力・AI添削</span></div>
+  <div class="sec-title"><span id="t-sec-diary">✍️ 英語日記</span> <span class="hint" id="t-diary-hint">— 口頭入力・AI添削</span></div>
   <a class="diary-card" href="english-diary.html">
     <div class="diary-ic">📓</div>
     <div class="diary-main">
@@ -335,16 +335,16 @@
   </div>
 
   <!-- ───────── COURSES / PROGRESS ───────── -->
-  <div class="sec-title" id="t-sec-courses">コース進捗 <span class="hint" id="t-courses-hint">— セルをタップして記録・ピン編集</span></div>
+  <div class="sec-title"><span id="t-sec-courses">コース進捗</span> <span class="hint" id="t-courses-hint">— セルをタップして記録・ピン編集</span></div>
   <div id="courses"></div>
   <div class="legend" id="legend"></div>
 
   <!-- ───────── ROUTINE ───────── -->
-  <div class="sec-title" id="t-sec-routine">今日のルーティン <span class="hint" id="t-routine-hint">— 口頭英作文以外の習慣</span></div>
+  <div class="sec-title"><span id="t-sec-routine">今日のルーティン</span> <span class="hint" id="t-routine-hint">— 口頭英作文以外の習慣</span></div>
   <div class="routine" id="routine"></div>
 
   <!-- ───────── ROUTINE CALENDAR ───────── -->
-  <div class="sec-title" id="t-sec-cal">📅 ルーティンの記録 <span class="hint" id="t-cal-hint">— カレンダーで可視化</span></div>
+  <div class="sec-title"><span id="t-sec-cal">📅 ルーティンの記録</span> <span class="hint" id="t-cal-hint">— カレンダーで可視化</span></div>
   <div class="panel">
     <div class="cal-head">
       <button class="cal-nav" id="cal-prev">◀</button>
@@ -894,7 +894,7 @@ function renderPins(){
     });
   const sec = $('pin-section');
   const dueCount = ids.filter(isPinDue).length;
-  $('t-pin-hint').textContent = dueCount ? T('pinDueCount')(dueCount) : T('pinHint');
+  const ph = $('t-pin-hint'); if (ph) ph.textContent = dueCount ? T('pinDueCount')(dueCount) : T('pinHint');
   if (!ids.length){ sec.classList.add('hidden'); return; }
   sec.classList.remove('hidden');
   $('pin-list').innerHTML = ids.map(id => {
