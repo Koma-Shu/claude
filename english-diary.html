@@ -4,15 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>英語日記 添削 | ENGLISH</title>
-  <!-- Admin gate (runs before paint): same rule as english.html / the portal card. -->
-  <script>
-    (function(){
-      var ok=false;
-      try{ var u=JSON.parse(localStorage.getItem('arcade_user')||'null');
-           ok=(sessionStorage.getItem('arcade_admin')==='1')||!!(u&&u.username==='admin'); }catch(e){ ok=false; }
-      document.documentElement.classList.toggle('not-admin', !ok);
-    })();
-  </script>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#fb923c">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -114,7 +105,6 @@
     .warn-box{background:#1a1408;border:1px solid #4a3a1a;border-radius:9px;padding:11px 14px;font-size:.7rem;color:#caa84a;line-height:1.8;margin-bottom:14px;}
     .footnote{font-size:.66rem;color:var(--dim2);text-align:center;line-height:1.8;margin-top:24px;}
     .hidden{display:none!important;}
-    html.not-admin #app-wrap{display:none!important;}
     .gate{width:100%;max-width:520px;min-height:58vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin:0 auto;}
     .gate-card{background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:32px 26px;max-width:440px;margin-top:20px;}
     .gate-ico{font-size:2.6rem;margin-bottom:14px;}
@@ -666,7 +656,7 @@ function renderGate(){
 
 // ── wiring ───────────────────────────────────────────────────────────────────
 function wire(){
-  $('lang-btn').addEventListener('click', ()=>{ lang = lang==='ja'?'en':'ja'; localStorage.setItem('lang',lang); if(isAdmin()) applyChrome(); else renderGate(); });
+  $('lang-btn').addEventListener('click', ()=>{ lang = lang==='ja'?'en':'ja'; localStorage.setItem('lang',lang); applyChrome(); });
   $('topic-roll').onclick = rollTopic;
   $('topic-save').onclick = toggleTopicSave;
   $('topic-input').addEventListener('input', updateTopicSave);
@@ -698,13 +688,10 @@ function wire(){
 }
 
 // ── boot ─────────────────────────────────────────────────────────────────────
+// Directly accessible by URL so a saved/bookmarked link always opens the diary
+// (unlisted on the public portal; data + API keys stay per-device).
 $('diary-date').value = todayStr();
-if (isAdmin()){
-  wire(); applyChrome(); updateCount();
-} else {
-  $('lang-btn').addEventListener('click', ()=>{ lang = lang==='ja'?'en':'ja'; localStorage.setItem('lang',lang); renderGate(); });
-  renderGate();
-}
+wire(); applyChrome(); updateCount();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
 </script>

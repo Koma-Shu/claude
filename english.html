@@ -4,18 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ENGLISH | 口頭英作文 学習マネージャー</title>
-  <!-- Admin gate (runs before paint): ENGLISH is an admin-only personal tool.
-       Mark the document so CSS hides the app for non-admins with no flash of
-       content; the inline app then shows a friendly notice instead. Access =
-       logged in as user "admin" OR an authenticated admin session (admin.html). -->
-  <script>
-    (function(){
-      var ok=false;
-      try{ var u=JSON.parse(localStorage.getItem('arcade_user')||'null');
-           ok=(sessionStorage.getItem('arcade_admin')==='1')||!!(u&&u.username==='admin'); }catch(e){ ok=false; }
-      document.documentElement.classList.toggle('not-admin', !ok);
-    })();
-  </script>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#fb923c">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -167,6 +155,41 @@
     .diary-status{font-size:.64rem;border:1px solid var(--line2);border-radius:20px;padding:4px 10px;color:var(--dim2);white-space:nowrap;}
     .diary-status.done{border-color:#1d5c46;color:var(--good);}
     .diary-go{color:var(--accent);font-size:1.2rem;}
+    /* lesson reps (周回) + lap badge */
+    .cell .cellreps{position:absolute;top:1px;left:3px;font-size:.46rem;font-weight:bold;color:var(--dim);line-height:1;}
+    .cell.scheduled .cellreps,.cell.mastered .cellreps{color:#bfe9d8;}
+    .cell.due .cellreps,.cell.over .cellreps{color:#caa84a;}
+    .lap{font-size:.6rem;color:var(--purple);letter-spacing:0;white-space:nowrap;}
+    .part-head .lap{color:var(--dim2);margin-left:auto;}
+    /* routine link item */
+    a.rt{text-decoration:none;color:inherit;cursor:pointer;}
+    .rt-go{margin-left:auto;color:var(--accent);font-size:1rem;}
+    /* pin timing */
+    .pin-item .ptiming{font-size:.62rem;white-space:nowrap;margin-left:4px;}
+    .pin-item .ptiming.due{color:var(--warn);}
+    .pin-item .ptiming.sched{color:var(--dim2);}
+    .pin-rev{background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--good);font-family:inherit;font-size:.66rem;padding:6px 9px;cursor:pointer;white-space:nowrap;}
+    .pin-rev:hover{border-color:var(--good);}
+    .pin-sched{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.74rem;margin:10px 0 2px;}
+    .pin-sched .due{color:var(--warn);} .pin-sched .sched{color:var(--dim);}
+    /* routine calendar */
+    .cal-head{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px;}
+    .cal-title{font-size:.85rem;color:var(--txt);letter-spacing:1px;min-width:118px;text-align:center;}
+    .cal-nav{background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--dim);font-family:inherit;font-size:.78rem;padding:5px 12px;cursor:pointer;}
+    .cal-nav:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+    .cal-nav:disabled{opacity:.3;cursor:not-allowed;}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+    .cal-wd{text-align:center;font-size:.58rem;color:var(--dim2);padding:0 0 3px;}
+    .cal-cell{aspect-ratio:1;border:1px solid var(--line);border-radius:7px;background:var(--panel2);padding:3px;display:flex;flex-direction:column;align-items:center;gap:2px;overflow:hidden;}
+    .cal-cell.empty{border:none;background:none;}
+    .cal-cell.future{opacity:.35;}
+    .cal-cell.today{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);}
+    .cal-d{font-size:.6rem;color:var(--dim);line-height:1;}
+    .cal-dots{display:flex;flex-wrap:wrap;gap:2px;justify-content:center;align-content:center;flex:1;}
+    .cal-dot{width:6px;height:6px;border-radius:50%;}
+    .cal-legend{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;font-size:.58rem;color:var(--dim2);margin-top:12px;}
+    .cal-legend span{display:flex;align-items:center;gap:5px;}
+    .cal-legend i{width:8px;height:8px;border-radius:50%;display:inline-block;}
     /* heatmap */
     .heat{display:flex;gap:3px;overflow-x:auto;padding-bottom:6px;}
     .heat-col{display:flex;flex-direction:column;gap:3px;}
@@ -218,7 +241,6 @@
     .modal-foot .btn{flex:1;}
     .hist{font-size:.66rem;color:var(--dim2);margin-top:10px;line-height:1.7;}
     /* admin gate */
-    html.not-admin #app-wrap{display:none!important;}
     .gate{width:100%;max-width:520px;min-height:58vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
     .gate-card{background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:32px 26px;max-width:440px;margin-top:20px;}
     .gate-ico{font-size:2.6rem;margin-bottom:14px;}
@@ -320,6 +342,18 @@
   <!-- ───────── ROUTINE ───────── -->
   <div class="sec-title" id="t-sec-routine">今日のルーティン <span class="hint" id="t-routine-hint">— 口頭英作文以外の習慣</span></div>
   <div class="routine" id="routine"></div>
+
+  <!-- ───────── ROUTINE CALENDAR ───────── -->
+  <div class="sec-title" id="t-sec-cal">📅 ルーティンの記録 <span class="hint" id="t-cal-hint">— カレンダーで可視化</span></div>
+  <div class="panel">
+    <div class="cal-head">
+      <button class="cal-nav" id="cal-prev">◀</button>
+      <div class="cal-title" id="cal-title"></div>
+      <button class="cal-nav" id="cal-next">▶</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-legend" id="cal-legend"></div>
+  </div>
 
   <!-- ───────── STRATEGY ───────── -->
   <div class="sec-title" id="t-sec-strat">学習戦略メモ</div>
@@ -443,8 +477,23 @@ function dayStr(ts){ const d=new Date(ts); return d.getFullYear()+'-'+String(d.g
 //  次の間隔が伸びる。レッスン単位（10問）でグレード付けして次回復習日を決める。
 // ════════════════════════════════════════════════════════════════════════════
 const Q = { again:1, hard:3, good:4, easy:5 };
-function defState(id){ return { id, studied:false, ef:2.4, reps:0, interval:0, due:0, lapses:0, first:0, last:0, pins:0, pinNote:'', history:[] }; }
+function defState(id){ return { id, studied:false, ef:2.4, reps:0, interval:0, due:0, lapses:0, first:0, last:0, pins:0, pinNote:'', pinDue:0, pinReps:0, history:[] }; }
 function st(id){ return DB.lessons[id]; }
+
+// ── pinned-question review schedule ─────────────────────────────────────────
+// ピン留めした「分からなかった問題」は本体レッスンより短い間隔で復習する。
+// 復習するたび間隔を 1→2→4→8→16→30日 と広げ、ピンを解消(0)したら終了。
+const PIN_INTERVALS = [1, 2, 4, 8, 16, 30];
+function advancePin(s){
+  if (!s || !(s.pins>0)) return;
+  s.pinReps = (s.pinReps||0) + 1;
+  const iv = PIN_INTERVALS[Math.min(s.pinReps-1, PIN_INTERVALS.length-1)];
+  s.pinDue = startOfToday() + iv*DAY;
+}
+function reviewPins(id){ const s = st(id); if (!s || !(s.pins>0)) return; advancePin(s); logActivity(); save(); }
+// 未復習(pinDue=0)・期限到来は「今日復習すべき」とみなす
+function isPinDue(id){ const s = st(id); return !!(s && s.pins>0 && (!s.pinDue || s.pinDue <= endOfToday())); }
+function pinDueDays(id){ const s = st(id); if(!s||!(s.pins>0)) return null; if(!s.pinDue) return 0; return Math.round((s.pinDue - startOfToday())/DAY); }
 
 function simulate(s, grade){
   const n = Object.assign({}, s);
@@ -475,6 +524,8 @@ function review(id, grade){
   n.last = now();
   n.lapses = (cur.lapses||0) + (Q[grade] < 3 ? 1 : 0);
   n.pins = cur.pins||0; n.pinNote = cur.pinNote||'';
+  n.pinReps = cur.pinReps||0; n.pinDue = cur.pinDue||0;
+  if (Q[grade] >= 3 && n.pins>0) advancePin(n);    // 通しで復習＝ピンも復習したとみなし次回へ
   n.history = (cur.history||[]).concat([{ t:now(), g:grade }]).slice(-12);
   DB.lessons[id] = n;
   logActivity();
@@ -607,6 +658,7 @@ const L = {
     prRetention:r=>`定着 ${r}%`, prNew:'まだ学習していません', prPins:n=>`📌${n}`,
     again:'もう一度', hard:'難しい', good:'できた', easy:'簡単',
     secPin:'📌 ピン留め中の問題', pinHint:'— 苦手として集中復習',
+    pinDueCount:n=>`— 今日復習すべき ${n}件`, pinDueNow:'今日復習', pinNext:s=>`次回 ${s}`, pinReviewed:'復習した',
     pinQ:n=>`${n}問`, pinReviewed:'復習した', pinResolve:'解決',
     secStats:'進捗サマリー',
     stTotal:'総レッスン', stStudied:'学習済', stMastered:'定着', stDue:'復習待ち', stPin:'ピン', stStreak:'連続',
@@ -620,8 +672,10 @@ const L = {
     today:'今日', overdue:'延滞',
     secCourses:'コース進捗', coursesHint:'— セルをタップして記録・ピン編集',
     cProg:(a,b)=>`${a} / ${b} レッスン`, cDue:n=>`復習 ${n}`,
+    cLap:(avg,full)=>`周回 ${avg}・全${full}周`, pLap:full=>`${full}周`, repsTitle:n=>`${n}周`,
     legNew:'未学習', legSched:'復習予定', legDue:'要復習', legOver:'延滞', legMast:'定着🏅', legPin:'ピンあり',
     secRoutine:'今日のルーティン', routineHint:'— 口頭英作文以外の習慣',
+    secCal:'📅 ルーティンの記録', calHint:'— カレンダーで可視化',
     rtComp:'口頭英作文', rtCompNote:'今日のプラン（上）', rtAuto:'自動',
     secStrat:'学習戦略メモ', stratSum:'目標達成までのロードマップを見る',
     secActivity:'学習の記録', heatLess:'少', heatMore:'多',
@@ -666,6 +720,7 @@ const L = {
     prRetention:r=>`Retention ${r}%`, prNew:'Not studied yet', prPins:n=>`📌${n}`,
     again:'Again', hard:'Hard', good:'Good', easy:'Easy',
     secPin:'📌 Pinned questions', pinHint:'— focused review of weak spots',
+    pinDueCount:n=>`— ${n} due today`, pinDueNow:'review today', pinNext:s=>`next ${s}`, pinReviewed:'reviewed',
     pinQ:n=>`${n}Q`, pinReviewed:'Reviewed', pinResolve:'Resolve',
     secStats:'Progress', stTotal:'Lessons', stStudied:'Studied', stMastered:'Mastered', stDue:'Due', stPin:'Pins', stStreak:'Streak',
     secScience:'How it works (forgetting curve)', retention:'Avg retention',
@@ -678,8 +733,10 @@ const L = {
     today:'Today', overdue:'Late',
     secCourses:'Course progress', coursesHint:'— tap a cell to log / edit pins',
     cProg:(a,b)=>`${a} / ${b} lessons`, cDue:n=>`Due ${n}`,
+    cLap:(avg,full)=>`laps ${avg} · ${full} full`, pLap:full=>`${full}× full`, repsTitle:n=>`${n} laps`,
     legNew:'New', legSched:'Scheduled', legDue:'Due', legOver:'Late', legMast:'Mastered🏅', legPin:'Pinned',
     secRoutine:"Today's routine", routineHint:'— habits beyond oral composition',
+    secCal:'📅 Routine log', calHint:'— calendar view',
     rtComp:'Oral composition', rtCompNote:"today's plan (above)", rtAuto:'auto',
     secStrat:'Strategy notes', stratSum:'View the roadmap to your goals',
     secActivity:'Activity', heatLess:'less', heatMore:'more',
@@ -729,6 +786,7 @@ function applyChrome(){
   set('t-sec-plan','secPlan'); set('t-upc','upc');
   set('t-sec-courses','secCourses'); set('t-courses-hint','coursesHint');
   set('t-sec-routine','secRoutine'); set('t-routine-hint','routineHint');
+  set('t-sec-cal','secCal'); set('t-cal-hint','calHint');
   set('t-sec-strat','secStrat'); set('t-strat-sum','stratSum');
   set('t-sec-activity','secActivity'); set('t-heat-less','heatLess'); set('t-heat-more','heatMore');
   set('t-sec-set','secSet');
@@ -758,6 +816,7 @@ function renderAll(){
   renderCourses();
   renderLegend();
   renderRoutine();
+  renderCalendar();
   renderDiaryCard();
   renderHeatmap();
 }
@@ -826,20 +885,35 @@ function planRow(id, kind){
 
 function renderPins(){
   const ids = ALL_IDS.filter(id => { const s=st(id); return s && s.pins>0; })
-    .sort((a,b)=> st(b).pins - st(a).pins);
+    .sort((a,b)=>{
+      const da = isPinDue(a)?0:1, db = isPinDue(b)?0:1;     // 復習期限が来たものを先頭に
+      if (da!==db) return da-db;
+      const pa = pinDueDays(a), pb = pinDueDays(b);
+      if (pa!==pb) return (pa||0)-(pb||0);                  // 期限が近い順
+      return st(b).pins - st(a).pins;                       // 同じなら問題数の多い順
+    });
   const sec = $('pin-section');
+  const dueCount = ids.filter(isPinDue).length;
+  $('t-pin-hint').textContent = dueCount ? T('pinDueCount')(dueCount) : T('pinHint');
   if (!ids.length){ sec.classList.add('hidden'); return; }
   sec.classList.remove('hidden');
   $('pin-list').innerHTML = ids.map(id => {
     const l = BY_ID[id], s = st(id);
     const note = s.pinNote ? `<div class="pnote">${escapeHTML(s.pinNote)}</div>` : '';
+    const due = isPinDue(id);
+    const dd = pinDueDays(id);
+    const timing = due ? `<span class="ptiming due">🔴 ${T('pinDueNow')}</span>`
+                       : `<span class="ptiming sched">⏳ ${T('pinNext')(humanInterval(dd))}</span>`;
+    const revBtn = `<button class="pin-rev" data-rev="${id}">✓ ${T('pinReviewed')}</button>`;
     return `<div class="pin-item">
       <span class="pc">📌 ${T('pinQ')(s.pins)}</span>
-      <div class="pmain">${lessonLabelHTML(l)}${note}</div>
+      <div class="pmain">${lessonLabelHTML(l)} ${timing}${note}</div>
+      ${revBtn}
       <button data-open="${id}">${lang==='ja'?'編集':'Edit'}</button>
     </div>`;
   }).join('');
   $('pin-list').querySelectorAll('[data-open]').forEach(b=> b.onclick=()=> openLesson(b.dataset.open));
+  $('pin-list').querySelectorAll('[data-rev]').forEach(b=> b.onclick=()=>{ reviewPins(b.dataset.rev); renderAll(); });
 }
 
 function renderStats(){
@@ -903,23 +977,35 @@ function cellClass(id){
   if (isDue(id)) return 'due';
   return 'scheduled';
 }
+// 周回（ラップ）: その範囲を「全レッスン最低何回こなしたか(full)」と平均回数(avg)
+function lapStats(ids){
+  let sum=0, min=Infinity;
+  ids.forEach(id=>{ const r=(st(id)&&st(id).reps)||0; sum+=r; if(r<min)min=r; });
+  const total = ids.length;
+  return { total, avg: total? sum/total : 0, full: total? min : 0 };
+}
 function renderCourses(){
   const wrap = $('courses');
   wrap.innerHTML = COURSES.map(c => {
     const ids = []; c.parts.forEach(p=>{ for(let n=1;n<=p.lessons;n++) ids.push(p.id+'-L'+String(n).padStart(2,'0')); });
     const studied = ids.filter(isStudied).length, due = ids.filter(isDue).length, total = ids.length;
     const pct = Math.round(studied/total*100);
+    const cLap = lapStats(ids);
     const parts = c.parts.map(p => {
-      let cells = '';
+      const pIds = []; let cells = '';
       for(let n=1;n<=p.lessons;n++){
-        const id = p.id+'-L'+String(n).padStart(2,'0'); const s = st(id);
+        const id = p.id+'-L'+String(n).padStart(2,'0'); pIds.push(id); const s = st(id);
+        const reps = (s && s.reps) || 0;
         const pin = s && s.pins>0 ? '<span class="pindot"></span>' : '';
         const star = isMastered(id) ? '<span class="star">🏅</span>' : '';
-        cells += `<button class="cell ${cellClass(id)}" data-open="${id}" title="${c.name} ${p.name} L${n}">${n}${pin}${star}</button>`;
+        const rb = reps>=1 ? `<span class="cellreps" title="${T('repsTitle')(reps)}">${reps}</span>` : '';
+        cells += `<button class="cell ${cellClass(id)}" data-open="${id}" title="${c.name} ${p.name} L${n} · ${T('repsTitle')(reps)}">${rb}${n}${pin}${star}</button>`;
       }
-      const pStudied = (()=>{ let a=0; for(let n=1;n<=p.lessons;n++) if(isStudied(p.id+'-L'+String(n).padStart(2,'0'))) a++; return a; })();
+      const pStudied = pIds.filter(isStudied).length;
+      const pLap = lapStats(pIds);
+      const lapBadge = pLap.full>=1 ? `<span class="lap">${T('pLap')(pLap.full)}</span>` : '';
       return `<div class="part">
-        <div class="part-head"><span>${p.name}</span><span class="pcount">${pStudied}/${p.lessons}</span></div>
+        <div class="part-head"><span>${p.name}</span><span class="pcount">${pStudied}/${p.lessons}</span>${lapBadge}</div>
         <div class="lesson-grid">${cells}</div>
       </div>`;
     }).join('');
@@ -927,7 +1013,7 @@ function renderCourses(){
       <div class="course-head">
         <span class="course-icon">${c.icon}</span>
         <span class="course-name" style="color:${c.color}">${c.name}</span>
-        <span class="course-prog">${T('cProg')(studied,total)}${due?' · <span class="due">'+T('cDue')(due)+'</span>':''}</span>
+        <span class="course-prog">${T('cProg')(studied,total)}${due?' · <span class="due">'+T('cDue')(due)+'</span>':''} · <span class="lap">${T('cLap')(cLap.avg.toFixed(1), cLap.full)}</span></span>
       </div>
       <div class="course-bar"><div style="width:${pct}%;background:${c.color}"></div></div>
       ${parts}
@@ -946,34 +1032,67 @@ function renderLegend(){
 
 // ── routine ──────────────────────────────────────────────────────────────────
 const ROUTINE = [
-  { key:'shadow', icon:'🎧', label:{ja:'シャドーイング添削',en:'Shadowing (graded)'}, note:{ja:'30分・録音して提出',en:'30 min · record & submit'} },
-  { key:'elsa',   icon:'🗣', label:{ja:'ELSA Speak',en:'ELSA Speak'}, note:{ja:'10〜15分・発音矯正',en:'10–15 min · pronunciation'} },
-  { key:'comp',   icon:'✍️', label:{ja:'口頭英作文',en:'Oral composition'}, note:{ja:'今日のプラン（上）',en:"today's plan (above)"}, auto:true },
-  { key:'output', icon:'📨', label:{ja:'業務アウトプット',en:'Work output'}, note:{ja:'英文メールを自力ドラフト（任意）',en:'Draft an email yourself (optional)'}, opt:true },
-  { key:'input',  icon:'📖', label:{ja:'多読 / ウェビナー',en:'Reading / webinar'}, note:{ja:'興味分野で英語インプット（任意）',en:'English input on a topic you like (optional)'}, opt:true }
+  { key:'shadow', icon:'🎧', color:'#60a5fa', label:{ja:'シャドーイング添削',en:'Shadowing (graded)'}, note:{ja:'30分・録音して提出',en:'30 min · record & submit'} },
+  { key:'elsa',   icon:'🗣', color:'#a78bfa', label:{ja:'ELSA Speak',en:'ELSA Speak'}, note:{ja:'10〜15分・発音矯正',en:'10–15 min · pronunciation'} },
+  { key:'comp',   icon:'✍️', color:'#fb923c', label:{ja:'口頭英作文',en:'Oral composition'}, note:{ja:'今日のプラン（上）',en:"today's plan (above)"}, auto:true },
+  { key:'diary',  icon:'📓', color:'#fbbf24', label:{ja:'英語日記',en:'English diary'}, note:{ja:'口頭入力・AI添削（タップで開く）',en:'speak & AI-correct (tap to open)'}, auto:true, link:'english-diary.html' },
+  { key:'output', icon:'📨', color:'#34d399', label:{ja:'業務アウトプット',en:'Work output'}, note:{ja:'英文メールを自力ドラフト（任意）',en:'Draft an email yourself (optional)'}, opt:true },
+  { key:'input',  icon:'📖', color:'#f472b6', label:{ja:'多読 / ウェビナー',en:'Reading / webinar'}, note:{ja:'興味分野で英語インプット（任意）',en:'English input on a topic you like (optional)'}, opt:true }
 ];
+// その日に各ルーティンをこなしたか（comp=レッスン記録, diary=日記記録, 他=手動チェック）
+function routineDoneOn(day, key){
+  if (key==='comp') return !!DB.act[day];
+  if (key==='diary') return diaryDoneOn(day);
+  const r = DB.routine[day]; return !!(r && r[key]);
+}
 function renderRoutine(){
-  const k = dayStr(now()); const r = DB.routine[k] || {};
-  const compDone = allActiveLogged();
+  const k = dayStr(now());
   $('routine').innerHTML = ROUTINE.map(it=>{
-    const done = it.auto ? compDone : !!r[it.key];
+    const done = routineDoneOn(k, it.key);
     const label = it.key==='comp' ? T('rtComp') : it.label[lang];
     const note  = it.key==='comp' ? T('rtCompNote') : it.note[lang];
-    const auto = it.auto ? `<span class="rt-auto-tag">${T('rtAuto')}</span>` : '';
-    return `<div class="rt ${done?'done':''} ${it.opt?'opt':''} ${it.auto?'auto':''}" ${it.auto?'':`data-rt="${it.key}"`}>
-      <div class="rt-check">✓</div>
+    const tail  = it.link ? `<span class="rt-go">→</span>` : (it.auto ? `<span class="rt-auto-tag">${T('rtAuto')}</span>` : '');
+    const inner = `<div class="rt-check">✓</div>
       <span class="rt-ico">${it.icon}</span>
       <div class="rt-main"><div class="rt-label">${label}</div><div class="rt-note">${note}</div></div>
-      ${auto}
-    </div>`;
+      ${tail}`;
+    if (it.link) return `<a class="rt ${done?'done':''} auto" href="${it.link}">${inner}</a>`;
+    return `<div class="rt ${done?'done':''} ${it.opt?'opt':''} ${it.auto?'auto':''}" ${it.auto?'':`data-rt="${it.key}"`}>${inner}</div>`;
   }).join('');
   $('routine').querySelectorAll('[data-rt]').forEach(el => el.onclick = ()=>{
     const key = el.dataset.rt; const day = dayStr(now());
     DB.routine[day] = DB.routine[day] || {};
     DB.routine[day][key] = !DB.routine[day][key];
-    save(); renderRoutine(); renderStats();   // routine affects streak
+    save(); renderRoutine(); renderStats(); renderCalendar();   // routine affects streak + calendar
     $('greet').innerHTML = streak()>0 ? T('greetStreak')(streak()) : (ALL_IDS.some(isStudied)?T('greetBack'):T('greetNew'));
   });
+}
+
+// ── routine calendar (いつ何のルーティンをこなしたか) ───────────────────────────
+let calState = (function(){ const d=new Date(); return { y:d.getFullYear(), m:d.getMonth() }; })();
+function renderCalendar(){
+  const grid = $('cal-grid'); if(!grid) return;
+  const y=calState.y, m=calState.m;
+  const first=new Date(y,m,1), startDow=first.getDay(), days=new Date(y,m+1,0).getDate();
+  const today=new Date(); today.setHours(0,0,0,0); const tStr=dayStr(today.getTime());
+  $('cal-title').textContent = lang==='ja' ? `${y}年${m+1}月` : first.toLocaleString('en-US',{month:'long',year:'numeric'});
+  const wd = lang==='ja'?['日','月','火','水','木','金','土']:['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let html = wd.map(w=>`<div class="cal-wd">${w}</div>`).join('');
+  for(let i=0;i<startDow;i++) html += '<div class="cal-cell empty"></div>';
+  for(let d=1;d<=days;d++){
+    const dt=new Date(y,m,d); const ds=dayStr(dt.getTime()); dt.setHours(0,0,0,0);
+    const future = dt.getTime()>today.getTime();
+    let dots='', doneNames=[];
+    ROUTINE.forEach(it=>{ const done = routineDoneOn(ds, it.key); if(done) doneNames.push((it.key==='comp'?T('rtComp'):it.label[lang]));
+      dots += `<span class="cal-dot" style="background:${done?it.color:'#1c1c28'}"></span>`; });
+    const title = ds + (doneNames.length?(' : '+doneNames.join(', ')):'');
+    html += `<div class="cal-cell ${ds===tStr?'today':''} ${future?'future':''}" title="${title}"><span class="cal-d">${d}</span><div class="cal-dots">${future?'':dots}</div></div>`;
+  }
+  grid.innerHTML = html;
+  $('cal-legend').innerHTML = ROUTINE.map(it=>`<span><i style="background:${it.color}"></i>${it.icon} ${it.key==='comp'?T('rtComp'):it.label[lang]}</span>`).join('');
+  // disable forward nav beyond the current month
+  const atCurrent = (y===today.getFullYear() && m===today.getMonth());
+  $('cal-next').disabled = atCurrent;
 }
 
 // ── heatmap ──────────────────────────────────────────────────────────────────
@@ -1068,6 +1187,7 @@ function openLesson(id){
       <span class="pl">/ ${QPL} ${lang==='ja'?'問':'Q'}</span>
     </div>
     <textarea class="pin-note" id="pin-note" placeholder="${T('mPinNote')}: ${T('mPinPlaceholder')}">${escapeHTML(note)}</textarea>
+    ${pins>0 ? `<div class="pin-sched"><span class="${isPinDue(id)?'due':'sched'}">📌 ${isPinDue(id)?('🔴 '+T('pinDueNow')):('⏳ '+T('pinNext')(humanInterval(pinDueDays(id))))}</span><button class="pin-rev" id="m-pin-rev">✓ ${T('pinReviewed')}</button></div>` : ''}
     <div class="modal-foot">
       <button class="btn" id="m-pin-save" style="border-color:var(--pink);color:var(--pink);">${T('mSavePin')}</button>
       ${studied?`<button class="btn danger" id="m-unstudy">${T('mUnstudy')}</button>`:''}
@@ -1083,6 +1203,7 @@ function openLesson(id){
   $('pin-dec').onclick = ()=>{ const e=$('pin-num'); e.value=Math.max(0,(+e.value||0)-1); };
   $('pin-inc').onclick = ()=>{ const e=$('pin-num'); e.value=Math.min(QPL,(+e.value||0)+1); };
   $('m-pin-save').onclick = ()=>{ persistPin(id, true); closeModal(); renderAll(); };
+  const pr = $('m-pin-rev'); if (pr) pr.onclick = ()=>{ persistPin(id, false); reviewPins(id); closeModal(); renderAll(); };
   const un = $('m-unstudy'); if (un) un.onclick = ()=>{ delete DB.lessons[id]; save(); closeModal(); renderAll(); };
   $('modal-back').classList.add('show');
 }
@@ -1093,7 +1214,7 @@ function persistPin(id, force){
   const note = noteEl.value.trim();
   const cur = st(id);
   if (!cur){ if(num===0 && !note && !force) return; DB.lessons[id] = Object.assign(defState(id), { pins:num, pinNote:note }); }
-  else { cur.pins = num; cur.pinNote = note; }
+  else { cur.pins = num; cur.pinNote = note; if (num===0){ cur.pinDue = 0; cur.pinReps = 0; } }  // ピン解消でスケジュール終了
   save();
 }
 function closeModal(){ modalId=null; $('modal-back').classList.remove('show'); }
@@ -1180,10 +1301,18 @@ $('set-reset').onclick = ()=>{
   save(); fillSettings(); renderAll();
 };
 
+// ── routine calendar navigation ──────────────────────────────────────────────
+$('cal-prev').onclick = ()=>{ calState.m--; if(calState.m<0){ calState.m=11; calState.y--; } renderCalendar(); };
+$('cal-next').onclick = ()=>{
+  const t=new Date();
+  if (calState.y>t.getFullYear() || (calState.y===t.getFullYear() && calState.m>=t.getMonth())) return;
+  calState.m++; if(calState.m>11){ calState.m=0; calState.y++; } renderCalendar();
+};
+
 // ── language toggle ──────────────────────────────────────────────────────────
 $('lang-btn').addEventListener('click', ()=>{
   lang = lang==='ja' ? 'en' : 'ja'; localStorage.setItem('lang', lang);
-  if (isAdmin()){ fillSettings(); renderAll(); } else { renderGate(); }
+  fillSettings(); renderAll();
 });
 
 // ── admin gate notice (shown to non-admins instead of the app) ───────────────
@@ -1212,14 +1341,13 @@ function renderGate(){
 }
 
 // ── boot ─────────────────────────────────────────────────────────────────────
+// ENGLISH is unlisted on the public portal (its card is admin-only), but the
+// page itself is directly accessible — so a saved/bookmarked link always opens
+// the dashboard without a login step. Data stays per-device in localStorage.
 user = getUser(); DB = load();
-if (isAdmin()){
-  fillSettings();
-  renderAll();
-  window.addEventListener('resize', ()=> drawForgettingCurve());
-} else {
-  renderGate();                                  // non-admin: show notice, never the app
-}
+fillSettings();
+renderAll();
+window.addEventListener('resize', ()=> drawForgettingCurve());
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
 </script>
