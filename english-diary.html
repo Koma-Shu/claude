@@ -43,6 +43,10 @@
     .topic b{color:var(--accent);}
     .topic .roll{margin-left:auto;background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--dim);font-family:inherit;font-size:.66rem;padding:6px 9px;cursor:pointer;white-space:nowrap;}
     .topic .roll:hover{border-color:var(--accent);color:var(--accent);}
+    .topic-lbl{color:var(--accent);font-size:.74rem;white-space:nowrap;font-weight:bold;}
+    .topic-input{flex:1;min-width:120px;background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--txt);font-family:inherit;font-size:.8rem;padding:8px 11px;outline:none;}
+    .topic-input:focus{border-color:var(--accent);}
+    .topic .roll.icon{padding:7px 10px;font-size:.9rem;}
     /* input */
     .date-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
     .date-row input[type=date]{background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--txt);font-family:inherit;font-size:.8rem;padding:7px 10px;outline:none;}
@@ -135,8 +139,10 @@
   <!-- ── INPUT ── -->
   <div class="panel">
     <div class="topic" id="topic">
-      <span id="topic-text"></span>
-      <button class="roll" id="topic-roll">🎲 <span id="t-roll">お題を変える</span></button>
+      <span class="topic-lbl" id="topic-lbl">お題</span>
+      <input type="text" id="topic-input" class="topic-input" autocomplete="off">
+      <button class="roll icon" id="topic-save" title="">☆</button>
+      <button class="roll" id="topic-roll">🎲 <span id="t-roll">生成</span></button>
     </div>
     <div class="date-row">
       <span style="font-size:.72rem;color:var(--dim);" id="t-date">日付</span>
@@ -224,6 +230,10 @@
           <textarea id="set-profile" rows="3" style="resize:vertical;"></textarea>
         </div>
       </div>
+      <div class="set-field">
+        <label id="t-mytopics">マイお題（1行に1つ・🎲の候補になります）</label>
+        <textarea id="set-topics" rows="4" style="resize:vertical;" placeholder=""></textarea>
+      </div>
       <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:6px;">
         <button class="btn solid" id="set-save" style="flex:0 0 auto;min-width:120px;">保存</button>
         <button class="btn danger" id="set-clearkey">このAIのキーを削除</button>
@@ -265,9 +275,11 @@ function loadCfg(){
       models: Object.assign({}, DEF_MODELS, o.models || {}),
       keys: Object.assign({ claude:'', openai:'', gemini:'' }, o.keys || {}),
       sttLang: o.sttLang || 'en-US',
-      profile: o.profile || DEF_PROFILE
+      profile: o.profile || DEF_PROFILE,
+      topic: o.topic || '',
+      customTopics: Array.isArray(o.customTopics) ? o.customTopics : []
     };
-  }catch(_){ return { provider:'claude', models:Object.assign({},DEF_MODELS), keys:{claude:'',openai:'',gemini:''}, sttLang:'en-US', profile:DEF_PROFILE }; }
+  }catch(_){ return { provider:'claude', models:Object.assign({},DEF_MODELS), keys:{claude:'',openai:'',gemini:''}, sttLang:'en-US', profile:DEF_PROFILE, topic:'', customTopics:[] }; }
 }
 let cfg = loadCfg();
 function saveCfg(){ try{ localStorage.setItem(cfgKey(), JSON.stringify(cfg)); }catch(_){} }
@@ -403,6 +415,8 @@ const L = {
     back:'← ENGLISH', login:'ログイン', register:'登録',
     title:'英語日記 添削', subtitle:'口頭で話して、表現・構成・構文をAIで添削',
     roll:'お題を変える', topicPrefix:'お題:', date:'日付',
+    topicLbl:'お題', genTopic:'生成', topicPh:'お題を入力、または🎲で生成（自由に書き換えOK）',
+    myTopics:'マイお題（1行に1つ・🎲の候補になります）', saveTopic:'マイお題に保存', unsaveTopic:'マイお題から外す',
     micStart:'🎤 録音して入力', micStop:'■ 停止', clear:'クリア',
     micNote:'録音ボタンで英語の音声入力ができます。使えない端末では、テキスト欄をタップしてキーボードのマイク🎙でも入力できます。',
     placeholder:'今日のことを英語で話して（または入力して）ください。完璧でなくてOK。例: Today I had a meeting with the client and ...',
@@ -425,6 +439,8 @@ const L = {
     back:'← ENGLISH', login:'LOGIN', register:'REGISTER',
     title:'English Diary Coach', subtitle:'Speak your day; AI corrects expression, structure & syntax',
     roll:'New prompt', topicPrefix:'Prompt:', date:'Date',
+    topicLbl:'Prompt', genTopic:'New', topicPh:'Type a prompt, or 🎲 to generate — edit freely',
+    myTopics:'My prompts (one per line — used by 🎲)', saveTopic:'Save to my prompts', unsaveTopic:'Remove from my prompts',
     micStart:'🎤 Record', micStop:'■ Stop', clear:'Clear',
     micNote:'Tap record to dictate in English. If your device lacks speech recognition, tap the text box and use the keyboard mic 🎙 instead.',
     placeholder:"Speak (or type) about your day in English — it doesn't have to be perfect. e.g. Today I had a meeting with the client and ...",
@@ -455,17 +471,43 @@ function renderAuth(){
     ? `<a href="profile.html" class="top-btn primary">@${u.username}</a>`
     : `<a href="login.html?next=english-diary.html" class="top-btn">${T('login')}</a><a href="register.html" class="top-btn primary">${T('register')}</a>`;
 }
-let curTopic = '';
-function rollTopic(){ const arr = TOPICS[lang]; curTopic = arr[Math.floor(Math.random()*arr.length)]; $('topic-text').innerHTML = `<b>${T('topicPrefix')}</b> ${curTopic}`; }
+// お題（writing prompt）: 自動生成（🎲）＋ インライン編集／自由記述 ＋ マイお題リスト
+function topicPool(){
+  const custom = (cfg.customTopics||[]).filter(Boolean);
+  return custom.concat(TOPICS[lang]);
+}
+function rollTopic(){
+  const pool = topicPool();
+  const t = pool.length ? pool[Math.floor(Math.random()*pool.length)] : '';
+  $('topic-input').value = t; cfg.topic = t; saveCfg(); updateTopicSave();
+}
+function onTopicInput(){ cfg.topic = $('topic-input').value; saveCfg(); updateTopicSave(); }
+function updateTopicSave(){
+  const v = ($('topic-input').value||'').trim();
+  const saved = !!v && (cfg.customTopics||[]).includes(v);
+  const b = $('topic-save'); if(!b) return;
+  b.textContent = saved ? '★' : '☆';
+  b.title = saved ? T('unsaveTopic') : T('saveTopic');
+  b.style.color = saved ? 'var(--accent)' : '';
+}
+function toggleTopicSave(){
+  const v = ($('topic-input').value||'').trim(); if(!v) return;
+  cfg.customTopics = cfg.customTopics || [];
+  const i = cfg.customTopics.indexOf(v);
+  if (i>=0) cfg.customTopics.splice(i,1); else cfg.customTopics.unshift(v);
+  cfg.customTopics = cfg.customTopics.slice(0,50);
+  saveCfg(); updateTopicSave();
+  if (settingsOpen) $('set-topics').value = (cfg.customTopics||[]).join('\n');
+}
 function applyChrome(){
   document.documentElement.lang = lang;
   $('lang-btn').textContent = lang==='ja' ? 'EN' : 'JA';
   const set=(id,k)=>{ const e=$(id); if(e) e.textContent=T(k); };
-  set('back-btn','back'); set('t-title','title'); set('t-subtitle','subtitle'); set('t-roll','roll'); set('t-date','date');
+  set('back-btn','back'); set('t-title','title'); set('t-subtitle','subtitle'); set('t-roll','genTopic'); set('t-date','date');
   set('clear','clear'); set('t-settings','settings'); set('t-handoff','handoff'); set('t-copy','copy');
   set('t-fb','fb'); set('t-copyfb','copyfb'); set('t-hist','hist'); set('t-hist-hint','histHint');
   set('t-set','set'); set('t-prov','prov'); set('t-prov-u','provU'); set('t-model','model'); set('t-key','key'); set('t-key-u','keyU');
-  set('t-stt','stt'); set('t-profile','profile'); set('set-save','save'); set('set-clearkey','clearkey');
+  set('t-stt','stt'); set('t-profile','profile'); set('t-mytopics','myTopics'); set('set-save','save'); set('set-clearkey','clearkey');
   $('mic-label').textContent = recording ? T('micStop') : T('micStart');
   $('run-label').textContent = busy ? T('running') : T('run');
   $('mic-note').textContent = T('micNote');
@@ -475,7 +517,10 @@ function applyChrome(){
   $('key-toggle').textContent = $('set-key').type==='password' ? T('show') : T('hide');
   $('elsa-note').innerHTML = T('elsa');
   document.querySelectorAll('[data-ext]').forEach(b=>{ /* labels are brand names; keep */ });
-  if(!curTopic) rollTopic(); else $('topic-text').innerHTML = `<b>${T('topicPrefix')}</b> ${curTopic}`;
+  $('topic-lbl').textContent = T('topicLbl');
+  $('topic-input').placeholder = T('topicPh');
+  if (cfg.topic) $('topic-input').value = cfg.topic; else rollTopic();
+  updateTopicSave();
   renderAuth();
   renderHistory();
   $('t-model-u').textContent = T('modelU')[cfg.provider];
@@ -587,6 +632,7 @@ function fillSettings(){
   $('set-key').value = cfg.keys[cfg.provider] || '';
   $('set-stt').value = cfg.sttLang;
   $('set-profile').value = cfg.profile;
+  $('set-topics').value = (cfg.customTopics||[]).join('\n');
   $('t-model-u').textContent = T('modelU')[cfg.provider];
 }
 function openSettings(){ settingsOpen=true; $('settings').classList.remove('hidden'); fillSettings(); $('settings').scrollIntoView({behavior:'smooth'}); }
@@ -622,6 +668,9 @@ function renderGate(){
 function wire(){
   $('lang-btn').addEventListener('click', ()=>{ lang = lang==='ja'?'en':'ja'; localStorage.setItem('lang',lang); if(isAdmin()) applyChrome(); else renderGate(); });
   $('topic-roll').onclick = rollTopic;
+  $('topic-save').onclick = toggleTopicSave;
+  $('topic-input').addEventListener('input', updateTopicSave);
+  $('topic-input').addEventListener('change', onTopicInput);
   $('diary').addEventListener('input', updateCount);
   $('mic').onclick = toggleRec;
   $('clear').onclick = ()=>{ $('diary').value=''; updateCount(); $('diary').focus(); };
@@ -641,6 +690,7 @@ function wire(){
     cfg.keys[p] = $('set-key').value.trim();
     cfg.sttLang = $('set-stt').value;
     cfg.profile = $('set-profile').value.trim() || DEF_PROFILE;
+    cfg.customTopics = $('set-topics').value.split('\n').map(s=>s.trim()).filter(Boolean).slice(0,50);
     saveCfg(); fillSettings(); applyChrome();
     flash($('set-save'), T('saved'));
   };
