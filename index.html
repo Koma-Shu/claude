@@ -79,7 +79,7 @@
     <div class="app-go" id="go-study">学ぶ →</div>
   </a>
 
-  <a href="english.html" class="app-card english">
+  <a href="english.html" class="app-card english" id="english-card" style="display:none">
     <div class="app-icon">🗣️</div>
     <div class="app-title">ENGLISH</div>
     <div class="app-tags">
@@ -147,9 +147,14 @@ function renderAuth(){
   area.innerHTML = u
     ? `<a href="profile.html" class="auth-btn primary">@${u.username}</a>`
     : `<a href="login.html" class="auth-btn">${T('login')}</a><a href="register.html" class="auth-btn primary">${T('register')}</a>`;
-  // The admin dashboard card is only shown to the user named "admin".
+  // The admin dashboard card AND the ENGLISH study manager are only shown to
+  // the user named "admin" (ENGLISH is a personal tool, kept off the public
+  // portal). Both stay reachable by direct URL.
+  const adminOnly = (u && u.username === 'admin');
   const ac = document.getElementById('admin-card');
-  if (ac) ac.style.display = (u && u.username === 'admin') ? 'flex' : 'none';
+  if (ac) ac.style.display = adminOnly ? 'flex' : 'none';
+  const ec = document.getElementById('english-card');
+  if (ec) ec.style.display = adminOnly ? 'flex' : 'none';
 }
 document.getElementById('lang-btn').addEventListener('click', ()=>{
   lang = lang==='ja' ? 'en' : 'ja';
