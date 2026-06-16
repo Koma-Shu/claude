@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ENGLISH | 口頭英作文 学習マネージャー</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#fb923c">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --bg:#0d0d1a; --panel:#13131f; --panel2:#0f0f1a; --line:#222; --line2:#2a2a3a;
+      --txt:#eee; --dim:#888; --dim2:#555; --accent:#fb923c; --accent2:#f97316;
+      --good:#34d399; --warn:#fbbf24; --bad:#ff5566; --purple:#a78bfa; --pink:#f472b6; --blue:#60a5fa;
+    }
+    body{background:var(--bg);min-height:100vh;font-family:'Courier New',monospace;color:var(--txt);
+      padding:58px 16px 64px;display:flex;flex-direction:column;align-items:center;}
+    a{color:inherit;}
+    /* top bar */
+    #lang-btn{position:fixed;top:14px;left:14px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:inherit;font-size:.72rem;padding:5px 10px;cursor:pointer;z-index:30;}
+    #top-right{position:fixed;top:14px;right:14px;display:flex;gap:8px;z-index:30;}
+    .top-btn{background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:inherit;font-size:.72rem;padding:5px 10px;cursor:pointer;text-decoration:none;display:inline-block;transition:.15s;}
+    .top-btn:hover{color:#eee;border-color:#666;}
+    .top-btn.primary{border-color:var(--accent);color:var(--accent);}
+    .wrap{width:100%;max-width:940px;}
+    h1{font-size:1.9rem;letter-spacing:7px;color:var(--accent);text-align:center;margin-bottom:6px;text-shadow:0 0 20px rgba(251,146,60,.4);}
+    .subtitle{color:var(--dim2);font-size:.72rem;letter-spacing:3px;text-align:center;margin-bottom:8px;}
+    .greet{text-align:center;color:var(--dim);font-size:.8rem;margin-bottom:24px;}
+    .greet b{color:var(--warn);}
+    #guest-banner{background:#1a1408;border:1px solid #4a3a1a;border-radius:10px;padding:11px 16px;margin-bottom:20px;font-size:.74rem;color:#caa84a;text-align:center;line-height:1.7;}
+    #guest-banner a{color:var(--warn);text-decoration:underline;}
+    /* hero (today's plan) */
+    .hero{background:linear-gradient(135deg,#241608,#13131f);border:1px solid #4a3214;border-radius:14px;padding:22px 24px;margin-bottom:18px;}
+    .hero-h{font-size:.7rem;letter-spacing:3px;color:var(--dim);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+    .hero-row{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;}
+    .hero-nums{display:flex;gap:26px;align-items:flex-end;}
+    .hero-stat .v{font-size:2.4rem;color:var(--accent);font-weight:bold;line-height:1;}
+    .hero-stat .v small{font-size:.85rem;color:var(--dim);font-weight:normal;margin-left:4px;}
+    .hero-stat .l{font-size:.62rem;letter-spacing:1px;color:var(--dim2);margin-top:5px;}
+    .hero-stat.rev .v{color:var(--warn);} .hero-stat.new .v{color:var(--blue);}
+    .hero-sub{font-size:.76rem;color:var(--dim);margin-top:14px;line-height:1.7;}
+    .hero-sub .hl{color:var(--accent);font-weight:bold;}
+    .hero-sub .pin{color:var(--pink);}
+    /* generic section */
+    .sec-title{font-size:.72rem;letter-spacing:3px;color:var(--dim);margin:26px 0 14px;display:flex;align-items:center;gap:10px;}
+    .sec-title::after{content:"";flex:1;height:1px;background:var(--line);}
+    .sec-title .hint{letter-spacing:0;color:var(--dim2);font-size:.66rem;}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+    /* today's plan list */
+    .plan-list{display:flex;flex-direction:column;gap:10px;}
+    .plan-empty{background:var(--panel);border:1px dashed var(--line2);border-radius:12px;padding:22px;text-align:center;color:var(--dim);font-size:.82rem;line-height:1.8;}
+    .plan-row{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:13px 15px;}
+    .plan-row.pinned{border-color:#5b2a44;}
+    .pr-top{display:flex;align-items:flex-start;gap:10px;width:100%;background:none;border:none;color:inherit;font-family:inherit;text-align:left;cursor:pointer;padding:0;}
+    .pr-label{flex:1;font-size:.86rem;line-height:1.5;}
+    .pr-label .cn{color:var(--dim);}
+    .pr-label b{color:var(--txt);}
+    .pr-sub{margin-top:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.66rem;color:var(--dim2);}
+    .pr-chev{color:var(--dim2);font-size:.8rem;align-self:center;}
+    .badge{font-size:.6rem;padding:2px 8px;border-radius:20px;border:1px solid var(--line2);color:var(--dim);letter-spacing:1px;white-space:nowrap;}
+    .badge.rev{border-color:#5c4a1d;color:var(--warn);}
+    .badge.over{border-color:#5c1d28;color:var(--bad);}
+    .badge.new{border-color:#234a6b;color:var(--blue);}
+    .badge.pin{border-color:#5b2a44;color:var(--pink);}
+    .badge.mast{border-color:#1d5c46;color:var(--good);}
+    .grades{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:11px;}
+    .grade{border:1px solid var(--line2);border-radius:8px;background:#0a0a14;color:var(--txt);font-family:inherit;padding:9px 4px;cursor:pointer;text-align:center;transition:.13s;}
+    .grade:hover{transform:translateY(-2px);}
+    .grade .g{font-size:.76rem;font-weight:bold;}
+    .grade .gi{font-size:.56rem;color:var(--dim2);margin-top:3px;}
+    .grade.again{border-color:#5c1d28;}.grade.again:hover{background:rgba(255,85,102,.1);}
+    .grade.hard{border-color:#5c4a1d;}.grade.hard:hover{background:rgba(251,191,36,.1);}
+    .grade.good{border-color:#1d5c46;}.grade.good:hover{background:rgba(52,211,153,.1);}
+    .grade.easy{border-color:#234a6b;}.grade.easy:hover{background:rgba(96,165,250,.1);}
+    /* stats row */
+    .stats-row{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:6px;}
+    .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 6px;text-align:center;}
+    .stat .v{font-size:1.4rem;font-weight:bold;color:var(--accent);}
+    .stat .l{font-size:.56rem;letter-spacing:1px;color:var(--dim2);margin-top:4px;}
+    /* forgetting curve */
+    .fc-flex{display:flex;gap:22px;flex-wrap:wrap;align-items:center;}
+    .fc-canvas-wrap{flex:1;min-width:280px;}
+    canvas{width:100%;height:auto;display:block;}
+    .fc-text{flex:1;min-width:240px;font-size:.76rem;color:var(--dim);line-height:1.85;}
+    .fc-text b{color:var(--txt);} .fc-text .hl{color:var(--accent);}
+    .gauge-wrap{display:flex;align-items:center;gap:14px;margin-top:14px;}
+    .gauge{flex:1;height:9px;background:#0a0a14;border-radius:5px;overflow:hidden;}
+    .gauge>div{height:100%;background:linear-gradient(90deg,var(--bad),var(--warn),var(--good));border-radius:5px;transition:width .5s;}
+    .gauge-val{font-size:.8rem;color:var(--good);font-weight:bold;min-width:42px;text-align:right;}
+    /* upcoming review bar chart */
+    .upc{display:flex;align-items:flex-end;gap:4px;height:108px;margin-top:6px;}
+    .upc-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;}
+    .upc-bar{width:100%;max-width:22px;background:linear-gradient(180deg,var(--accent),#7a3d12);border-radius:3px 3px 0 0;min-height:2px;transition:height .4s;}
+    .upc-bar.today{background:linear-gradient(180deg,var(--warn),#7a5a12);}
+    .upc-bar.zero{background:#1a1a26;}
+    .upc-n{font-size:.56rem;color:var(--dim);}
+    .upc-d{font-size:.54rem;color:var(--dim2);}
+    .proj{margin-top:14px;font-size:.76rem;color:var(--dim);line-height:1.8;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:11px 14px;}
+    .proj b{color:var(--txt);} .proj .hl{color:var(--accent);}
+    /* courses → parts → lesson grid */
+    .course{margin-bottom:20px;}
+    .course-head{display:flex;align-items:center;gap:10px;padding:6px 2px 9px;border-bottom:1px solid var(--line);margin-bottom:12px;}
+    .course-icon{font-size:1.2rem;}
+    .course-name{font-size:1.02rem;font-weight:bold;letter-spacing:2px;}
+    .course-prog{margin-left:auto;font-size:.66rem;color:var(--dim2);letter-spacing:1px;}
+    .course-prog .due{color:var(--warn);}
+    .course-bar{height:6px;background:#0a0a14;border-radius:4px;overflow:hidden;margin-bottom:14px;}
+    .course-bar>div{height:100%;border-radius:4px;transition:width .4s;}
+    .part{margin-bottom:13px;}
+    .part-head{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--dim);margin-bottom:7px;}
+    .part-head .pcount{color:var(--dim2);font-size:.62rem;}
+    .lesson-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px;}
+    .cell{position:relative;aspect-ratio:1;border-radius:8px;border:1px solid var(--line2);background:#15151f;color:var(--dim2);
+      font-family:inherit;font-size:.74rem;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.12s;}
+    .cell:hover{transform:translateY(-2px);border-color:var(--accent);}
+    .cell.scheduled{background:rgba(52,211,153,.10);border-color:#1d5c46;color:#9fe8cf;}
+    .cell.due{background:rgba(251,191,36,.13);border-color:#5c4a1d;color:var(--warn);}
+    .cell.over{background:rgba(255,85,102,.13);border-color:#5c1d28;color:#ff8a99;}
+    .cell.mastered{background:rgba(52,211,153,.22);border-color:#2f8d6e;color:#d6fff0;}
+    .cell .pindot{position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--pink);box-shadow:0 0 4px var(--pink);}
+    .cell .star{position:absolute;bottom:1px;right:3px;font-size:.5rem;}
+    .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.62rem;color:var(--dim2);margin-top:14px;}
+    .legend span{display:flex;align-items:center;gap:5px;}
+    .legend i{width:11px;height:11px;border-radius:3px;display:inline-block;border:1px solid var(--line2);}
+    /* pinned section */
+    .pin-list{display:flex;flex-direction:column;gap:9px;}
+    .pin-item{background:var(--panel);border:1px solid #3a2030;border-radius:10px;padding:11px 14px;display:flex;align-items:flex-start;gap:10px;}
+    .pin-item .pc{color:var(--pink);font-weight:bold;white-space:nowrap;}
+    .pin-item .pmain{flex:1;font-size:.78rem;line-height:1.55;}
+    .pin-item .pnote{color:var(--dim);font-size:.7rem;margin-top:3px;white-space:pre-wrap;}
+    .pin-item button{background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--dim);font-family:inherit;font-size:.68rem;padding:6px 9px;cursor:pointer;white-space:nowrap;}
+    .pin-item button:hover{border-color:var(--accent);color:var(--accent);}
+    /* routine */
+    .routine{display:flex;flex-direction:column;gap:8px;}
+    .rt{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 14px;cursor:pointer;transition:.13s;}
+    .rt:hover{border-color:#444;}
+    .rt.done{border-color:#1d5c46;background:rgba(52,211,153,.06);}
+    .rt.opt{opacity:.92;}
+    .rt-check{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line2);display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;color:transparent;}
+    .rt.done .rt-check{background:var(--good);border-color:var(--good);color:#04130d;}
+    .rt-ico{font-size:1.1rem;}
+    .rt-main{flex:1;}
+    .rt-label{font-size:.84rem;}
+    .rt-note{font-size:.66rem;color:var(--dim2);margin-top:2px;}
+    .rt.auto{cursor:default;}
+    .rt-auto-tag{font-size:.58rem;color:var(--dim2);border:1px solid var(--line2);border-radius:20px;padding:2px 8px;}
+    /* heatmap */
+    .heat{display:flex;gap:3px;overflow-x:auto;padding-bottom:6px;}
+    .heat-col{display:flex;flex-direction:column;gap:3px;}
+    .heat-cell{width:11px;height:11px;border-radius:2px;background:#15151f;}
+    .heat-legend{display:flex;align-items:center;gap:6px;justify-content:flex-end;font-size:.6rem;color:var(--dim2);margin-top:8px;}
+    .heat-legend .hc{width:11px;height:11px;border-radius:2px;}
+    /* strategy collapsible */
+    details.strat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px 18px;margin-bottom:6px;}
+    details.strat summary{cursor:pointer;font-size:.78rem;color:var(--accent);padding:12px 0;letter-spacing:1px;list-style:none;}
+    details.strat summary::-webkit-details-marker{display:none;}
+    details.strat summary::before{content:"▸ ";color:var(--dim2);}
+    details.strat[open] summary::before{content:"▾ ";}
+    .strat-body{font-size:.76rem;color:var(--dim);line-height:1.9;padding:4px 0 16px;}
+    .strat-body b{color:var(--txt);} .strat-body .hl{color:var(--accent);}
+    .strat-body ul{margin:6px 0 10px 18px;} .strat-body li{margin:5px 0;}
+    .strat-body a{color:var(--blue);}
+    /* settings */
+    .set-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .set-field{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:12px 14px;}
+    .set-field label{font-size:.68rem;color:var(--dim);display:block;margin-bottom:8px;letter-spacing:1px;}
+    .set-field input{width:100%;background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--txt);font-family:inherit;font-size:.92rem;padding:9px 11px;outline:none;}
+    .set-field input:focus{border-color:var(--accent);}
+    .set-field .unit{font-size:.64rem;color:var(--dim2);margin-top:5px;}
+    .set-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px;}
+    .btn{background:#0a0a14;border:1px solid var(--line2);border-radius:8px;color:var(--txt);font-family:inherit;font-size:.74rem;padding:10px 14px;cursor:pointer;letter-spacing:1px;transition:.13s;}
+    .btn:hover{border-color:var(--accent);color:var(--accent);}
+    .btn.danger:hover{border-color:var(--bad);color:var(--bad);}
+    .footnote{font-size:.66rem;color:var(--dim2);text-align:center;line-height:1.8;margin-top:26px;}
+    /* modal */
+    .modal-back{position:fixed;inset:0;background:rgba(5,5,12,.78);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:54px 14px 30px;overflow-y:auto;}
+    .modal-back.show{display:flex;}
+    .modal{width:100%;max-width:460px;background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:22px;}
+    .modal-x{float:right;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-family:inherit;font-size:.8rem;width:30px;height:30px;cursor:pointer;}
+    .modal-eyebrow{font-size:.64rem;letter-spacing:2px;color:var(--dim2);margin-bottom:4px;}
+    .modal-title{font-size:1.12rem;font-weight:bold;margin-bottom:3px;}
+    .modal-title .q{font-size:.66rem;color:var(--dim);font-weight:normal;margin-left:6px;}
+    .modal-status{font-size:.74rem;color:var(--dim);line-height:1.8;margin:12px 0;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:11px 13px;}
+    .modal-status b{color:var(--txt);} .modal-status .hl{color:var(--accent);}
+    .modal-status .row{display:flex;justify-content:space-between;gap:10px;}
+    .ms-label{font-size:.66rem;letter-spacing:1px;color:var(--dim);margin:16px 0 8px;}
+    .pin-edit{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+    .pin-edit input[type=number]{width:64px;background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--txt);font-family:inherit;font-size:.95rem;padding:8px;text-align:center;outline:none;}
+    .pin-edit input:focus{border-color:var(--pink);}
+    .pin-edit .pl{font-size:.74rem;color:var(--dim);}
+    .pin-edit .step{background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--txt);width:34px;height:34px;font-size:1.1rem;cursor:pointer;font-family:inherit;}
+    textarea.pin-note{width:100%;background:#0a0a14;border:1px solid var(--line2);border-radius:8px;color:var(--txt);font-family:inherit;font-size:.78rem;padding:9px 11px;outline:none;resize:vertical;min-height:54px;}
+    textarea.pin-note:focus{border-color:var(--pink);}
+    .modal-foot{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap;}
+    .modal-foot .btn{flex:1;}
+    .hist{font-size:.66rem;color:var(--dim2);margin-top:10px;line-height:1.7;}
+    .hidden{display:none!important;}
+    @media(max-width:560px){
+      .stats-row{grid-template-columns:repeat(3,1fr);}
+      .set-grid{grid-template-columns:1fr;}
+      h1{font-size:1.5rem;letter-spacing:4px;}
+      .hero-stat .v{font-size:2rem;}
+      .hero-nums{gap:18px;}
+    }
+  </style>
+  <script src="english-data.js"></script>
+</head>
+<body>
+<button id="lang-btn">EN</button>
+<div id="top-right">
+  <a href="index.html" class="top-btn" id="home-btn">← HOME</a>
+  <span id="auth-area"></span>
+</div>
+
+<div class="wrap">
+  <h1>ENGLISH</h1>
+  <div class="subtitle" id="t-subtitle">PROGRIT 口頭英作文 ・ 学習マネージャー</div>
+  <div class="greet" id="greet"></div>
+
+  <div id="guest-banner" class="hidden"></div>
+
+  <!-- ───────── TODAY'S PLAN (hero) ───────── -->
+  <div class="hero">
+    <div class="hero-h" id="t-hero-h">📅 今日のプラン</div>
+    <div class="hero-row">
+      <div class="hero-nums">
+        <div class="hero-stat rev"><div class="v" id="h-rev">0</div><div class="l" id="t-h-rev">復習</div></div>
+        <div class="hero-stat new"><div class="v" id="h-new">0</div><div class="l" id="t-h-new">新規</div></div>
+        <div class="hero-stat"><div class="v" id="h-min">0<small id="t-min">分</small></div><div class="l" id="t-h-min">目安</div></div>
+      </div>
+    </div>
+    <div class="hero-sub" id="hero-sub"></div>
+  </div>
+
+  <div class="sec-title" id="t-sec-today">今日やること <span class="hint" id="t-today-hint">— Progrit で学習したらタップして記録</span></div>
+  <div class="plan-list" id="plan-list"></div>
+
+  <!-- ───────── PINNED ───────── -->
+  <div id="pin-section" class="hidden">
+    <div class="sec-title" id="t-sec-pin">📌 ピン留め中の問題 <span class="hint" id="t-pin-hint">— 苦手として集中復習</span></div>
+    <div class="pin-list" id="pin-list"></div>
+  </div>
+
+  <!-- ───────── STATS ───────── -->
+  <div class="sec-title" id="t-sec-stats">進捗サマリー</div>
+  <div class="stats-row" id="stats-row"></div>
+
+  <!-- ───────── FORGETTING CURVE ───────── -->
+  <div class="sec-title" id="t-sec-science">学習の仕組み（忘却曲線）</div>
+  <div class="panel">
+    <div class="fc-flex">
+      <div class="fc-canvas-wrap"><canvas id="fc-canvas" width="520" height="300"></canvas></div>
+      <div class="fc-text" id="fc-text"></div>
+    </div>
+    <div class="gauge-wrap">
+      <span style="font-size:.7rem;color:var(--dim);letter-spacing:1px;" id="t-retention">平均定着度</span>
+      <div class="gauge"><div id="ret-gauge" style="width:0%"></div></div>
+      <span class="gauge-val" id="ret-val">–</span>
+    </div>
+  </div>
+
+  <!-- ───────── UPCOMING / PROJECTION ───────── -->
+  <div class="sec-title" id="t-sec-plan">今後の学習計画</div>
+  <div class="panel">
+    <div style="font-size:.7rem;color:var(--dim);letter-spacing:1px;margin-bottom:4px;" id="t-upc">これからの復習予定（直近2週間）</div>
+    <div class="upc" id="upc"></div>
+    <div class="proj" id="proj"></div>
+  </div>
+
+  <!-- ───────── COURSES / PROGRESS ───────── -->
+  <div class="sec-title" id="t-sec-courses">コース進捗 <span class="hint" id="t-courses-hint">— セルをタップして記録・ピン編集</span></div>
+  <div id="courses"></div>
+  <div class="legend" id="legend"></div>
+
+  <!-- ───────── ROUTINE ───────── -->
+  <div class="sec-title" id="t-sec-routine">今日のルーティン <span class="hint" id="t-routine-hint">— 口頭英作文以外の習慣</span></div>
+  <div class="routine" id="routine"></div>
+
+  <!-- ───────── STRATEGY ───────── -->
+  <div class="sec-title" id="t-sec-strat">学習戦略メモ</div>
+  <details class="strat">
+    <summary id="t-strat-sum">目標達成までのロードマップを見る</summary>
+    <div class="strat-body" id="strat-body"></div>
+  </details>
+
+  <!-- ───────── ACTIVITY ───────── -->
+  <div class="sec-title" id="t-sec-activity">学習の記録</div>
+  <div class="panel">
+    <div class="heat" id="heat"></div>
+    <div class="heat-legend">
+      <span id="t-heat-less">少</span>
+      <span class="hc" style="background:#15151f"></span>
+      <span class="hc" style="background:#3a2a10"></span>
+      <span class="hc" style="background:#7a5414"></span>
+      <span class="hc" style="background:#b9791f"></span>
+      <span class="hc" style="background:#fb923c"></span>
+      <span id="t-heat-more">多</span>
+    </div>
+  </div>
+
+  <!-- ───────── SETTINGS ───────── -->
+  <div class="sec-title" id="t-sec-set">設定</div>
+  <div class="panel">
+    <div class="set-grid">
+      <div class="set-field">
+        <label id="t-set-min">1日の口頭英作文の目安時間</label>
+        <input type="number" id="set-min" min="5" max="120" step="5">
+        <div class="unit" id="t-set-min-u">分／日（復習を優先し、残りで新規を割り当て）</div>
+      </div>
+      <div class="set-field">
+        <label id="t-set-new">1日の新規レッスン上限</label>
+        <input type="number" id="set-new" min="0" max="15" step="1">
+        <div class="unit" id="t-set-new-u">レッスン／日</div>
+      </div>
+      <div class="set-field">
+        <label id="t-set-days">学習する日数／週</label>
+        <input type="number" id="set-days" min="1" max="7" step="1">
+        <div class="unit" id="t-set-days-u">日／週（完了予測に使用）</div>
+      </div>
+      <div class="set-field">
+        <label id="t-set-order">新規を学ぶコースの順番</label>
+        <input type="text" id="set-order" placeholder="adv2, cv, bp">
+        <div class="unit" id="t-set-order-u">カンマ区切り（adv2 / cv / bp）</div>
+      </div>
+    </div>
+    <div class="set-actions">
+      <button class="btn" id="set-save" style="border-color:var(--accent);color:var(--accent);">保存</button>
+      <button class="btn" id="set-export">エクスポート（バックアップ）</button>
+      <button class="btn" id="set-import">インポート</button>
+      <button class="btn danger" id="set-reset">進捗をリセット</button>
+      <input type="file" id="import-file" accept="application/json" class="hidden">
+    </div>
+  </div>
+
+  <div class="footnote" id="footnote"></div>
+</div>
+
+<!-- ───────── LESSON MODAL ───────── -->
+<div class="modal-back" id="modal-back">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const COURSES = window.ENGLISH_COURSES, EM = window.ENGLISH_META;
+const QPL = EM.questionsPerLesson;
+const DAY = 86400000, now = () => Date.now();
+const TARGET_RETENTION = 0.9;
+
+// ── flatten lessons ────────────────────────────────────────────────────────
+const LESSONS = [];
+COURSES.forEach(c => c.parts.forEach(p => {
+  for (let n = 1; n <= p.lessons; n++) {
+    const id = p.id + '-L' + String(n).padStart(2, '0');
+    LESSONS.push({ id, courseId:c.id, courseName:c.name, color:c.color, icon:c.icon,
+                   partId:p.id, partName:p.name, n });
+  }
+}));
+const BY_ID = {}; LESSONS.forEach(l => BY_ID[l.id] = l);
+const ALL_IDS = LESSONS.map(l => l.id);
+const COURSE_BY_ID = {}; COURSES.forEach(c => COURSE_BY_ID[c.id] = c);
+
+// ── persistence (per user; device-local) ───────────────────────────────────
+function getUser(){ try{ return JSON.parse(localStorage.getItem('arcade_user')||'null'); }catch(_){ return null; } }
+let user = getUser();
+function rootKey(){ return 'eng_v1_' + (user ? user.id : 'guest'); }
+const DEF_CFG = { dailyMinutes:20, newPerDay:2, studyDaysPerWeek:5, courseOrder:['adv2','cv','bp'] };
+function load(){
+  try{
+    const o = JSON.parse(localStorage.getItem(rootKey()) || '{}');
+    return { lessons:o.lessons||{}, config:Object.assign({}, DEF_CFG, o.config||{}),
+             routine:o.routine||{}, act:o.act||{} };
+  }catch(_){ return { lessons:{}, config:Object.assign({}, DEF_CFG), routine:{}, act:{} }; }
+}
+let DB = load();
+function save(){ try{ localStorage.setItem(rootKey(), JSON.stringify(DB)); }catch(_){} }
+
+// ── date helpers ────────────────────────────────────────────────────────────
+function startOfToday(){ const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
+function endOfToday(){ return startOfToday() + DAY - 1; }
+function dayStr(ts){ const d=new Date(ts); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SCHEDULER  — Ebbinghaus / SM-2, tuned for whole-lesson drilling
+//  記憶は R = e^(-t/S) で減衰。うまいタイミングで復習するたび安定度 S が増し、
+//  次の間隔が伸びる。レッスン単位（10問）でグレード付けして次回復習日を決める。
+// ════════════════════════════════════════════════════════════════════════════
+const Q = { again:1, hard:3, good:4, easy:5 };
+function defState(id){ return { id, studied:false, ef:2.4, reps:0, interval:0, due:0, lapses:0, first:0, last:0, pins:0, pinNote:'', history:[] }; }
+function st(id){ return DB.lessons[id]; }
+
+function simulate(s, grade){
+  const n = Object.assign({}, s);
+  const q = Q[grade] != null ? Q[grade] : 4;
+  if (q < 3){                                  // 「もう一度」: 再学習。翌日に再出題
+    n.reps = 0; n.interval = 0;
+    n.due = startOfToday() + DAY;              // 明日もう一度
+  } else {
+    if (n.reps === 0) n.interval = grade==='easy' ? 2 : 1;       // 初回 → 1日後（簡単なら2日）
+    else if (n.reps === 1) n.interval = grade==='easy' ? 6 : 3;  // 2回目 → 3日後
+    else {
+      const mult = grade==='hard' ? 0.7 : grade==='easy' ? 1.3 : 1.0;
+      n.interval = Math.max(n.interval + 1, Math.round(n.interval * n.ef * mult));
+    }
+    n.reps += 1;
+    n.ef = Math.max(1.3, n.ef + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)));
+    n.due = startOfToday() + n.interval * DAY;
+  }
+  return n;
+}
+
+// 1レッスンを学習/復習として記録（grade: again|hard|good|easy）
+function review(id, grade){
+  const cur = st(id) || defState(id);
+  const n = simulate(cur, grade);
+  n.studied = true;
+  if (!n.first) n.first = now();
+  n.last = now();
+  n.lapses = (cur.lapses||0) + (Q[grade] < 3 ? 1 : 0);
+  n.pins = cur.pins||0; n.pinNote = cur.pinNote||'';
+  n.history = (cur.history||[]).concat([{ t:now(), g:grade }]).slice(-12);
+  DB.lessons[id] = n;
+  logActivity();
+  save();
+  return n;
+}
+
+function nextIntervalPreview(id, grade){
+  const n = simulate(st(id) || defState(id), grade);
+  if (Q[grade] < 3) return '明日';
+  return humanInterval(n.interval);
+}
+function humanInterval(days){
+  if (days < 1) return '今日';
+  if (days === 1) return '明日';
+  if (days < 30) return Math.round(days) + '日後';
+  if (days < 365) return Math.round(days/30) + 'か月後';
+  return (days/365).toFixed(1) + '年後';
+}
+
+// 予測定着度（忘却曲線）: 復習時に R=0.9 になるよう S を逆算し、経過時間から現在の R を推定
+function retention(id){
+  const s = st(id);
+  if (!s || !s.reps) return null;
+  const stability = Math.max(s.interval, 0.5) / Math.log(1/TARGET_RETENTION);
+  const elapsed = (now() - (s.last||now())) / DAY;
+  return Math.max(0, Math.min(1, Math.exp(-elapsed/stability)));
+}
+function isStudied(id){ const s = st(id); return !!(s && s.studied); }
+function isDue(id){ const s = st(id); return !!(s && s.studied && s.due <= endOfToday()); }
+function isOverdue(id){ const s = st(id); return !!(s && s.studied && s.due < startOfToday()); }
+function isMastered(id){ const s = st(id); return !!(s && s.interval >= EM.masteredIntervalDays); }
+
+// ── activity / streak ───────────────────────────────────────────────────────
+function logActivity(){ const k = dayStr(now()); DB.act[k] = (DB.act[k]||0) + 1; }
+function isActiveDay(k){
+  if (DB.act[k]) return true;
+  const r = DB.routine[k]; return !!(r && Object.keys(r).some(x => r[x]));
+}
+function streak(){
+  let n = 0; const d = new Date(); d.setHours(0,0,0,0);
+  if (!isActiveDay(dayStr(d.getTime()))) d.setDate(d.getDate()-1);
+  while (isActiveDay(dayStr(d.getTime()))){ n++; d.setDate(d.getDate()-1); }
+  return n;
+}
+
+// ── new-lesson queue (in configured course order) ───────────────────────────
+function orderedNewQueue(){
+  const order = DB.config.courseOrder && DB.config.courseOrder.length ? DB.config.courseOrder : ['adv2','cv','bp'];
+  const seen = {};
+  const out = [];
+  order.forEach(cid => { seen[cid]=true; const c = COURSE_BY_ID[cid]; if(!c) return;
+    c.parts.forEach(p => { for(let n=1;n<=p.lessons;n++){ const id=p.id+'-L'+String(n).padStart(2,'0'); if(!isStudied(id)) out.push(id); } });
+  });
+  // any course not listed in order → appended in default order
+  COURSES.forEach(c => { if(seen[c.id]) return;
+    c.parts.forEach(p => { for(let n=1;n<=p.lessons;n++){ const id=p.id+'-L'+String(n).padStart(2,'0'); if(!isStudied(id)) out.push(id); } });
+  });
+  return out;
+}
+
+// 今日すでに初めて学習した新規レッスン数（first が今日のもの）→ 1日の新規ノルマを消化していく
+function newDoneToday(){
+  const t0 = startOfToday(), t1 = endOfToday();
+  let n = 0; ALL_IDS.forEach(id => { const s = st(id); if (s && s.first && s.first>=t0 && s.first<=t1) n++; });
+  return n;
+}
+
+// ── today's recommended plan ────────────────────────────────────────────────
+// 表示されるのは「今日まだ残っている」分。復習は期限到来分が自然に消化され、
+// 新規は1日のノルマ(newPerDay)から今日やった数を引いた残りだけを提示する。
+function buildPlan(){
+  const dueIds = ALL_IDS.filter(isDue).sort((a,b)=>{
+    const sa=st(a), sb=st(b);
+    const pa = sa.pins>0?0:1, pb = sb.pins>0?0:1;     // ピン留めを最優先
+    if (pa!==pb) return pa-pb;
+    return sa.due - sb.due;                            // 期限が早い（より忘れている）順
+  });
+  const budget = DB.config.dailyMinutes;
+  const reviewMin = dueIds.length * EM.minutesReview;
+  const remainBudget = budget - reviewMin;            // 復習を消化した残り時間を新規へ
+  const remainQuota = Math.max(0, DB.config.newPerDay - newDoneToday());
+  const maxNew = Math.max(0, Math.min(remainQuota, Math.floor(remainBudget / EM.minutesNew)));
+  const queue = orderedNewQueue();
+  const news = queue.slice(0, maxNew);
+  return {
+    reviews: dueIds, news,
+    minutes: reviewMin + news.length * EM.minutesNew,
+    overBudget: reviewMin > budget,
+    newAvail: queue.length
+  };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  i18n (chrome only; コース名/トピックは原語のまま)
+// ════════════════════════════════════════════════════════════════════════════
+const L = {
+  ja:{
+    subtitle:'PROGRIT 口頭英作文 ・ 学習マネージャー', home:'← HOME', login:'ログイン', register:'登録',
+    greetNew:'はじめまして。まずは今日の1レッスンから、軽く再開しましょう。',
+    greetStreak:n=>`<b>${n}日連続</b>で学習中。いいリズムです！`,
+    greetBack:'おかえりなさい。今日もコツコツいきましょう。',
+    guest:'ゲストモードです。記録はこの端末にのみ保存されます。<a href="login.html?next=english.html">ログイン</a>するとアカウントに紐づきます（バックアップのエクスポート推奨）。',
+    heroH:'📅 今日のプラン', hRev:'復習', hNew:'新規', hMin:'目安', min:'分',
+    heroNone:'今日の必須の復習はありません。新しいレッスンに進むか、軽く流し復習を。',
+    heroBoth:(r,n,m)=>`忘却曲線にちょうど乗った復習 <span class="hl">${r}</span> レッスンと、新規 <span class="hl">${n}</span> レッスン（計 約${m}分）がおすすめです。`,
+    heroRevOnly:(r,m)=>`今日は復習 <span class="hl">${r}</span> レッスンが最優先（約${m}分）。これを片付けてから新規へ。`,
+    heroNewOnly:(n,m)=>`新規 <span class="hl">${n}</span> レッスン（約${m}分）から始めましょう。明日以降に復習として戻ってきます。`,
+    heroOver:(r)=>`<span class="pin">復習が ${r} レッスン</span>たまっています。今日は新規をお休みし、復習の消化を優先しましょう。`,
+    heroDone:'🎉 今日のおすすめは全て完了！お疲れさまでした。やる気があれば下の進捗から追加で進められます。',
+    secToday:'今日やること', todayHint:'— Progrit で学習したらタップして記録',
+    badgeRev:'復習', badgeOver:'未消化', badgeNew:'新規', badgeMast:'定着',
+    prRetention:r=>`定着 ${r}%`, prNew:'まだ学習していません', prPins:n=>`📌${n}`,
+    again:'もう一度', hard:'難しい', good:'できた', easy:'簡単',
+    secPin:'📌 ピン留め中の問題', pinHint:'— 苦手として集中復習',
+    pinQ:n=>`${n}問`, pinReviewed:'復習した', pinResolve:'解決',
+    secStats:'進捗サマリー',
+    stTotal:'総レッスン', stStudied:'学習済', stMastered:'定着', stDue:'復習待ち', stPin:'ピン', stStreak:'連続',
+    secScience:'学習の仕組み（忘却曲線）', retention:'平均定着度',
+    fcText:`<b>エビングハウスの忘却曲線</b>では、記憶は時間とともに<span class="hl">指数関数的に薄れます</span>（点線）。<br><br>
+      しかし<b>忘れかけた絶妙なタイミングで復習</b>すると、記憶はその都度よみがえり<span class="hl">忘れにくく</span>なります（実線）。<br><br>
+      このアプリは各レッスンの理解度（できた／難しい等）から<b>次に復習すべき日</b>を自動計算。<b>最小の労力で最大の定着</b>を狙います。`,
+    secPlan:'今後の学習計画', upc:'これからの復習予定（直近2週間）',
+    projLine:(date,wk,total)=>`現在のペースなら、未学習 <b>${total}</b> レッスンの初回学習は <span class="hl">約${wk}週間</span>後（${date}頃）に完了する見込みです。`,
+    projDone:'🎓 全レッスンの初回学習が完了しています。あとは復習で定着を仕上げましょう。',
+    today:'今日', overdue:'延滞',
+    secCourses:'コース進捗', coursesHint:'— セルをタップして記録・ピン編集',
+    cProg:(a,b)=>`${a} / ${b} レッスン`, cDue:n=>`復習 ${n}`,
+    legNew:'未学習', legSched:'復習予定', legDue:'要復習', legOver:'延滞', legMast:'定着🏅', legPin:'ピンあり',
+    secRoutine:'今日のルーティン', routineHint:'— 口頭英作文以外の習慣',
+    rtComp:'口頭英作文', rtCompNote:'今日のプラン（上）', rtAuto:'自動',
+    secStrat:'学習戦略メモ', stratSum:'目標達成までのロードマップを見る',
+    secActivity:'学習の記録', heatLess:'少', heatMore:'多',
+    secSet:'設定', setMin:'1日の口頭英作文の目安時間', setMinU:'分／日（復習を優先し、残りで新規を割り当て）',
+    setNew:'1日の新規レッスン上限', setNewU:'レッスン／日', setDays:'学習する日数／週', setDaysU:'日／週（完了予測に使用）',
+    setOrder:'新規を学ぶコースの順番', setOrderU:'カンマ区切り（adv2 / cv / bp）',
+    save:'保存', exportB:'エクスポート（バックアップ）', importB:'インポート', resetB:'進捗をリセット', saved:'保存しました',
+    resetConfirm:'すべての学習記録・ピン・ルーティンを消去します。よろしいですか？',
+    importConfirm:'現在の記録を、読み込んだバックアップで上書きします。よろしいですか？',
+    importBad:'ファイルを読み込めませんでした。',
+    footnote:'忘却曲線に基づく間隔反復（Spaced Repetition）。Progrit のアプリで学習し、ここで記録・スケジュール管理します。記録はこの端末に保存されます。',
+    // modal
+    mEyebrow:'口頭英作文', mQ:n=>`${n}問`,
+    mNew:'まだ学習していません。Progrit で取り組んだら下のボタンで記録してください。',
+    mReps:n=>`学習回数 <b>${n}</b> 回`, mNext:d=>`次の復習 <span class="hl">${d}</span>`,
+    mRet:r=>`現在の定着度 <b>${r}%</b>`, mLast:d=>`最終学習 ${d}`, mMastered:'🏅 定着済み（十分に安定）',
+    mGradeLabel:'今日の出来を記録（次回の復習間隔が決まります）',
+    mPinLabel:'📌 分からなかった問題（Progrit でピン留めした数）',
+    mPinNote:'メモ（つまずいた表現・文法など）', mPinPlaceholder:'例: 使役のhave / 完了形の使い分け …',
+    mSavePin:'ピンを保存', mUnstudy:'未学習に戻す', mClose:'閉じる', mHist:'履歴: ',
+    gAgain:'もう一度', gHard:'難しい', gGood:'できた', gEasy:'簡単'
+  },
+  en:{
+    subtitle:'PROGRIT Oral Composition · Study Manager', home:'← HOME', login:'LOGIN', register:'REGISTER',
+    greetNew:'Welcome. Ease back in with just one lesson today.',
+    greetStreak:n=>`<b>${n}-day streak</b> — great rhythm!`,
+    greetBack:'Welcome back. A little every day.',
+    guest:'Guest mode — saved on this device only. <a href="login.html?next=english.html">Log in</a> to tie it to your account (export a backup to be safe).',
+    heroH:"📅 Today's plan", hRev:'Review', hNew:'New', hMin:'≈', min:'min',
+    heroNone:'No required reviews today. Move on to new lessons or do a light review.',
+    heroBoth:(r,n,m)=>`Recommended: <span class="hl">${r}</span> reviews (right on the forgetting curve) + <span class="hl">${n}</span> new lessons (~${m} min).`,
+    heroRevOnly:(r,m)=>`Reviews come first today: <span class="hl">${r}</span> lessons (~${m} min). Clear these, then new.`,
+    heroNewOnly:(n,m)=>`Start with <span class="hl">${n}</span> new lessons (~${m} min). They return later as reviews.`,
+    heroOver:(r)=>`<span class="pin">${r} reviews piled up.</span> Skip new lessons today and clear the backlog first.`,
+    heroDone:"🎉 Today's plan is complete — nice work! Add more from the progress grid if you like.",
+    secToday:'Today', todayHint:'— tap to log after studying in Progrit',
+    badgeRev:'Review', badgeOver:'Backlog', badgeNew:'New', badgeMast:'Mastered',
+    prRetention:r=>`Retention ${r}%`, prNew:'Not studied yet', prPins:n=>`📌${n}`,
+    again:'Again', hard:'Hard', good:'Good', easy:'Easy',
+    secPin:'📌 Pinned questions', pinHint:'— focused review of weak spots',
+    pinQ:n=>`${n}Q`, pinReviewed:'Reviewed', pinResolve:'Resolve',
+    secStats:'Progress', stTotal:'Lessons', stStudied:'Studied', stMastered:'Mastered', stDue:'Due', stPin:'Pins', stStreak:'Streak',
+    secScience:'How it works (forgetting curve)', retention:'Avg retention',
+    fcText:`Per the <b>Ebbinghaus forgetting curve</b>, memory <span class="hl">decays exponentially</span> over time (dotted).<br><br>
+      Reviewing <b>right as you start to forget</b> revives it and makes it <span class="hl">decay more slowly</span> each time (solid).<br><br>
+      This app computes the <b>next review date</b> per lesson from how well it went — <b>max retention, min effort</b>.`,
+    secPlan:'Study plan ahead', upc:'Upcoming reviews (next 2 weeks)',
+    projLine:(date,wk,total)=>`At your current pace, first-pass study of the remaining <b>${total}</b> lessons finishes in <span class="hl">~${wk} weeks</span> (around ${date}).`,
+    projDone:'🎓 First pass complete on all lessons. Now consolidate with reviews.',
+    today:'Today', overdue:'Late',
+    secCourses:'Course progress', coursesHint:'— tap a cell to log / edit pins',
+    cProg:(a,b)=>`${a} / ${b} lessons`, cDue:n=>`Due ${n}`,
+    legNew:'New', legSched:'Scheduled', legDue:'Due', legOver:'Late', legMast:'Mastered🏅', legPin:'Pinned',
+    secRoutine:"Today's routine", routineHint:'— habits beyond oral composition',
+    rtComp:'Oral composition', rtCompNote:"today's plan (above)", rtAuto:'auto',
+    secStrat:'Strategy notes', stratSum:'View the roadmap to your goals',
+    secActivity:'Activity', heatLess:'less', heatMore:'more',
+    secSet:'Settings', setMin:'Daily oral-composition budget', setMinU:'min/day (reviews first, rest fills with new)',
+    setNew:'Max new lessons/day', setNewU:'lessons/day', setDays:'Study days/week', setDaysU:'days/week (for the estimate)',
+    setOrder:'New-lesson course order', setOrderU:'comma separated (adv2 / cv / bp)',
+    save:'Save', exportB:'Export (backup)', importB:'Import', resetB:'Reset progress', saved:'Saved',
+    resetConfirm:'Erase all progress, pins and routine. Are you sure?',
+    importConfirm:'Overwrite current records with the imported backup. Continue?',
+    importBad:'Could not read the file.',
+    footnote:'Spaced repetition on the forgetting curve. Study in the Progrit app; log & schedule here. Data is stored on this device.',
+    mEyebrow:'Oral composition', mQ:n=>`${n}Q`,
+    mNew:'Not studied yet. After working through it in Progrit, log it with the buttons below.',
+    mReps:n=>`Studied <b>${n}</b>×`, mNext:d=>`Next review <span class="hl">${d}</span>`,
+    mRet:r=>`Retention <b>${r}%</b>`, mLast:d=>`Last ${d}`, mMastered:'🏅 Mastered (well consolidated)',
+    mGradeLabel:'Log how it went (sets the next interval)',
+    mPinLabel:'📌 Questions you missed (pinned in Progrit)',
+    mPinNote:'Notes (tricky phrases / grammar)', mPinPlaceholder:'e.g. causative have / perfect tenses …',
+    mSavePin:'Save pins', mUnstudy:'Mark as not studied', mClose:'Close', mHist:'History: ',
+    gAgain:'Again', gHard:'Hard', gGood:'Good', gEasy:'Easy'
+  }
+};
+let lang = localStorage.getItem('lang') || 'ja';
+const T = k => L[lang][k];
+const GR = { again:'gAgain', hard:'gHard', good:'gGood', easy:'gEasy' };
+
+// ════════════════════════════════════════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════════════════════════════════════════
+function renderAuth(){
+  const u = getUser();
+  $('auth-area').innerHTML = u
+    ? `<a href="profile.html" class="top-btn primary">@${u.username}</a>`
+    : `<a href="login.html?next=english.html" class="top-btn">${T('login')}</a><a href="register.html" class="top-btn primary">${T('register')}</a>`;
+}
+function applyChrome(){
+  document.documentElement.lang = lang;
+  $('lang-btn').textContent = lang==='ja' ? 'EN' : 'JA';
+  const set = (id,k)=>{ const e=$(id); if(e) e.textContent = T(k); };
+  set('home-btn','home'); set('t-subtitle','subtitle');
+  set('t-hero-h','heroH'); set('t-h-rev','hRev'); set('t-h-new','hNew'); set('t-h-min','hMin'); set('t-min','min');
+  set('t-sec-today','secToday'); set('t-today-hint','todayHint');
+  set('t-sec-pin','secPin'); set('t-pin-hint','pinHint');
+  set('t-sec-stats','secStats'); set('t-sec-science','secScience'); set('t-retention','retention');
+  $('fc-text').innerHTML = T('fcText');
+  set('t-sec-plan','secPlan'); set('t-upc','upc');
+  set('t-sec-courses','secCourses'); set('t-courses-hint','coursesHint');
+  set('t-sec-routine','secRoutine'); set('t-routine-hint','routineHint');
+  set('t-sec-strat','secStrat'); set('t-strat-sum','stratSum');
+  set('t-sec-activity','secActivity'); set('t-heat-less','heatLess'); set('t-heat-more','heatMore');
+  set('t-sec-set','secSet');
+  set('t-set-min','setMin'); set('t-set-min-u','setMinU'); set('t-set-new','setNew'); set('t-set-new-u','setNewU');
+  set('t-set-days','setDays'); set('t-set-days-u','setDaysU'); set('t-set-order','setOrder'); set('t-set-order-u','setOrderU');
+  set('set-save','save'); set('set-export','exportB'); set('set-import','importB'); set('set-reset','resetB');
+  $('footnote').textContent = T('footnote');
+  $('strat-body').innerHTML = stratHTML();
+  renderAuth();
+}
+
+function renderAll(){
+  applyChrome();
+  const u = getUser();
+  const gb = $('guest-banner');
+  if(!u){ gb.classList.remove('hidden'); gb.innerHTML = T('guest'); } else gb.classList.add('hidden');
+  const stk = streak();
+  $('greet').innerHTML = stk>0 ? T('greetStreak')(stk) : (ALL_IDS.some(isStudied) ? T('greetBack') : T('greetNew'));
+  renderHero();
+  renderPlan();
+  renderPins();
+  renderStats();
+  drawForgettingCurve();
+  renderRetentionGauge();
+  renderUpcoming();
+  renderProjection();
+  renderCourses();
+  renderLegend();
+  renderRoutine();
+  renderHeatmap();
+}
+
+function renderHero(){
+  const p = buildPlan();
+  $('h-rev').textContent = p.reviews.length;
+  $('h-new').textContent = p.news.length;
+  $('h-min').innerHTML = p.minutes + `<small>${T('min')}</small>`;
+  let msg;
+  const totalToday = p.reviews.length + p.news.length;
+  const allDoneNothingLeft = totalToday===0 && p.newAvail===0;
+  if (p.overBudget) msg = T('heroOver')(p.reviews.length);
+  else if (totalToday===0 && allActiveLogged()) msg = T('heroDone');
+  else if (p.reviews.length && p.news.length) msg = T('heroBoth')(p.reviews.length, p.news.length, p.minutes);
+  else if (p.reviews.length) msg = T('heroRevOnly')(p.reviews.length, p.minutes);
+  else if (p.news.length) msg = T('heroNewOnly')(p.news.length, p.minutes);
+  else if (allDoneNothingLeft) msg = T('projDone');
+  else msg = T('heroNone');
+  $('hero-sub').innerHTML = msg;
+}
+// 今日のおすすめが0かつ、すでに何かログした → 完了とみなす
+function allActiveLogged(){ return !!DB.act[dayStr(now())]; }
+
+function lessonLabelHTML(l){
+  return `<span class="cn">${l.icon} ${l.courseName} · ${l.partName.replace(/^\d+\.\s*/,'')} ·</span> <b>L${l.n}</b>`;
+}
+
+function renderPlan(){
+  const p = buildPlan();
+  const wrap = $('plan-list');
+  const rows = [];
+  p.reviews.forEach(id => rows.push(planRow(id, isOverdue(id) ? 'over' : 'rev')));
+  p.news.forEach(id => rows.push(planRow(id, 'new')));
+  if (!rows.length){
+    wrap.innerHTML = `<div class="plan-empty">${ allActiveLogged() ? T('heroDone') : (p.newAvail===0 ? T('projDone') : T('heroNone')) }</div>`;
+    return;
+  }
+  wrap.innerHTML = rows.join('');
+  wrap.querySelectorAll('[data-open]').forEach(b => b.onclick = ()=> openLesson(b.dataset.open));
+  wrap.querySelectorAll('[data-grade]').forEach(b => b.onclick = ()=>{
+    review(b.dataset.id, b.dataset.grade); renderAll();
+  });
+}
+function planRow(id, kind){
+  const l = BY_ID[id], s = st(id);
+  const pins = s && s.pins ? s.pins : 0;
+  const badge = kind==='new' ? `<span class="badge new">${T('badgeNew')}</span>`
+    : kind==='over' ? `<span class="badge over">${T('badgeOver')}</span>`
+    : `<span class="badge rev">${T('badgeRev')}</span>`;
+  const ret = (kind!=='new' && retention(id)!=null) ? `<span>${T('prRetention')(Math.round(retention(id)*100))}</span>` : (kind==='new' ? `<span>${T('prNew')}</span>` : '');
+  const pinBadge = pins ? `<span class="badge pin">${T('prPins')(pins)}</span>` : '';
+  const grades = ['again','hard','good','easy'].map(g =>
+    `<button class="grade ${g}" data-grade="${g}" data-id="${id}"><div class="g">${T(GR[g])}</div><div class="gi">${nextIntervalPreview(id,g)}</div></button>`
+  ).join('');
+  return `<div class="plan-row ${pins?'pinned':''}">
+    <button class="pr-top" data-open="${id}">
+      <div class="pr-label">${lessonLabelHTML(l)}
+        <div class="pr-sub">${badge}${pinBadge}${ret}</div>
+      </div>
+      <span class="pr-chev">›</span>
+    </button>
+    <div class="grades">${grades}</div>
+  </div>`;
+}
+
+function renderPins(){
+  const ids = ALL_IDS.filter(id => { const s=st(id); return s && s.pins>0; })
+    .sort((a,b)=> st(b).pins - st(a).pins);
+  const sec = $('pin-section');
+  if (!ids.length){ sec.classList.add('hidden'); return; }
+  sec.classList.remove('hidden');
+  $('pin-list').innerHTML = ids.map(id => {
+    const l = BY_ID[id], s = st(id);
+    const note = s.pinNote ? `<div class="pnote">${escapeHTML(s.pinNote)}</div>` : '';
+    return `<div class="pin-item">
+      <span class="pc">📌 ${T('pinQ')(s.pins)}</span>
+      <div class="pmain">${lessonLabelHTML(l)}${note}</div>
+      <button data-open="${id}">${lang==='ja'?'編集':'Edit'}</button>
+    </div>`;
+  }).join('');
+  $('pin-list').querySelectorAll('[data-open]').forEach(b=> b.onclick=()=> openLesson(b.dataset.open));
+}
+
+function renderStats(){
+  const total = ALL_IDS.length;
+  const studied = ALL_IDS.filter(isStudied).length;
+  const mastered = ALL_IDS.filter(isMastered).length;
+  const due = ALL_IDS.filter(isDue).length;
+  const pins = ALL_IDS.reduce((a,id)=>{ const s=st(id); return a + (s&&s.pins?s.pins:0); }, 0);
+  const rows = [
+    ['stTotal', total],['stStudied', studied],['stMastered', mastered],
+    ['stDue', due],['stPin', pins],['stStreak', streak()]
+  ];
+  $('stats-row').innerHTML = rows.map(([k,v])=>`<div class="stat"><div class="v">${v}</div><div class="l">${T(k)}</div></div>`).join('');
+}
+
+function renderRetentionGauge(){
+  let sum=0,n=0; ALL_IDS.forEach(id=>{ const r=retention(id); if(r!=null){ sum+=r; n++; } });
+  const avg = n ? sum/n : null;
+  $('ret-gauge').style.width = (avg!=null ? Math.round(avg*100):0)+'%';
+  $('ret-val').textContent = avg!=null ? Math.round(avg*100)+'%' : '–';
+}
+
+// upcoming reviews: next 14 days bucketed by due date (overdue → today bucket)
+function renderUpcoming(){
+  const DAYS = 14, buckets = new Array(DAYS).fill(0);
+  const t0 = startOfToday();
+  ALL_IDS.forEach(id => { const s = st(id); if(!s||!s.studied) return;
+    let idx = Math.floor((s.due - t0)/DAY);
+    if (idx < 0) idx = 0; if (idx < DAYS) buckets[idx]++;
+  });
+  const max = Math.max(1, ...buckets);
+  const wd = lang==='ja' ? ['日','月','火','水','木','金','土'] : ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  $('upc').innerHTML = buckets.map((c,i)=>{
+    const d = new Date(t0 + i*DAY);
+    const h = Math.round(c/max*84);
+    const cls = i===0 ? 'today' : (c===0 ? 'zero' : '');
+    const lab = i===0 ? T('today') : (d.getMonth()+1)+'/'+d.getDate();
+    return `<div class="upc-col" title="${lab}: ${c}">
+      <div class="upc-n">${c||''}</div>
+      <div class="upc-bar ${cls}" style="height:${c?Math.max(3,h):3}px"></div>
+      <div class="upc-d">${i===0?T('today'):(wd[d.getDay()]+' '+(d.getMonth()+1)+'/'+d.getDate())}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderProjection(){
+  const totalNew = orderedNewQueue().length;
+  if (totalNew === 0){ $('proj').innerHTML = T('projDone'); return; }
+  const perWeek = Math.max(1, DB.config.newPerDay * DB.config.studyDaysPerWeek);
+  const weeks = Math.ceil(totalNew / perWeek);
+  const finish = new Date(now() + weeks*7*DAY);
+  const dstr = (finish.getFullYear()+'/'+(finish.getMonth()+1)+'/'+finish.getDate());
+  $('proj').innerHTML = T('projLine')(dstr, weeks, totalNew);
+}
+
+function cellClass(id){
+  const s = st(id);
+  if (!s || !s.studied) return '';
+  if (isMastered(id) && !isDue(id)) return 'mastered';
+  if (isOverdue(id)) return 'over';
+  if (isDue(id)) return 'due';
+  return 'scheduled';
+}
+function renderCourses(){
+  const wrap = $('courses');
+  wrap.innerHTML = COURSES.map(c => {
+    const ids = []; c.parts.forEach(p=>{ for(let n=1;n<=p.lessons;n++) ids.push(p.id+'-L'+String(n).padStart(2,'0')); });
+    const studied = ids.filter(isStudied).length, due = ids.filter(isDue).length, total = ids.length;
+    const pct = Math.round(studied/total*100);
+    const parts = c.parts.map(p => {
+      let cells = '';
+      for(let n=1;n<=p.lessons;n++){
+        const id = p.id+'-L'+String(n).padStart(2,'0'); const s = st(id);
+        const pin = s && s.pins>0 ? '<span class="pindot"></span>' : '';
+        const star = isMastered(id) ? '<span class="star">🏅</span>' : '';
+        cells += `<button class="cell ${cellClass(id)}" data-open="${id}" title="${c.name} ${p.name} L${n}">${n}${pin}${star}</button>`;
+      }
+      const pStudied = (()=>{ let a=0; for(let n=1;n<=p.lessons;n++) if(isStudied(p.id+'-L'+String(n).padStart(2,'0'))) a++; return a; })();
+      return `<div class="part">
+        <div class="part-head"><span>${p.name}</span><span class="pcount">${pStudied}/${p.lessons}</span></div>
+        <div class="lesson-grid">${cells}</div>
+      </div>`;
+    }).join('');
+    return `<div class="course">
+      <div class="course-head">
+        <span class="course-icon">${c.icon}</span>
+        <span class="course-name" style="color:${c.color}">${c.name}</span>
+        <span class="course-prog">${T('cProg')(studied,total)}${due?' · <span class="due">'+T('cDue')(due)+'</span>':''}</span>
+      </div>
+      <div class="course-bar"><div style="width:${pct}%;background:${c.color}"></div></div>
+      ${parts}
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('[data-open]').forEach(b=> b.onclick=()=> openLesson(b.dataset.open));
+}
+function renderLegend(){
+  const items = [
+    ['#15151f','legNew'],['rgba(52,211,153,.10)','legSched'],['rgba(251,191,36,.13)','legDue'],
+    ['rgba(255,85,102,.13)','legOver'],['rgba(52,211,153,.22)','legMast']
+  ];
+  $('legend').innerHTML = items.map(([c,k])=>`<span><i style="background:${c}"></i>${T(k)}</span>`).join('')
+    + `<span><i style="background:var(--pink);border-radius:50%"></i>${T('legPin')}</span>`;
+}
+
+// ── routine ──────────────────────────────────────────────────────────────────
+const ROUTINE = [
+  { key:'shadow', icon:'🎧', label:{ja:'シャドーイング添削',en:'Shadowing (graded)'}, note:{ja:'30分・録音して提出',en:'30 min · record & submit'} },
+  { key:'elsa',   icon:'🗣', label:{ja:'ELSA Speak',en:'ELSA Speak'}, note:{ja:'10〜15分・発音矯正',en:'10–15 min · pronunciation'} },
+  { key:'comp',   icon:'✍️', label:{ja:'口頭英作文',en:'Oral composition'}, note:{ja:'今日のプラン（上）',en:"today's plan (above)"}, auto:true },
+  { key:'output', icon:'📨', label:{ja:'業務アウトプット',en:'Work output'}, note:{ja:'英文メールを自力ドラフト（任意）',en:'Draft an email yourself (optional)'}, opt:true },
+  { key:'input',  icon:'📖', label:{ja:'多読 / ウェビナー',en:'Reading / webinar'}, note:{ja:'興味分野で英語インプット（任意）',en:'English input on a topic you like (optional)'}, opt:true }
+];
+function renderRoutine(){
+  const k = dayStr(now()); const r = DB.routine[k] || {};
+  const compDone = allActiveLogged();
+  $('routine').innerHTML = ROUTINE.map(it=>{
+    const done = it.auto ? compDone : !!r[it.key];
+    const label = it.key==='comp' ? T('rtComp') : it.label[lang];
+    const note  = it.key==='comp' ? T('rtCompNote') : it.note[lang];
+    const auto = it.auto ? `<span class="rt-auto-tag">${T('rtAuto')}</span>` : '';
+    return `<div class="rt ${done?'done':''} ${it.opt?'opt':''} ${it.auto?'auto':''}" ${it.auto?'':`data-rt="${it.key}"`}>
+      <div class="rt-check">✓</div>
+      <span class="rt-ico">${it.icon}</span>
+      <div class="rt-main"><div class="rt-label">${label}</div><div class="rt-note">${note}</div></div>
+      ${auto}
+    </div>`;
+  }).join('');
+  $('routine').querySelectorAll('[data-rt]').forEach(el => el.onclick = ()=>{
+    const key = el.dataset.rt; const day = dayStr(now());
+    DB.routine[day] = DB.routine[day] || {};
+    DB.routine[day][key] = !DB.routine[day][key];
+    save(); renderRoutine(); renderStats();   // routine affects streak
+    $('greet').innerHTML = streak()>0 ? T('greetStreak')(streak()) : (ALL_IDS.some(isStudied)?T('greetBack'):T('greetNew'));
+  });
+}
+
+// ── heatmap ──────────────────────────────────────────────────────────────────
+function renderHeatmap(){
+  const wrap = $('heat'); wrap.innerHTML='';
+  const WEEKS=17, today=new Date(); today.setHours(0,0,0,0);
+  const start=new Date(today); start.setDate(start.getDate()-(WEEKS*7-1));
+  const color=n=> n>=8?'#fb923c': n>=4?'#b9791f': n>=2?'#7a5414': n>=1?'#3a2a10':'#15151f';
+  for(let w=0;w<WEEKS;w++){
+    const col=document.createElement('div'); col.className='heat-col';
+    for(let d=0;d<7;d++){
+      const dt=new Date(start); dt.setDate(start.getDate()+w*7+d);
+      const key=dayStr(dt.getTime());
+      const cell=document.createElement('div'); cell.className='heat-cell';
+      if(dt<=today){ const n=DB.act[key]||0; cell.style.background=color(n); cell.title=key+' : '+n; }
+      else cell.style.visibility='hidden';
+      col.appendChild(cell);
+    }
+    wrap.appendChild(col);
+  }
+}
+
+// ── forgetting-curve illustration ───────────────────────────────────────────
+function drawForgettingCurve(){
+  const cv=$('fc-canvas'); if(!cv) return;
+  const dpr=window.devicePixelRatio||1, W=520, H=300;
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.maxWidth=W+'px';
+  const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
+  const pad={l:40,r:14,t:16,b:30}, x0=pad.l, x1=W-pad.r, y0=H-pad.b, y1=pad.t;
+  const X=t=>x0+(x1-x0)*(t/30), Y=r=>y0-(y0-y1)*r;
+  ctx.strokeStyle='#2a2a3a'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(x0,y1); ctx.lineTo(x0,y0); ctx.lineTo(x1,y0); ctx.stroke();
+  ctx.fillStyle='#555'; ctx.font='10px Courier New';
+  [0,.5,1].forEach(r=>{ ctx.fillText(Math.round(r*100)+'%',6,Y(r)+3); ctx.strokeStyle='#191923';
+    ctx.beginPath(); ctx.moveTo(x0,Y(r)); ctx.lineTo(x1,Y(r)); ctx.stroke(); });
+  ctx.fillStyle='#555'; ctx.fillText(lang==='ja'?'時間 →':'time →', x1-54, y0+20);
+  ctx.strokeStyle='#666'; ctx.setLineDash([4,4]); ctx.lineWidth=1.5; ctx.beginPath();
+  for(let t=0;t<=30;t+=.3){ const r=Math.exp(-t/2.2); const x=X(t),y=Y(r); t===0?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+  ctx.stroke(); ctx.setLineDash([]);
+  const reviews=[0,1,3,7,16,30]; ctx.strokeStyle=getCSS('--accent'); ctx.lineWidth=2.4; ctx.beginPath();
+  for(let i=0;i<reviews.length-1;i++){ const a=reviews[i], b=reviews[i+1], S=1.6+i*2.4;
+    for(let t=a;t<=b;t+=.25){ const r=Math.exp(-(t-a)/S); const x=X(t),y=Y(r); (i===0&&t===a)?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+    ctx.lineTo(X(b),Y(1)); }
+  ctx.stroke();
+  ctx.fillStyle=getCSS('--accent');
+  reviews.slice(0,-1).forEach(t=>{ ctx.beginPath(); ctx.arc(X(t),Y(1),3.2,0,7); ctx.fill(); });
+  ctx.font='11px Courier New';
+  ctx.fillStyle=getCSS('--accent'); ctx.fillText('━ '+(lang==='ja'?'復習あり':'with review'), x0+8, y1+12);
+  ctx.fillStyle='#888'; ctx.fillText('┈ '+(lang==='ja'?'復習なし':'no review'), x0+8, y1+28);
+}
+function getCSS(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#fb923c'; }
+
+// ════════════════════════════════════════════════════════════════════════════
+//  LESSON MODAL
+// ════════════════════════════════════════════════════════════════════════════
+let modalId = null;
+function openLesson(id){
+  modalId = id;
+  const l = BY_ID[id], s = st(id);
+  const studied = !!(s && s.studied);
+  let status = '';
+  if (!studied){ status = `<div class="modal-status">${T('mNew')}</div>`; }
+  else {
+    const ret = retention(id), rline = ret!=null ? T('mRet')(Math.round(ret*100)) : '';
+    const rows = [
+      `<div class="row"><span>${T('mReps')(s.reps)}</span><span>${rline}</span></div>`,
+      `<div class="row"><span>${T('mNext')(humanInterval(Math.max(0,Math.round((s.due-startOfToday())/DAY))))}</span><span>${T('mLast')(dayStr(s.last))}</span></div>`,
+      isMastered(id) ? `<div style="color:var(--good);margin-top:6px;">${T('mMastered')}</div>` : ''
+    ].join('');
+    status = `<div class="modal-status">${rows}</div>`;
+  }
+  const grades = ['again','hard','good','easy'].map(g =>
+    `<button class="grade ${g}" data-grade="${g}"><div class="g">${T(GR[g])}</div><div class="gi">${nextIntervalPreview(id,g)}</div></button>`
+  ).join('');
+  const pins = s && s.pins ? s.pins : 0;
+  const note = s && s.pinNote ? s.pinNote : '';
+  const hist = (s && s.history && s.history.length)
+    ? `<div class="hist">${T('mHist')}${s.history.slice(-8).map(h=>{ const m={again:'↺',hard:'△',good:'○',easy:'◎'}[h.g]||'•'; return m; }).join(' ')}</div>` : '';
+  $('modal').innerHTML = `
+    <button class="modal-x" id="m-x">✕</button>
+    <div class="modal-eyebrow">${l.icon} ${l.courseName} · ${l.partName}</div>
+    <div class="modal-title">L${l.n}<span class="q">${T('mQ')(QPL)}</span></div>
+    ${status}
+    ${hist}
+    <div class="ms-label">${T('mGradeLabel')}</div>
+    <div class="grades">${grades}</div>
+    <div class="ms-label">${T('mPinLabel')}</div>
+    <div class="pin-edit">
+      <button class="step" id="pin-dec">−</button>
+      <input type="number" id="pin-num" min="0" max="${QPL}" value="${pins}">
+      <button class="step" id="pin-inc">＋</button>
+      <span class="pl">/ ${QPL} ${lang==='ja'?'問':'Q'}</span>
+    </div>
+    <textarea class="pin-note" id="pin-note" placeholder="${T('mPinNote')}: ${T('mPinPlaceholder')}">${escapeHTML(note)}</textarea>
+    <div class="modal-foot">
+      <button class="btn" id="m-pin-save" style="border-color:var(--pink);color:var(--pink);">${T('mSavePin')}</button>
+      ${studied?`<button class="btn danger" id="m-unstudy">${T('mUnstudy')}</button>`:''}
+      <button class="btn" id="m-close">${T('mClose')}</button>
+    </div>`;
+  $('modal').querySelectorAll('[data-grade]').forEach(b=> b.onclick=()=>{
+    // grading also persists any pin edits made in the modal
+    persistPin(id, false);
+    review(id, b.dataset.grade); closeModal(); renderAll();
+  });
+  $('m-x').onclick = ()=>{ persistPin(id, false); closeModal(); renderAll(); };
+  $('m-close').onclick = ()=>{ persistPin(id, false); closeModal(); renderAll(); };
+  $('pin-dec').onclick = ()=>{ const e=$('pin-num'); e.value=Math.max(0,(+e.value||0)-1); };
+  $('pin-inc').onclick = ()=>{ const e=$('pin-num'); e.value=Math.min(QPL,(+e.value||0)+1); };
+  $('m-pin-save').onclick = ()=>{ persistPin(id, true); closeModal(); renderAll(); };
+  const un = $('m-unstudy'); if (un) un.onclick = ()=>{ delete DB.lessons[id]; save(); closeModal(); renderAll(); };
+  $('modal-back').classList.add('show');
+}
+// ピン数/メモを保存。ensure: 未学習レッスンでもピンだけ記録できるよう状態を生成
+function persistPin(id, force){
+  const numEl=$('pin-num'), noteEl=$('pin-note'); if(!numEl||!noteEl) return;
+  const num = Math.max(0, Math.min(QPL, parseInt(numEl.value,10)||0));
+  const note = noteEl.value.trim();
+  const cur = st(id);
+  if (!cur){ if(num===0 && !note && !force) return; DB.lessons[id] = Object.assign(defState(id), { pins:num, pinNote:note }); }
+  else { cur.pins = num; cur.pinNote = note; }
+  save();
+}
+function closeModal(){ modalId=null; $('modal-back').classList.remove('show'); }
+$('modal-back').addEventListener('click', e=>{ if(e.target===$('modal-back')){ if(modalId) persistPin(modalId,false); closeModal(); renderAll(); } });
+
+function escapeHTML(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ════════════════════════════════════════════════════════════════════════════
+//  STRATEGY note (embeds the user's roadmap)
+// ════════════════════════════════════════════════════════════════════════════
+function stratHTML(){
+  if (lang==='en') return `
+    <b>Goal:</b> business-level conversation + enjoying movies/music without subtitles.<br>
+    <b>Shift:</b> from "English for tests" to "English for use".
+    <ul>
+      <li><b>Speaking core — this app.</b> Oral composition 15–20 min, 4–5 days/week. Cut the lag from meaning → speech. Reviews are scheduled on the forgetting curve; pinned questions get priority.</li>
+      <li><b>🎧 Shadowing (graded), ~30 min/day.</b> Automate sound perception & rhythm — submit audio daily as your base habit.</li>
+      <li><b>🗣 ELSA, 10–15 min.</b> Warm-up/cool-down around shadowing to fix individual sounds & intonation.</li>
+      <li><b>📨 Work output.</b> Draft English emails yourself first, then refine with AI/Grammarly; stockpile expressions you couldn't produce.</li>
+      <li><b>📖 Input.</b> Mine real webinars / white papers in your field instead of buying a new word book.</li>
+    </ul>
+    <b>Next option (1–2 months in):</b> add business-focused online conversation (e.g. <a href="https://www.bizmates.jp/" target="_blank" rel="noopener">Bizmates</a>) once oral composition flows.<br>
+    <b>First milestone:</b> clear the light "30-min day" for 7 days straight.`;
+  return `
+    <b>目標:</b> ビジネスレベルの英会話＋字幕なしで洋画・洋楽を楽しむ。<br>
+    <b>転換:</b>「試験のための英語」から「使うための英語」へ。
+    <ul>
+      <li><b>スピーキングの核 — このアプリ。</b> 口頭英作文を15〜20分・週4〜5日。意味理解→発話のタイムラグを消す。復習は忘却曲線に沿って自動スケジュール、ピン留めは優先的に再出題。</li>
+      <li><b>🎧 シャドーイング添削（約30分／日）。</b> 音声知覚とリズムの自動化。毎日音声を提出する習慣をベースに。</li>
+      <li><b>🗣 ELSA（10〜15分）。</b> シャドーイングの前後にウォームアップ／クールダウンとして発音・イントネーションを矯正。</li>
+      <li><b>📨 業務アウトプット。</b> 英文メールは翻訳に頼らず自力ドラフト→AI/Grammarlyで添削。使えなかった表現をストック。</li>
+      <li><b>📖 インプット。</b> 新しい単語帳より、実務のウェビナーやホワイトペーパーから生きた専門語彙を拾う。</li>
+    </ul>
+    <b>次の一手（1〜2ヶ月後）:</b> 口頭英作文がスラスラ出てきたら、ビジネス特化のオンライン英会話（例: <a href="https://www.bizmates.jp/" target="_blank" rel="noopener">Bizmates</a>）を追加。<br>
+    <b>直近の目標:</b> 軽い「30分の日」をまず7日連続でクリア。`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SETTINGS
+// ════════════════════════════════════════════════════════════════════════════
+function fillSettings(){
+  $('set-min').value = DB.config.dailyMinutes;
+  $('set-new').value = DB.config.newPerDay;
+  $('set-days').value = DB.config.studyDaysPerWeek;
+  $('set-order').value = (DB.config.courseOrder||['adv2','cv','bp']).join(', ');
+}
+$('set-save').onclick = ()=>{
+  DB.config.dailyMinutes = Math.max(5, Math.min(120, parseInt($('set-min').value,10)||20));
+  DB.config.newPerDay = Math.max(0, Math.min(15, parseInt($('set-new').value,10)||0));
+  DB.config.studyDaysPerWeek = Math.max(1, Math.min(7, parseInt($('set-days').value,10)||5));
+  const valid = ['adv2','cv','bp'];
+  const order = $('set-order').value.split(',').map(s=>s.trim()).filter(s=>valid.includes(s));
+  DB.config.courseOrder = order.length ? Array.from(new Set(order)) : ['adv2','cv','bp'];
+  save(); fillSettings(); renderAll();
+  flash($('set-save'), T('saved'));
+};
+function flash(btn, txt){ const o=btn.textContent; btn.textContent=txt; setTimeout(()=>btn.textContent=o, 1400); }
+
+$('set-export').onclick = ()=>{
+  const blob = new Blob([JSON.stringify(DB,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download='progrit-english-backup-'+dayStr(now())+'.json'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+};
+$('set-import').onclick = ()=> $('import-file').click();
+$('import-file').onchange = (e)=>{
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const o = JSON.parse(reader.result);
+      if (typeof o!=='object' || o===null) throw 0;
+      if (!confirm(T('importConfirm'))) return;
+      DB = { lessons:o.lessons||{}, config:Object.assign({}, DEF_CFG, o.config||{}), routine:o.routine||{}, act:o.act||{} };
+      save(); fillSettings(); renderAll();
+    }catch(_){ alert(T('importBad')); }
+    finally{ e.target.value=''; }
+  };
+  reader.readAsText(f);
+};
+$('set-reset').onclick = ()=>{
+  if (!confirm(T('resetConfirm'))) return;
+  DB = { lessons:{}, config:Object.assign({}, DEF_CFG), routine:{}, act:{} };
+  save(); fillSettings(); renderAll();
+};
+
+// ── language toggle ──────────────────────────────────────────────────────────
+$('lang-btn').addEventListener('click', ()=>{
+  lang = lang==='ja' ? 'en' : 'ja'; localStorage.setItem('lang', lang);
+  fillSettings(); renderAll();
+});
+
+// ── boot ─────────────────────────────────────────────────────────────────────
+user = getUser(); DB = load();
+fillSettings();
+renderAll();
+window.addEventListener('resize', ()=> drawForgettingCurve());
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
