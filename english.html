@@ -157,6 +157,16 @@
     .rt-note{font-size:.66rem;color:var(--dim2);margin-top:2px;}
     .rt.auto{cursor:default;}
     .rt-auto-tag{font-size:.58rem;color:var(--dim2);border:1px solid var(--line2);border-radius:20px;padding:2px 8px;}
+    /* diary card */
+    .diary-card{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#241608,var(--panel));border:1px solid #4a3214;border-radius:12px;padding:16px 18px;text-decoration:none;color:var(--txt);transition:.18s;}
+    .diary-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+    .diary-ic{font-size:1.8rem;}
+    .diary-main{flex:1;}
+    .diary-h{font-size:.95rem;font-weight:bold;color:var(--accent);letter-spacing:1px;}
+    .diary-sub{font-size:.7rem;color:var(--dim);margin-top:4px;line-height:1.6;}
+    .diary-status{font-size:.64rem;border:1px solid var(--line2);border-radius:20px;padding:4px 10px;color:var(--dim2);white-space:nowrap;}
+    .diary-status.done{border-color:#1d5c46;color:var(--good);}
+    .diary-go{color:var(--accent);font-size:1.2rem;}
     /* heatmap */
     .heat{display:flex;gap:3px;overflow-x:auto;padding-bottom:6px;}
     .heat-col{display:flex;flex-direction:column;gap:3px;}
@@ -231,6 +241,7 @@
 <button id="lang-btn">EN</button>
 <div id="top-right">
   <a href="index.html" class="top-btn" id="home-btn">← HOME</a>
+  <a href="english-diary.html" class="top-btn" id="diary-btn">📓 日記</a>
   <span id="auth-area"></span>
 </div>
 
@@ -262,6 +273,18 @@
     <div class="sec-title" id="t-sec-pin">📌 ピン留め中の問題 <span class="hint" id="t-pin-hint">— 苦手として集中復習</span></div>
     <div class="pin-list" id="pin-list"></div>
   </div>
+
+  <!-- ───────── DIARY ───────── -->
+  <div class="sec-title" id="t-sec-diary">✍️ 英語日記 <span class="hint" id="t-diary-hint">— 口頭入力・AI添削</span></div>
+  <a class="diary-card" href="english-diary.html">
+    <div class="diary-ic">📓</div>
+    <div class="diary-main">
+      <div class="diary-h" id="t-diary-h">話して書く英語日記</div>
+      <div class="diary-sub" id="diary-sub"></div>
+    </div>
+    <div class="diary-status" id="diary-status"></div>
+    <span class="diary-go">→</span>
+  </a>
 
   <!-- ───────── STATS ───────── -->
   <div class="sec-title" id="t-sec-stats">進捗サマリー</div>
@@ -489,7 +512,20 @@ function isMastered(id){ const s = st(id); return !!(s && s.interval >= EM.maste
 function logActivity(){ const k = dayStr(now()); DB.act[k] = (DB.act[k]||0) + 1; }
 function isActiveDay(k){
   if (DB.act[k]) return true;
+  if (diaryDoneOn(k)) return true;                 // 英語日記を書いた日も「学習した日」に数える
   const r = DB.routine[k]; return !!(r && Object.keys(r).some(x => r[x]));
+}
+// 英語日記（別ページ english-diary.html）の記録を読み取り（read-only）
+function diaryRootKey(){ return 'engdiary_v1_' + (user ? user.id : 'guest'); }
+function diaryDoneOn(k){
+  try{ const o = JSON.parse(localStorage.getItem(diaryRootKey()) || '{}'); return (o.entries||[]).some(e=>e.date===k); }
+  catch(_){ return false; }
+}
+function renderDiaryCard(){
+  const done = diaryDoneOn(dayStr(now()));
+  const sub = $('diary-sub'), stt = $('diary-status');
+  if (sub) sub.textContent = T('diarySub');
+  if (stt){ stt.textContent = done ? T('diaryDone') : T('diaryTodo'); stt.classList.toggle('done', done); }
 }
 function streak(){
   let n = 0; const d = new Date(); d.setHours(0,0,0,0);
@@ -553,6 +589,8 @@ const L = {
     subtitle:'PROGRIT 口頭英作文 ・ 学習マネージャー', home:'← HOME', login:'ログイン', register:'登録',
     gateH:'admin 専用ページです', gateLogin:'admin でログイン',
     gateP:'ENGLISH（口頭英作文マネージャー）は管理者（admin）専用の個人ツールです。admin アカウントでログインすると利用できます。',
+    navDiary:'📓 日記', secDiary:'✍️ 英語日記', diaryHint:'— 口頭入力・AI添削', diaryH:'話して書く英語日記',
+    diarySub:'今日の出来事を英語で話して、表現・構成・構文をAIで添削。', diaryDone:'今日 ✓ 記録済み', diaryTodo:'今日はまだ',
     greetNew:'はじめまして。まずは今日の1レッスンから、軽く再開しましょう。',
     greetStreak:n=>`<b>${n}日連続</b>で学習中。いいリズムです！`,
     greetBack:'おかえりなさい。今日もコツコツいきましょう。',
@@ -610,6 +648,8 @@ const L = {
     subtitle:'PROGRIT Oral Composition · Study Manager', home:'← HOME', login:'LOGIN', register:'REGISTER',
     gateH:'Admin only', gateLogin:'Log in as admin',
     gateP:'ENGLISH (the oral-composition manager) is an admin-only personal tool. Log in with the admin account to use it.',
+    navDiary:'📓 Diary', secDiary:'✍️ English diary', diaryHint:'— speak & AI-correct', diaryH:'Speak-and-write diary',
+    diarySub:'Speak your day in English; AI corrects expression, structure & syntax.', diaryDone:'Done today ✓', diaryTodo:'Not yet today',
     greetNew:'Welcome. Ease back in with just one lesson today.',
     greetStreak:n=>`<b>${n}-day streak</b> — great rhythm!`,
     greetBack:'Welcome back. A little every day.',
@@ -679,7 +719,8 @@ function applyChrome(){
   document.documentElement.lang = lang;
   $('lang-btn').textContent = lang==='ja' ? 'EN' : 'JA';
   const set = (id,k)=>{ const e=$(id); if(e) e.textContent = T(k); };
-  set('home-btn','home'); set('t-subtitle','subtitle');
+  set('home-btn','home'); set('diary-btn','navDiary'); set('t-subtitle','subtitle');
+  set('t-sec-diary','secDiary'); set('t-diary-hint','diaryHint'); set('t-diary-h','diaryH');
   set('t-hero-h','heroH'); set('t-h-rev','hRev'); set('t-h-new','hNew'); set('t-h-min','hMin'); set('t-min','min');
   set('t-sec-today','secToday'); set('t-today-hint','todayHint');
   set('t-sec-pin','secPin'); set('t-pin-hint','pinHint');
@@ -717,6 +758,7 @@ function renderAll(){
   renderCourses();
   renderLegend();
   renderRoutine();
+  renderDiaryCard();
   renderHeatmap();
 }
 
