@@ -4,6 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ENGLISH | 口頭英作文 学習マネージャー</title>
+  <!-- Admin gate (runs before paint): ENGLISH is an admin-only personal tool.
+       Mark the document so CSS hides the app for non-admins with no flash of
+       content; the inline app then shows a friendly notice instead. Access =
+       logged in as user "admin" OR an authenticated admin session (admin.html). -->
+  <script>
+    (function(){
+      var ok=false;
+      try{ var u=JSON.parse(localStorage.getItem('arcade_user')||'null');
+           ok=(sessionStorage.getItem('arcade_admin')==='1')||!!(u&&u.username==='admin'); }catch(e){ ok=false; }
+      document.documentElement.classList.toggle('not-admin', !ok);
+    })();
+  </script>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#fb923c">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -195,6 +207,15 @@
     .modal-foot{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap;}
     .modal-foot .btn{flex:1;}
     .hist{font-size:.66rem;color:var(--dim2);margin-top:10px;line-height:1.7;}
+    /* admin gate */
+    html.not-admin #app-wrap{display:none!important;}
+    .gate{width:100%;max-width:520px;min-height:58vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+    .gate-card{background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:32px 26px;max-width:440px;margin-top:20px;}
+    .gate-ico{font-size:2.6rem;margin-bottom:14px;}
+    .gate-h{font-size:1.1rem;color:var(--accent);letter-spacing:2px;margin-bottom:12px;}
+    .gate-p{font-size:.8rem;color:var(--dim);line-height:1.95;margin-bottom:22px;}
+    .gate-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+    .gate-actions .btn{text-decoration:none;}
     .hidden{display:none!important;}
     @media(max-width:560px){
       .stats-row{grid-template-columns:repeat(3,1fr);}
@@ -213,7 +234,7 @@
   <span id="auth-area"></span>
 </div>
 
-<div class="wrap">
+<div class="wrap" id="app-wrap">
   <h1>ENGLISH</h1>
   <div class="subtitle" id="t-subtitle">PROGRIT 口頭英作文 ・ 学習マネージャー</div>
   <div class="greet" id="greet"></div>
@@ -336,6 +357,9 @@
   <div class="footnote" id="footnote"></div>
 </div>
 
+<!-- ───────── ADMIN GATE (non-admin notice) ───────── -->
+<div class="gate hidden" id="gate"></div>
+
 <!-- ───────── LESSON MODAL ───────── -->
 <div class="modal-back" id="modal-back">
   <div class="modal" id="modal"></div>
@@ -366,6 +390,13 @@ const COURSE_BY_ID = {}; COURSES.forEach(c => COURSE_BY_ID[c.id] = c);
 // ── persistence (per user; device-local) ───────────────────────────────────
 function getUser(){ try{ return JSON.parse(localStorage.getItem('arcade_user')||'null'); }catch(_){ return null; } }
 let user = getUser();
+// ENGLISH is an admin-only personal tool: access = logged in as user "admin",
+// or an authenticated admin session (set on admin.html). Same rule the portal
+// uses to show the card, now also enforced on the page itself.
+function isAdmin(){
+  try{ if (sessionStorage.getItem('arcade_admin')==='1') return true; }catch(_){}
+  const u = getUser(); return !!(u && u.username==='admin');
+}
 function rootKey(){ return 'eng_v1_' + (user ? user.id : 'guest'); }
 const DEF_CFG = { dailyMinutes:20, newPerDay:2, studyDaysPerWeek:5, courseOrder:['adv2','cv','bp'] };
 function load(){
@@ -520,6 +551,8 @@ function buildPlan(){
 const L = {
   ja:{
     subtitle:'PROGRIT 口頭英作文 ・ 学習マネージャー', home:'← HOME', login:'ログイン', register:'登録',
+    gateH:'admin 専用ページです', gateLogin:'admin でログイン',
+    gateP:'ENGLISH（口頭英作文マネージャー）は管理者（admin）専用の個人ツールです。admin アカウントでログインすると利用できます。',
     greetNew:'はじめまして。まずは今日の1レッスンから、軽く再開しましょう。',
     greetStreak:n=>`<b>${n}日連続</b>で学習中。いいリズムです！`,
     greetBack:'おかえりなさい。今日もコツコツいきましょう。',
@@ -575,6 +608,8 @@ const L = {
   },
   en:{
     subtitle:'PROGRIT Oral Composition · Study Manager', home:'← HOME', login:'LOGIN', register:'REGISTER',
+    gateH:'Admin only', gateLogin:'Log in as admin',
+    gateP:'ENGLISH (the oral-composition manager) is an admin-only personal tool. Log in with the admin account to use it.',
     greetNew:'Welcome. Ease back in with just one lesson today.',
     greetStreak:n=>`<b>${n}-day streak</b> — great rhythm!`,
     greetBack:'Welcome back. A little every day.',
@@ -1106,14 +1141,43 @@ $('set-reset').onclick = ()=>{
 // ── language toggle ──────────────────────────────────────────────────────────
 $('lang-btn').addEventListener('click', ()=>{
   lang = lang==='ja' ? 'en' : 'ja'; localStorage.setItem('lang', lang);
-  fillSettings(); renderAll();
+  if (isAdmin()){ fillSettings(); renderAll(); } else { renderGate(); }
 });
+
+// ── admin gate notice (shown to non-admins instead of the app) ───────────────
+function renderGate(){
+  document.documentElement.lang = lang;
+  $('lang-btn').textContent = lang==='ja' ? 'EN' : 'JA';
+  $('home-btn').textContent = T('home');
+  renderAuth();
+  $('app-wrap').classList.add('hidden');
+  const u = getUser();
+  const loginBtn = (u && u.username==='admin') ? ''
+    : `<a class="btn" style="border-color:var(--accent);color:var(--accent);" href="login.html?next=english.html">${T('gateLogin')}</a>`;
+  const g = $('gate'); g.classList.remove('hidden');
+  g.innerHTML = `
+    <h1>ENGLISH</h1>
+    <div class="subtitle">${T('subtitle')}</div>
+    <div class="gate-card">
+      <div class="gate-ico">🔒</div>
+      <div class="gate-h">${T('gateH')}</div>
+      <div class="gate-p">${T('gateP')}</div>
+      <div class="gate-actions">
+        <a class="btn" href="index.html">${T('home')}</a>
+        ${loginBtn}
+      </div>
+    </div>`;
+}
 
 // ── boot ─────────────────────────────────────────────────────────────────────
 user = getUser(); DB = load();
-fillSettings();
-renderAll();
-window.addEventListener('resize', ()=> drawForgettingCurve());
+if (isAdmin()){
+  fillSettings();
+  renderAll();
+  window.addEventListener('resize', ()=> drawForgettingCurve());
+} else {
+  renderGate();                                  // non-admin: show notice, never the app
+}
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
 </script>
