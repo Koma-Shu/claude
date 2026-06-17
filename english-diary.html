@@ -277,7 +277,8 @@ function loadData(){ try{ const o=JSON.parse(localStorage.getItem(dataKey())||'{
 let DB = loadData();
 function saveData(){ try{ localStorage.setItem(dataKey(), JSON.stringify(DB)); }catch(_){} }
 
-function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+// 学習日は午前3時で切り替え（00:00–02:59は前日扱い、english.html と統一）
+function todayStr(){ const d=new Date(Date.now()-3*3600000); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
 // ════════════════════════════════════════════════════════════════════════════
 //  PROMPT + PROVIDERS (pure — no DOM)
@@ -691,6 +692,7 @@ function wire(){
 // Directly accessible by URL so a saved/bookmarked link always opens the diary
 // (unlisted on the public portal; data + API keys stay per-device).
 $('diary-date').value = todayStr();
+$('diary-date').max = todayStr();   // 未来日付は不可
 wire(); applyChrome(); updateCount();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();

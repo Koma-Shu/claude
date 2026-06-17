@@ -190,6 +190,21 @@
     .cal-legend{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;font-size:.58rem;color:var(--dim2);margin-top:12px;}
     .cal-legend span{display:flex;align-items:center;gap:5px;}
     .cal-legend i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+    /* record-day bar (back-date study) */
+    .record-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:.76rem;color:var(--dim);}
+    .record-bar.past{border-color:#5c4a1d;background:#1a1408;}
+    .rd-ico{font-size:1rem;}
+    .rd-lbl{color:var(--dim);letter-spacing:1px;white-space:nowrap;}
+    .rd-select{background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--txt);font-family:inherit;font-size:.8rem;padding:7px 10px;outline:none;cursor:pointer;}
+    .rd-select:focus{border-color:var(--accent);}
+    .record-bar.past .rd-select{border-color:var(--warn);color:var(--warn);}
+    .rd-note{font-size:.68rem;color:var(--dim2);flex:1;min-width:120px;}
+    .record-bar.past .rd-note{color:var(--warn);}
+    .rd-reset{background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--dim);font-family:inherit;font-size:.68rem;padding:6px 10px;cursor:pointer;}
+    .rd-reset:hover{border-color:var(--accent);color:var(--accent);}
+    .cal-cell.rec{border-color:var(--warn);box-shadow:inset 0 0 0 1px var(--warn);}
+    .cal-cell.pick{cursor:pointer;}
+    .cal-cell.pick:hover{border-color:var(--accent);}
     /* heatmap */
     .heat{display:flex;gap:3px;overflow-x:auto;padding-bottom:6px;}
     .heat-col{display:flex;flex-direction:column;gap:3px;}
@@ -285,6 +300,15 @@
       </div>
     </div>
     <div class="hero-sub" id="hero-sub"></div>
+  </div>
+
+  <!-- ───────── RECORD DAY (back-date study up to ~1 week) ───────── -->
+  <div class="record-bar" id="record-bar">
+    <span class="rd-ico">📅</span>
+    <span class="rd-lbl" id="rd-lbl">記録日</span>
+    <select id="record-day" class="rd-select"></select>
+    <span class="rd-note" id="rd-note"></span>
+    <button class="rd-reset" id="rd-reset">今日に戻す</button>
   </div>
 
   <div class="sec-title"><span id="t-sec-today">今日やること</span> <span class="hint" id="t-today-hint">— Progrit で学習したらタップして記録</span></div>
@@ -466,10 +490,22 @@ function load(){
 let DB = load();
 function save(){ try{ localStorage.setItem(rootKey(), JSON.stringify(DB)); }catch(_){} }
 
-// ── date helpers ────────────────────────────────────────────────────────────
-function startOfToday(){ const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
+// ── date helpers (study day rolls over at 03:00, not midnight) ───────────────
+// 00:00–02:59 は前日の学習として扱う。例: 6/17 2:00 の記録は 6/16 の学習。
+const CUTOFF = 3 * 3600000;
+function fmtYMD(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function dayStr(ts){ return fmtYMD(new Date(ts - CUTOFF)); }                 // 瞬間 → 学習日(3時境界)
+function logicalToday(){ const d=new Date(now()-CUTOFF); d.setHours(0,0,0,0); return d; }   // 今日の学習日のカレンダー日付(0時)
+function todayKey(){ return fmtYMD(logicalToday()); }                       // = dayStr(now())
+function startOfDay(key){ const p=String(key).split('-').map(Number); const d=new Date(p[0], p[1]-1, p[2]); d.setHours(0,0,0,0); return d.getTime()+CUTOFF; }  // 学習日の開始(3:00)
+function startOfToday(){ return startOfDay(todayKey()); }
 function endOfToday(){ return startOfToday() + DAY - 1; }
-function dayStr(ts){ const d=new Date(ts); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+// 学習を記録する対象日（既定は今日。最大7日前まで遡れる。セッション内のみ保持）
+let recordDay = todayKey();
+const RECORD_BACK = 7;
+function recordStart(){ return startOfDay(recordDay); }
+function recordTs(){ return recordDay===todayKey() ? now() : (recordStart() + 12*3600000); }  // 記録の代表時刻
 
 // ════════════════════════════════════════════════════════════════════════════
 //  SCHEDULER  — Ebbinghaus / SM-2, tuned for whole-lesson drilling
@@ -488,19 +524,20 @@ function advancePin(s){
   if (!s || !(s.pins>0)) return;
   s.pinReps = (s.pinReps||0) + 1;
   const iv = PIN_INTERVALS[Math.min(s.pinReps-1, PIN_INTERVALS.length-1)];
-  s.pinDue = startOfToday() + iv*DAY;
+  s.pinDue = recordStart() + iv*DAY;
 }
-function reviewPins(id){ const s = st(id); if (!s || !(s.pins>0)) return; advancePin(s); logActivity(); save(); }
+function reviewPins(id){ const s = st(id); if (!s || !(s.pins>0)) return; advancePin(s); logActivity(recordDay); save(); }
 // 未復習(pinDue=0)・期限到来は「今日復習すべき」とみなす
 function isPinDue(id){ const s = st(id); return !!(s && s.pins>0 && (!s.pinDue || s.pinDue <= endOfToday())); }
 function pinDueDays(id){ const s = st(id); if(!s||!(s.pins>0)) return null; if(!s.pinDue) return 0; return Math.round((s.pinDue - startOfToday())/DAY); }
 
-function simulate(s, grade){
+function simulate(s, grade, baseStart){
+  const base = baseStart || startOfToday();    // 復習日の基準（記録日に対応）
   const n = Object.assign({}, s);
   const q = Q[grade] != null ? Q[grade] : 4;
   if (q < 3){                                  // 「もう一度」: 再学習。翌日に再出題
     n.reps = 0; n.interval = 0;
-    n.due = startOfToday() + DAY;              // 明日もう一度
+    n.due = base + DAY;                         // 明日もう一度
   } else {
     if (n.reps === 0) n.interval = grade==='easy' ? 2 : 1;       // 初回 → 1日後（簡単なら2日）
     else if (n.reps === 1) n.interval = grade==='easy' ? 6 : 3;  // 2回目 → 3日後
@@ -510,7 +547,7 @@ function simulate(s, grade){
     }
     n.reps += 1;
     n.ef = Math.max(1.3, n.ef + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)));
-    n.due = startOfToday() + n.interval * DAY;
+    n.due = base + n.interval * DAY;
   }
   return n;
 }
@@ -518,17 +555,18 @@ function simulate(s, grade){
 // 1レッスンを学習/復習として記録（grade: again|hard|good|easy）
 function review(id, grade){
   const cur = st(id) || defState(id);
-  const n = simulate(cur, grade);
+  const ts = recordTs();                            // 記録日に対応する時刻（過去日なら過去）
+  const n = simulate(cur, grade, recordStart());
   n.studied = true;
-  if (!n.first) n.first = now();
-  n.last = now();
+  if (!n.first) n.first = ts;
+  n.last = ts;
   n.lapses = (cur.lapses||0) + (Q[grade] < 3 ? 1 : 0);
   n.pins = cur.pins||0; n.pinNote = cur.pinNote||'';
   n.pinReps = cur.pinReps||0; n.pinDue = cur.pinDue||0;
   if (Q[grade] >= 3 && n.pins>0) advancePin(n);    // 通しで復習＝ピンも復習したとみなし次回へ
-  n.history = (cur.history||[]).concat([{ t:now(), g:grade }]).slice(-12);
+  n.history = (cur.history||[]).concat([{ t:ts, g:grade }]).slice(-12);
   DB.lessons[id] = n;
-  logActivity();
+  logActivity(recordDay);
   save();
   return n;
 }
@@ -560,7 +598,7 @@ function isOverdue(id){ const s = st(id); return !!(s && s.studied && s.due < st
 function isMastered(id){ const s = st(id); return !!(s && s.interval >= EM.masteredIntervalDays); }
 
 // ── activity / streak ───────────────────────────────────────────────────────
-function logActivity(){ const k = dayStr(now()); DB.act[k] = (DB.act[k]||0) + 1; }
+function logActivity(day){ const k = day || todayKey(); DB.act[k] = (DB.act[k]||0) + 1; }
 function isActiveDay(k){
   if (DB.act[k]) return true;
   if (diaryDoneOn(k)) return true;                 // 英語日記を書いた日も「学習した日」に数える
@@ -573,15 +611,15 @@ function diaryDoneOn(k){
   catch(_){ return false; }
 }
 function renderDiaryCard(){
-  const done = diaryDoneOn(dayStr(now()));
+  const done = diaryDoneOn(todayKey());
   const sub = $('diary-sub'), stt = $('diary-status');
   if (sub) sub.textContent = T('diarySub');
   if (stt){ stt.textContent = done ? T('diaryDone') : T('diaryTodo'); stt.classList.toggle('done', done); }
 }
 function streak(){
-  let n = 0; const d = new Date(); d.setHours(0,0,0,0);
-  if (!isActiveDay(dayStr(d.getTime()))) d.setDate(d.getDate()-1);
-  while (isActiveDay(dayStr(d.getTime()))){ n++; d.setDate(d.getDate()-1); }
+  const d = logicalToday(); let n = 0;
+  if (!isActiveDay(fmtYMD(d))) d.setDate(d.getDate()-1);
+  while (isActiveDay(fmtYMD(d))){ n++; d.setDate(d.getDate()-1); }
   return n;
 }
 
@@ -676,6 +714,9 @@ const L = {
     legNew:'未学習', legSched:'復習予定', legDue:'要復習', legOver:'延滞', legMast:'定着🏅', legPin:'ピンあり',
     secRoutine:'今日のルーティン', routineHint:'— 口頭英作文以外の習慣',
     secCal:'📅 ルーティンの記録', calHint:'— カレンダーで可視化',
+    rdLbl:'記録日', rdReset:'今日に戻す', rdToday:'今日', rdYesterday:'昨日', rdDaysAgo:n=>`${n}日前`,
+    rdRecordingToday:'今日の学習として記録します。', rdRecordingPast:'過去の日付で記録中（カレンダーの日付クリックでも変更可）。',
+    rdClickToRecord:'クリックでこの日に記録', wdShort:['日','月','火','水','木','金','土'],
     rtComp:'口頭英作文', rtCompNote:'今日のプラン（上）', rtAuto:'自動',
     secStrat:'学習戦略メモ', stratSum:'目標達成までのロードマップを見る',
     secActivity:'学習の記録', heatLess:'少', heatMore:'多',
@@ -737,6 +778,9 @@ const L = {
     legNew:'New', legSched:'Scheduled', legDue:'Due', legOver:'Late', legMast:'Mastered🏅', legPin:'Pinned',
     secRoutine:"Today's routine", routineHint:'— habits beyond oral composition',
     secCal:'📅 Routine log', calHint:'— calendar view',
+    rdLbl:'Record day', rdReset:'Back to today', rdToday:'Today', rdYesterday:'Yesterday', rdDaysAgo:n=>`${n}d ago`,
+    rdRecordingToday:"Recording as today's study.", rdRecordingPast:'Recording on a past date (or click a calendar day).',
+    rdClickToRecord:'click to record on this day', wdShort:['Su','Mo','Tu','We','Th','Fr','Sa'],
     rtComp:'Oral composition', rtCompNote:"today's plan (above)", rtAuto:'auto',
     secStrat:'Strategy notes', stratSum:'View the roadmap to your goals',
     secActivity:'Activity', heatLess:'less', heatMore:'more',
@@ -780,6 +824,7 @@ function applyChrome(){
   set('t-sec-diary','secDiary'); set('t-diary-hint','diaryHint'); set('t-diary-h','diaryH');
   set('t-hero-h','heroH'); set('t-h-rev','hRev'); set('t-h-new','hNew'); set('t-h-min','hMin'); set('t-min','min');
   set('t-sec-today','secToday'); set('t-today-hint','todayHint');
+  set('rd-lbl','rdLbl'); set('rd-reset','rdReset');
   set('t-sec-pin','secPin'); set('t-pin-hint','pinHint');
   set('t-sec-stats','secStats'); set('t-sec-science','secScience'); set('t-retention','retention');
   $('fc-text').innerHTML = T('fcText');
@@ -806,6 +851,7 @@ function renderAll(){
   const stk = streak();
   $('greet').innerHTML = stk>0 ? T('greetStreak')(stk) : (ALL_IDS.some(isStudied) ? T('greetBack') : T('greetNew'));
   renderHero();
+  renderRecordBar();
   renderPlan();
   renderPins();
   renderStats();
@@ -839,7 +885,7 @@ function renderHero(){
   $('hero-sub').innerHTML = msg;
 }
 // 今日のおすすめが0かつ、すでに何かログした → 完了とみなす
-function allActiveLogged(){ return !!DB.act[dayStr(now())]; }
+function allActiveLogged(){ return !!DB.act[todayKey()]; }
 
 function lessonLabelHTML(l){
   return `<span class="cn">${l.icon} ${l.courseName} · ${l.partName.replace(/^\d+\.\s*/,'')} ·</span> <b>L${l.n}</b>`;
@@ -1046,7 +1092,7 @@ function routineDoneOn(day, key){
   const r = DB.routine[day]; return !!(r && r[key]);
 }
 function renderRoutine(){
-  const k = dayStr(now());
+  const k = recordDay;                              // 記録日のルーティンを表示・編集
   $('routine').innerHTML = ROUTINE.map(it=>{
     const done = routineDoneOn(k, it.key);
     const label = it.key==='comp' ? T('rtComp') : it.label[lang];
@@ -1060,7 +1106,7 @@ function renderRoutine(){
     return `<div class="rt ${done?'done':''} ${it.opt?'opt':''} ${it.auto?'auto':''}" ${it.auto?'':`data-rt="${it.key}"`}>${inner}</div>`;
   }).join('');
   $('routine').querySelectorAll('[data-rt]').forEach(el => el.onclick = ()=>{
-    const key = el.dataset.rt; const day = dayStr(now());
+    const key = el.dataset.rt; const day = recordDay;
     DB.routine[day] = DB.routine[day] || {};
     DB.routine[day][key] = !DB.routine[day][key];
     save(); renderRoutine(); renderStats(); renderCalendar();   // routine affects streak + calendar
@@ -1074,38 +1120,62 @@ function renderCalendar(){
   const grid = $('cal-grid'); if(!grid) return;
   const y=calState.y, m=calState.m;
   const first=new Date(y,m,1), startDow=first.getDay(), days=new Date(y,m+1,0).getDate();
-  const today=new Date(); today.setHours(0,0,0,0); const tStr=dayStr(today.getTime());
+  const todayCal=logicalToday(); const tStr=todayKey();
+  const minRec = fmtYMD((()=>{ const d=logicalToday(); d.setDate(d.getDate()-RECORD_BACK); return d; })());  // 遡れる下限
   $('cal-title').textContent = lang==='ja' ? `${y}年${m+1}月` : first.toLocaleString('en-US',{month:'long',year:'numeric'});
   const wd = lang==='ja'?['日','月','火','水','木','金','土']:['Su','Mo','Tu','We','Th','Fr','Sa'];
   let html = wd.map(w=>`<div class="cal-wd">${w}</div>`).join('');
   for(let i=0;i<startDow;i++) html += '<div class="cal-cell empty"></div>';
   for(let d=1;d<=days;d++){
-    const dt=new Date(y,m,d); const ds=dayStr(dt.getTime()); dt.setHours(0,0,0,0);
-    const future = dt.getTime()>today.getTime();
+    const dt=new Date(y,m,d); dt.setHours(0,0,0,0); const ds=fmtYMD(dt);
+    const future = dt.getTime()>todayCal.getTime();
+    const selectable = !future && ds>=minRec;        // 記録日として選べる(直近7日)
     let dots='', doneNames=[];
     ROUTINE.forEach(it=>{ const done = routineDoneOn(ds, it.key); if(done) doneNames.push((it.key==='comp'?T('rtComp'):it.label[lang]));
       dots += `<span class="cal-dot" style="background:${done?it.color:'#1c1c28'}"></span>`; });
-    const title = ds + (doneNames.length?(' : '+doneNames.join(', ')):'');
-    html += `<div class="cal-cell ${ds===tStr?'today':''} ${future?'future':''}" title="${title}"><span class="cal-d">${d}</span><div class="cal-dots">${future?'':dots}</div></div>`;
+    const title = ds + (doneNames.length?(' : '+doneNames.join(', ')):'') + (selectable?(' — '+T('rdClickToRecord')):'');
+    const cls = (ds===tStr?'today ':'') + (ds===recordDay&&recordDay!==tStr?'rec ':'') + (future?'future ':'') + (selectable?'pick':'');
+    const attr = selectable ? ` data-pick="${ds}"` : '';
+    html += `<div class="cal-cell ${cls}" title="${title}"${attr}><span class="cal-d">${d}</span><div class="cal-dots">${future?'':dots}</div></div>`;
   }
   grid.innerHTML = html;
+  grid.querySelectorAll('[data-pick]').forEach(c=> c.onclick=()=>{ recordDay = c.dataset.pick; renderAll(); });
   $('cal-legend').innerHTML = ROUTINE.map(it=>`<span><i style="background:${it.color}"></i>${it.icon} ${it.key==='comp'?T('rtComp'):it.label[lang]}</span>`).join('');
   // disable forward nav beyond the current month
-  const atCurrent = (y===today.getFullYear() && m===today.getMonth());
+  const atCurrent = (y===todayCal.getFullYear() && m===todayCal.getMonth());
   $('cal-next').disabled = atCurrent;
+}
+
+// ── record-day selector (今日 + 直近7日) ─────────────────────────────────────
+function renderRecordBar(){
+  const sel = $('record-day'); if(!sel) return;
+  const base = logicalToday();
+  const minKey = fmtYMD((()=>{ const d=logicalToday(); d.setDate(d.getDate()-RECORD_BACK); return d; })());
+  if (recordDay > todayKey() || recordDay < minKey) recordDay = todayKey();   // 範囲外は今日へ
+  let opts = '';
+  for(let i=0;i<=RECORD_BACK;i++){
+    const d=new Date(base); d.setDate(d.getDate()-i); const key=fmtYMD(d);
+    const lbl = i===0?T('rdToday') : i===1?T('rdYesterday') : T('rdDaysAgo')(i);
+    opts += `<option value="${key}"${key===recordDay?' selected':''}>${lbl}・${d.getMonth()+1}/${d.getDate()}（${T('wdShort')[d.getDay()]}）</option>`;
+  }
+  sel.innerHTML = opts;
+  const past = recordDay !== todayKey();
+  $('record-bar').classList.toggle('past', past);
+  $('rd-note').textContent = past ? T('rdRecordingPast') : T('rdRecordingToday');
+  $('rd-reset').style.display = past ? '' : 'none';
 }
 
 // ── heatmap ──────────────────────────────────────────────────────────────────
 function renderHeatmap(){
   const wrap = $('heat'); wrap.innerHTML='';
-  const WEEKS=17, today=new Date(); today.setHours(0,0,0,0);
+  const WEEKS=17, today=logicalToday();
   const start=new Date(today); start.setDate(start.getDate()-(WEEKS*7-1));
   const color=n=> n>=8?'#fb923c': n>=4?'#b9791f': n>=2?'#7a5414': n>=1?'#3a2a10':'#15151f';
   for(let w=0;w<WEEKS;w++){
     const col=document.createElement('div'); col.className='heat-col';
     for(let d=0;d<7;d++){
-      const dt=new Date(start); dt.setDate(start.getDate()+w*7+d);
-      const key=dayStr(dt.getTime());
+      const dt=new Date(start); dt.setDate(start.getDate()+w*7+d); dt.setHours(0,0,0,0);
+      const key=fmtYMD(dt);
       const cell=document.createElement('div'); cell.className='heat-cell';
       if(dt<=today){ const n=DB.act[key]||0; cell.style.background=color(n); cell.title=key+' : '+n; }
       else cell.style.visibility='hidden';
@@ -1276,7 +1346,7 @@ function flash(btn, txt){ const o=btn.textContent; btn.textContent=txt; setTimeo
 $('set-export').onclick = ()=>{
   const blob = new Blob([JSON.stringify(DB,null,2)], {type:'application/json'});
   const url = URL.createObjectURL(blob); const a=document.createElement('a');
-  a.href=url; a.download='progrit-english-backup-'+dayStr(now())+'.json'; a.click();
+  a.href=url; a.download='progrit-english-backup-'+todayKey()+'.json'; a.click();
   setTimeout(()=>URL.revokeObjectURL(url), 1000);
 };
 $('set-import').onclick = ()=> $('import-file').click();
@@ -1300,6 +1370,10 @@ $('set-reset').onclick = ()=>{
   DB = { lessons:{}, config:Object.assign({}, DEF_CFG), routine:{}, act:{} };
   save(); fillSettings(); renderAll();
 };
+
+// ── record-day controls ──────────────────────────────────────────────────────
+$('record-day').onchange = ()=>{ recordDay = $('record-day').value; renderAll(); };
+$('rd-reset').onclick = ()=>{ recordDay = todayKey(); renderAll(); };
 
 // ── routine calendar navigation ──────────────────────────────────────────────
 $('cal-prev').onclick = ()=>{ calState.m--; if(calState.m<0){ calState.m=11; calState.y--; } renderCalendar(); };
