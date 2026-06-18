@@ -327,6 +327,10 @@
   <div class="sec-title"><span id="t-sec-today">今日やること</span> <span class="hint" id="t-today-hint">— Progrit で学習したらタップして記録</span></div>
   <div class="plan-list" id="plan-list"></div>
 
+  <!-- ───────── ROUTINE ───────── -->
+  <div class="sec-title"><span id="t-sec-routine">今日のルーティン</span> <span class="hint" id="t-routine-hint">— 口頭英作文以外の習慣</span></div>
+  <div class="routine" id="routine"></div>
+
   <!-- ───────── PINNED ───────── -->
   <div id="pin-section" class="hidden">
     <div class="sec-title"><span id="t-sec-pin">📌 ピン留め中の問題</span> <span class="hint" id="t-pin-hint">— 苦手として集中復習</span></div>
@@ -349,19 +353,10 @@
   <div class="sec-title" id="t-sec-stats">進捗サマリー</div>
   <div class="stats-row" id="stats-row"></div>
 
-  <!-- ───────── FORGETTING CURVE ───────── -->
-  <div class="sec-title" id="t-sec-science">学習の仕組み（忘却曲線）</div>
-  <div class="panel">
-    <div class="fc-flex">
-      <div class="fc-canvas-wrap"><canvas id="fc-canvas" width="520" height="300"></canvas></div>
-      <div class="fc-text" id="fc-text"></div>
-    </div>
-    <div class="gauge-wrap">
-      <span style="font-size:.7rem;color:var(--dim);letter-spacing:1px;" id="t-retention">平均定着度</span>
-      <div class="gauge"><div id="ret-gauge" style="width:0%"></div></div>
-      <span class="gauge-val" id="ret-val">–</span>
-    </div>
-  </div>
+  <!-- ───────── COURSES / PROGRESS ───────── -->
+  <div class="sec-title"><span id="t-sec-courses">コース進捗</span> <span class="hint" id="t-courses-hint">— セルをタップして記録・ピン編集</span></div>
+  <div id="courses"></div>
+  <div class="legend" id="legend"></div>
 
   <!-- ───────── UPCOMING / PROJECTION ───────── -->
   <div class="sec-title" id="t-sec-plan">今後の学習計画</div>
@@ -370,15 +365,6 @@
     <div class="upc" id="upc"></div>
     <div class="proj" id="proj"></div>
   </div>
-
-  <!-- ───────── COURSES / PROGRESS ───────── -->
-  <div class="sec-title"><span id="t-sec-courses">コース進捗</span> <span class="hint" id="t-courses-hint">— セルをタップして記録・ピン編集</span></div>
-  <div id="courses"></div>
-  <div class="legend" id="legend"></div>
-
-  <!-- ───────── ROUTINE ───────── -->
-  <div class="sec-title"><span id="t-sec-routine">今日のルーティン</span> <span class="hint" id="t-routine-hint">— 口頭英作文以外の習慣</span></div>
-  <div class="routine" id="routine"></div>
 
   <!-- ───────── ROUTINE CALENDAR ───────── -->
   <div class="sec-title"><span id="t-sec-cal">📅 ルーティンの記録</span> <span class="hint" id="t-cal-hint">— カレンダーで可視化</span></div>
@@ -391,13 +377,6 @@
     <div class="cal-grid" id="cal-grid"></div>
     <div class="cal-legend" id="cal-legend"></div>
   </div>
-
-  <!-- ───────── STRATEGY ───────── -->
-  <div class="sec-title" id="t-sec-strat">学習戦略メモ</div>
-  <details class="strat">
-    <summary id="t-strat-sum">目標達成までのロードマップを見る</summary>
-    <div class="strat-body" id="strat-body"></div>
-  </details>
 
   <!-- ───────── ACTIVITY ───────── -->
   <div class="sec-title" id="t-sec-activity">学習の記録</div>
@@ -413,6 +392,27 @@
       <span id="t-heat-more">多</span>
     </div>
   </div>
+
+  <!-- ───────── FORGETTING CURVE ───────── -->
+  <div class="sec-title" id="t-sec-science">学習の仕組み（忘却曲線）</div>
+  <div class="panel">
+    <div class="fc-flex">
+      <div class="fc-canvas-wrap"><canvas id="fc-canvas" width="520" height="300"></canvas></div>
+      <div class="fc-text" id="fc-text"></div>
+    </div>
+    <div class="gauge-wrap">
+      <span style="font-size:.7rem;color:var(--dim);letter-spacing:1px;" id="t-retention">平均定着度</span>
+      <div class="gauge"><div id="ret-gauge" style="width:0%"></div></div>
+      <span class="gauge-val" id="ret-val">–</span>
+    </div>
+  </div>
+
+  <!-- ───────── STRATEGY ───────── -->
+  <div class="sec-title" id="t-sec-strat">学習戦略メモ</div>
+  <details class="strat">
+    <summary id="t-strat-sum">目標達成までのロードマップを見る</summary>
+    <div class="strat-body" id="strat-body"></div>
+  </details>
 
   <!-- ───────── SETTINGS ───────── -->
   <div class="sec-title" id="t-sec-set">設定</div>
