@@ -1,0 +1,15 @@
+{
+  "name": "English — 口頭英作文",
+  "short_name": "English",
+  "description": "PROGRIT 口頭英作文の学習マネージャー（忘却曲線・復習管理・英語日記）",
+  "start_url": "./english.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0d1a",
+  "theme_color": "#fb923c",
+  "icons": [
+    { "src": "icon-eng-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-eng-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

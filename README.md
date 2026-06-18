@@ -91,6 +91,10 @@ PROGRIT のアプリで行い、こちらでは「**どこまで学習したか�
 - **アクセス**: 個人ツールのため公開ポータル（ARCADE/STUDY メニュー）には**カードを出さない**（admin のみ）。
   ただしページ本体は**ゲートなし＝直リンク／ブックマークでいつでもアクセス可能**（未掲載だが到達可能な
   「アンリスト」方式）。データ・APIキーは端末ごとの localStorage に保存。
+- **ホーム画面アプリ（PWA）**: `english.html` 専用マニフェスト `english.webmanifest`（`start_url=english.html`,
+  `display:standalone`, 専用アイコン `icon-eng-*.png`）＋ iOS 用メタ（`apple-mobile-web-app-*`）を備え、
+  iPhone の「ホーム画面に追加」で**英語ダッシュボードを直接・全画面で起動**できる。iOS は自動プロンプトが
+  無いため、ブラウザ表示時のみ追加方法を案内するヒントを表示（一度閉じると非表示）。
 
 ### 英語日記 添削（`english-diary.html`）
 

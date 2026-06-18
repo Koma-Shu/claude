@@ -4,9 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ENGLISH | 口頭英作文 学習マネージャー</title>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="english.webmanifest">
   <meta name="theme-color" content="#fb923c">
-  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="English">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-eng-180.png">
+  <link rel="icon" type="image/png" href="icon-eng-192.png">
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     :root{
@@ -190,6 +195,11 @@
     .cal-legend{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;font-size:.58rem;color:var(--dim2);margin-top:12px;}
     .cal-legend span{display:flex;align-items:center;gap:5px;}
     .cal-legend i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+    /* add-to-home-screen tip */
+    .a2hs{display:flex;align-items:center;gap:10px;background:#241608;border:1px solid #4a3214;border-radius:10px;padding:11px 14px;margin-bottom:16px;font-size:.72rem;color:#e0b878;line-height:1.7;}
+    .a2hs b{color:var(--accent);}
+    .a2hs button{margin-left:auto;background:none;border:none;color:#8a6a3a;font-family:inherit;font-size:.9rem;cursor:pointer;flex-shrink:0;}
+    .a2hs button:hover{color:var(--accent);}
     /* record-day bar (back-date study) */
     .record-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:.76rem;color:var(--dim);}
     .record-bar.past{border-color:#5c4a1d;background:#1a1408;}
@@ -288,6 +298,9 @@
   <div class="greet" id="greet"></div>
 
   <div id="guest-banner" class="hidden"></div>
+
+  <!-- Add-to-home-screen tip (iOS has no install prompt; shown only in-browser) -->
+  <div id="a2hs" class="a2hs hidden">📲 <span id="a2hs-txt"></span><button id="a2hs-x" aria-label="close">✕</button></div>
 
   <!-- ───────── TODAY'S PLAN (hero) ───────── -->
   <div class="hero">
@@ -717,6 +730,7 @@ const L = {
     rdLbl:'記録日', rdReset:'今日に戻す', rdToday:'今日', rdYesterday:'昨日', rdDaysAgo:n=>`${n}日前`,
     rdRecordingToday:'今日の学習として記録します。', rdRecordingPast:'過去の日付で記録中（カレンダーの日付クリックでも変更可）。',
     rdClickToRecord:'クリックでこの日に記録', wdShort:['日','月','火','水','木','金','土'],
+    a2hs:'<b>ホーム画面に追加</b>すると、この英語ダッシュボードを直接開けます。共有 → 「ホーム画面に追加」。',
     rtComp:'口頭英作文', rtCompNote:'今日のプラン（上）', rtAuto:'自動',
     secStrat:'学習戦略メモ', stratSum:'目標達成までのロードマップを見る',
     secActivity:'学習の記録', heatLess:'少', heatMore:'多',
@@ -781,6 +795,7 @@ const L = {
     rdLbl:'Record day', rdReset:'Back to today', rdToday:'Today', rdYesterday:'Yesterday', rdDaysAgo:n=>`${n}d ago`,
     rdRecordingToday:"Recording as today's study.", rdRecordingPast:'Recording on a past date (or click a calendar day).',
     rdClickToRecord:'click to record on this day', wdShort:['Su','Mo','Tu','We','Th','Fr','Sa'],
+    a2hs:'<b>Add to Home Screen</b> to open this dashboard directly — Share → “Add to Home Screen”.',
     rtComp:'Oral composition', rtCompNote:"today's plan (above)", rtAuto:'auto',
     secStrat:'Strategy notes', stratSum:'View the roadmap to your goals',
     secActivity:'Activity', heatLess:'less', heatMore:'more',
@@ -825,6 +840,12 @@ function applyChrome(){
   set('t-hero-h','heroH'); set('t-h-rev','hRev'); set('t-h-new','hNew'); set('t-h-min','hMin'); set('t-min','min');
   set('t-sec-today','secToday'); set('t-today-hint','todayHint');
   set('rd-lbl','rdLbl'); set('rd-reset','rdReset');
+  { const el=$('a2hs'); if(el){
+      const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true;
+      let dismissed=false; try{ dismissed = localStorage.getItem('eng_a2hs_dismissed')==='1'; }catch(_){}
+      if (standalone || dismissed){ el.classList.add('hidden'); }
+      else { el.classList.remove('hidden'); $('a2hs-txt').innerHTML = T('a2hs'); }
+  } }
   set('t-sec-pin','secPin'); set('t-pin-hint','pinHint');
   set('t-sec-stats','secStats'); set('t-sec-science','secScience'); set('t-retention','retention');
   $('fc-text').innerHTML = T('fcText');
@@ -1374,6 +1395,7 @@ $('set-reset').onclick = ()=>{
 // ── record-day controls ──────────────────────────────────────────────────────
 $('record-day').onchange = ()=>{ recordDay = $('record-day').value; renderAll(); };
 $('rd-reset').onclick = ()=>{ recordDay = todayKey(); renderAll(); };
+{ const x=$('a2hs-x'); if(x) x.onclick=()=>{ $('a2hs').classList.add('hidden'); try{ localStorage.setItem('eng_a2hs_dismissed','1'); }catch(_){} }; }
 
 // ── routine calendar navigation ──────────────────────────────────────────────
 $('cal-prev').onclick = ()=>{ calState.m--; if(calState.m<0){ calState.m=11; calState.y--; } renderCalendar(); };
