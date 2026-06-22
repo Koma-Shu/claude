@@ -1,4 +1,4 @@
-const CACHE = 'arcade-v3.27';
+const CACHE = 'arcade-v3.28';
 
 // Base path of the SW (e.g. '/claude/' on GitHub Pages, '/' on root)
 const BASE = self.location.pathname.replace(/sw\.js$/, '');
