@@ -178,8 +178,24 @@
     .pin-item .ptiming.sched{color:var(--dim2);}
     .pin-rev{background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--good);font-family:inherit;font-size:.66rem;padding:6px 9px;cursor:pointer;white-space:nowrap;}
     .pin-rev:hover{border-color:var(--good);}
+    .pin-rev.wide{width:100%;padding:11px;font-size:.8rem;}
     .pin-sched{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.74rem;margin:10px 0 2px;}
     .pin-sched .due{color:var(--warn);} .pin-sched .sched{color:var(--dim);}
+    .pin-sched.part{justify-content:flex-start;gap:8px;font-size:.7rem;}
+    .pin-sched .ps-l{color:var(--dim);}
+    /* per-part pin overview */
+    .pin-item.part{align-items:flex-start;}
+    .pin-item.part .pp-head{font-size:.82rem;line-height:1.5;}
+    .pin-item.part .pp-head b{color:var(--txt);}
+    .pin-item.part .pp-meta{font-size:.64rem;color:var(--dim2);margin-top:3px;}
+    .pinchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+    .pinchip{background:#0a0a14;border:1px solid #3a2030;border-radius:7px;color:var(--pink);font-family:inherit;font-size:.66rem;padding:5px 8px;cursor:pointer;display:flex;align-items:center;gap:5px;}
+    .pinchip:hover{border-color:var(--pink);}
+    .pinchip .pcq{background:var(--pink);color:#1a0a12;border-radius:10px;padding:0 5px;font-weight:bold;font-size:.6rem;}
+    .pin-help{font-size:.62rem;color:var(--dim2);margin-top:7px;line-height:1.6;}
+    /* pin-only review task row (in today's plan) */
+    .plan-row.pinpart{border-color:#5b2a44;background:linear-gradient(180deg,rgba(91,42,68,.10),var(--panel));}
+    .pinrow-act{margin-top:11px;}
     /* routine calendar */
     .cal-head{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px;}
     .cal-title{font-size:.85rem;color:var(--txt);letter-spacing:1px;min-width:118px;text-align:center;}
@@ -485,6 +501,16 @@ COURSES.forEach(c => c.parts.forEach(p => {
 const BY_ID = {}; LESSONS.forEach(l => BY_ID[l.id] = l);
 const ALL_IDS = LESSONS.map(l => l.id);
 const COURSE_BY_ID = {}; COURSES.forEach(c => COURSE_BY_ID[c.id] = c);
+// ── parts (ピン復習はパート単位) ─────────────────────────────────────────────
+// PROGRIT のピンは例文ごと（レッスン単位では復習できないが、パート単位＝Part1 等で
+// 「ピンのみ復習」ができる）。パートごとにレッスンID一覧とコース情報を持たせる。
+const PARTS = [];
+COURSES.forEach(c => c.parts.forEach(p => {
+  const ids = []; for (let n = 1; n <= p.lessons; n++) ids.push(p.id + '-L' + String(n).padStart(2, '0'));
+  PARTS.push({ id:p.id, name:p.name, lessons:p.lessons, ids,
+               courseId:c.id, courseName:c.name, color:c.color, icon:c.icon });
+}));
+const PART_BY_ID = {}; PARTS.forEach(p => PART_BY_ID[p.id] = p);
 
 // ── persistence (per user; device-local) ───────────────────────────────────
 function getUser(){ try{ return JSON.parse(localStorage.getItem('arcade_user')||'null'); }catch(_){ return null; } }
@@ -502,8 +528,8 @@ function load(){
   try{
     const o = JSON.parse(localStorage.getItem(rootKey()) || '{}');
     return { lessons:o.lessons||{}, config:Object.assign({}, DEF_CFG, o.config||{}),
-             routine:o.routine||{}, act:o.act||{} };
-  }catch(_){ return { lessons:{}, config:Object.assign({}, DEF_CFG), routine:{}, act:{} }; }
+             routine:o.routine||{}, act:o.act||{}, pinrev:o.pinrev||{} };
+  }catch(_){ return { lessons:{}, config:Object.assign({}, DEF_CFG), routine:{}, act:{}, pinrev:{} }; }
 }
 let DB = load();
 let sync = null;   // cloud-sync controller (set at boot when logged in)
@@ -511,10 +537,10 @@ function save(){ try{ localStorage.setItem(rootKey(), JSON.stringify(DB)); }catc
 
 // ── merge two english DBs (cross-device, no data loss) ───────────────────────
 // lessons: per-id newest by mtime wins. act: per-day max. routine: per-day OR.
-// config: newest by _cfgMtime wins.
+// pinrev: per-part newest by mtime wins. config: newest by _cfgMtime wins.
 function mergeEngDB(local, remote){
   local = local||{}; remote = remote||{};
-  const out = { lessons:{}, config:{}, routine:{}, act:{} };
+  const out = { lessons:{}, config:{}, routine:{}, act:{}, pinrev:{} };
   const ll = local.lessons||{}, rl = remote.lessons||{};
   new Set([...Object.keys(ll), ...Object.keys(rl)]).forEach(id=>{
     const a = ll[id], b = rl[id];
@@ -528,6 +554,12 @@ function mergeEngDB(local, remote){
     const a = lr[d]||{}, b = rr[d]||{}, m = {};
     new Set([...Object.keys(a), ...Object.keys(b)]).forEach(k=>{ m[k] = !!(a[k]||b[k]); });
     out.routine[d] = m;
+  });
+  const lp = local.pinrev||{}, rp = remote.pinrev||{};
+  new Set([...Object.keys(lp), ...Object.keys(rp)]).forEach(pid=>{
+    const a = lp[pid], b = rp[pid];
+    if (!a) out.pinrev[pid] = b; else if (!b) out.pinrev[pid] = a;
+    else out.pinrev[pid] = ((b.mtime||0) > (a.mtime||0)) ? b : a;
   });
   const lc = local.config||{}, rc = remote.config||{};
   out.config = ((rc._cfgMtime||0) > (lc._cfgMtime||0)) ? rc : lc;
@@ -574,23 +606,47 @@ function recordTs(){ return recordDay===todayKey() ? now() : (recordStart() + 12
 //  次の間隔が伸びる。レッスン単位（10問）でグレード付けして次回復習日を決める。
 // ════════════════════════════════════════════════════════════════════════════
 const Q = { again:1, hard:3, good:4, easy:5 };
-function defState(id){ return { id, studied:false, ef:2.4, reps:0, interval:0, due:0, lapses:0, first:0, last:0, pins:0, pinNote:'', pinDue:0, pinReps:0, mtime:0, history:[] }; }
+function defState(id){ return { id, studied:false, ef:2.4, reps:0, interval:0, due:0, lapses:0, first:0, last:0, pins:0, pinNote:'', mtime:0, history:[] }; }
 function st(id){ return DB.lessons[id]; }
 
-// ── pinned-question review schedule ─────────────────────────────────────────
-// ピン留めした「分からなかった問題」は本体レッスンより短い間隔で復習する。
-// 復習するたび間隔を 1→2→4→8→16→30日 と広げ、ピンを解消(0)したら終了。
+// ── pinned-question review (PER PART) ───────────────────────────────────────
+// PROGRIT のピンは例文ごとに手動で立てる。レッスン単位では復習できないが、
+// パート単位（Part1 等）で「ピンのみ復習」ができる。よってピンの本数はレッスンに
+// 記録しつつ、復習スケジュールは **パート単位**（DB.pinrev[partId]）で管理する。
+// 毎回ピン以外も含めて復習するのは大変なので、ピンのみ復習する回を計画に織り込む。
+// 復習するたび間隔を 1→2→4→8→16→30日 と広げ、ピンが0になったら終了。
 const PIN_INTERVALS = [1, 2, 4, 8, 16, 30];
-function advancePin(s){
-  if (!s || !(s.pins>0)) return;
-  s.pinReps = (s.pinReps||0) + 1;
-  const iv = PIN_INTERVALS[Math.min(s.pinReps-1, PIN_INTERVALS.length-1)];
-  s.pinDue = recordStart() + iv*DAY;
+function partPinCount(partId){ const p = PART_BY_ID[partId]; if(!p) return 0;
+  return p.ids.reduce((a,id)=>{ const s=st(id); return a + (s&&s.pins>0?s.pins:0); }, 0); }
+function partPinLessonCount(partId){ const p = PART_BY_ID[partId]; if(!p) return 0;
+  return p.ids.reduce((a,id)=>{ const s=st(id); return a + (s&&s.pins>0?1:0); }, 0); }
+function partsWithPins(){ return PARTS.filter(p => partPinCount(p.id) > 0); }
+// 未復習(scheduleなし/due=0)・期限到来は「今日復習すべき」
+function isPartPinDue(partId){ if(partPinCount(partId)<=0) return false;
+  const r = DB.pinrev[partId]; return !r || !r.due || r.due <= endOfToday(); }
+function partPinDueDays(partId){ if(partPinCount(partId)<=0) return null;
+  const r = DB.pinrev[partId]; if(!r || !r.due) return 0; return Math.round((r.due - startOfToday())/DAY); }
+// パートのピンのみ復習を1回こなした → 次回へ繰り延べ（記録日基準）
+function reviewPartPins(partId){
+  if (partPinCount(partId) <= 0) return;
+  const r = DB.pinrev[partId] || { due:0, reps:0, mtime:0 };
+  r.reps = (r.reps||0) + 1;
+  const iv = PIN_INTERVALS[Math.min(r.reps-1, PIN_INTERVALS.length-1)];
+  r.due = recordStart() + iv*DAY;
+  r.mtime = Date.now();
+  DB.pinrev[partId] = r;
+  logActivity(recordDay);   // ピン復習も口頭英作文の練習 → ストリーク/活動に算入
+  save();
 }
-function reviewPins(id){ const s = st(id); if (!s || !(s.pins>0)) return; advancePin(s); s.mtime = Date.now(); logActivity(recordDay); save(); }
-// 未復習(pinDue=0)・期限到来は「今日復習すべき」とみなす
-function isPinDue(id){ const s = st(id); return !!(s && s.pins>0 && (!s.pinDue || s.pinDue <= endOfToday())); }
-function pinDueDays(id){ const s = st(id); if(!s||!(s.pins>0)) return null; if(!s.pinDue) return 0; return Math.round((s.pinDue - startOfToday())/DAY); }
+// ピン本数の増減に応じてパートの復習スケジュールを整える。
+// 新規ピンが付いた（増えた）or 初めてピンが付いた → 今すぐ復習待ち＆ランプを最初から。
+// ピンが0になった → スケジュール終了。それ以外（同数/減少）は維持。
+function syncPartPinSchedule(partId, before, after){
+  if (after <= 0){ if (DB.pinrev[partId]) delete DB.pinrev[partId]; return; }
+  if (!DB.pinrev[partId] || after > before){
+    DB.pinrev[partId] = { due:0, reps:0, mtime:Date.now() };   // due now, restart ramp
+  }
+}
 
 function simulate(s, grade, baseStart){
   const base = baseStart || startOfToday();    // 復習日の基準（記録日に対応）
@@ -622,9 +678,7 @@ function review(id, grade){
   if (!n.first) n.first = ts;
   n.last = ts;
   n.lapses = (cur.lapses||0) + (Q[grade] < 3 ? 1 : 0);
-  n.pins = cur.pins||0; n.pinNote = cur.pinNote||'';
-  n.pinReps = cur.pinReps||0; n.pinDue = cur.pinDue||0;
-  if (Q[grade] >= 3 && n.pins>0) advancePin(n);    // 通しで復習＝ピンも復習したとみなし次回へ
+  n.pins = cur.pins||0; n.pinNote = cur.pinNote||'';   // ピン本数は保持（復習はパート単位）
   n.history = (cur.history||[]).concat([{ t:ts, g:grade }]).slice(-12);
   n.mtime = Date.now();                             // for cross-device merge
   DB.lessons[id] = n;
@@ -710,24 +764,30 @@ function newDoneToday(){
 // ── today's recommended plan ────────────────────────────────────────────────
 // 表示されるのは「今日まだ残っている」分。復習は期限到来分が自然に消化され、
 // 新規は1日のノルマ(newPerDay)から今日やった数を引いた残りだけを提示する。
+// パート1回のピンのみ復習の目安時間（ピン本数 ÷ 1レッスン問数 を復習時間で換算）
+function partPinMinutes(partId){ return Math.max(1, Math.ceil(partPinCount(partId)/QPL)) * EM.minutesReview; }
 function buildPlan(){
   const dueIds = ALL_IDS.filter(isDue).sort((a,b)=>{
     const sa=st(a), sb=st(b);
-    const pa = sa.pins>0?0:1, pb = sb.pins>0?0:1;     // ピン留めを最優先
+    const pa = sa.pins>0?0:1, pb = sb.pins>0?0:1;     // ピンを含むレッスンを優先
     if (pa!==pb) return pa-pb;
     return sa.due - sb.due;                            // 期限が早い（より忘れている）順
   });
+  // パート単位「ピンのみ復習」で期限が来ているもの（期限が早い順）
+  const pinReviews = partsWithPins().filter(p => isPartPinDue(p.id))
+    .sort((a,b)=>(partPinDueDays(a.id)||0)-(partPinDueDays(b.id)||0)).map(p=>p.id);
   const budget = DB.config.dailyMinutes;
   const reviewMin = dueIds.length * EM.minutesReview;
-  const remainBudget = budget - reviewMin;            // 復習を消化した残り時間を新規へ
+  const pinMin = pinReviews.reduce((m,pid)=> m + partPinMinutes(pid), 0);
+  const remainBudget = budget - reviewMin - pinMin;   // 復習を消化した残り時間を新規へ
   const remainQuota = Math.max(0, DB.config.newPerDay - newDoneToday());
   const maxNew = Math.max(0, Math.min(remainQuota, Math.floor(remainBudget / EM.minutesNew)));
   const queue = orderedNewQueue();
   const news = queue.slice(0, maxNew);
   return {
-    reviews: dueIds, news,
-    minutes: reviewMin + news.length * EM.minutesNew,
-    overBudget: reviewMin > budget,
+    reviews: dueIds, pinReviews, news,
+    minutes: reviewMin + pinMin + news.length * EM.minutesNew,
+    overBudget: reviewMin > budget,                   // 通常復習だけで判定（ピンは軽いので除く）
     newAvail: queue.length
   };
 }
@@ -757,9 +817,12 @@ const L = {
     badgeRev:'復習', badgeOver:'未消化', badgeNew:'新規', badgeMast:'定着',
     prRetention:r=>`定着 ${r}%`, prNew:'まだ学習していません', prPins:n=>`📌${n}`,
     again:'もう一度', hard:'難しい', good:'できた', easy:'簡単',
-    secPin:'📌 ピン留め中の問題', pinHint:'— 苦手として集中復習',
-    pinDueCount:n=>`— 今日復習すべき ${n}件`, pinDueNow:'今日復習', pinNext:s=>`次回 ${s}`, pinReviewed:'復習した',
-    pinQ:n=>`${n}問`, pinReviewed:'復習した', pinResolve:'解決',
+    secPin:'📌 ピン復習（パート単位）', pinHint:'— 苦手な例文だけをパートごとに復習',
+    pinDueCount:n=>`— 今日復習すべき ${n}パート`, pinDueNow:'今日復習', pinNext:s=>`次回 ${s}`, pinReviewed:'復習した',
+    pinQ:n=>`${n}問`, pinResolve:'解決',
+    pinPartTitle:'ピンのみ復習', pinPartLessons:n=>`${n}レッスンにピン`, pinTapEdit:'タップで本数・メモを編集',
+    heroPinOnly:(n,m)=>`今日は <span class="hl">${n}</span> パートの<b>ピンのみ復習</b>（苦手な例文だけ）がおすすめです（約${m}分）。`,
+    heroPinAdd:n=>` 加えて <span class="hl">${n}</span> パートの<b>ピンのみ復習</b>も予定に入っています。`,
     secStats:'進捗サマリー',
     stTotal:'総レッスン', stStudied:'学習済', stMastered:'定着', stDue:'復習待ち', stPin:'ピン', stStreak:'連続',
     secScience:'学習の仕組み（忘却曲線）', retention:'平均定着度',
@@ -798,8 +861,10 @@ const L = {
     mReps:n=>`学習回数 <b>${n}</b> 回`, mNext:d=>`次の復習 <span class="hl">${d}</span>`,
     mRet:r=>`現在の定着度 <b>${r}%</b>`, mLast:d=>`最終学習 ${d}`, mMastered:'🏅 定着済み（十分に安定）',
     mGradeLabel:'今日の出来を記録（次回の復習間隔が決まります）',
-    mPinLabel:'📌 分からなかった問題（Progrit でピン留めした数）',
+    mPinLabel:'📌 分からなかった例文（Progrit でピン留めした数）',
     mPinNote:'メモ（つまずいた表現・文法など）', mPinPlaceholder:'例: 使役のhave / 完了形の使い分け …',
+    mPinHelp:'※ ピンは例文ごと。復習はパート単位（Part1 など）でまとめて行います。',
+    mPinPartSched:(part,n)=>`このパート（${part}）のピン復習・計${n}問`,
     mSavePin:'ピンを保存', mUnstudy:'未学習に戻す', mClose:'閉じる', mHist:'履歴: ',
     gAgain:'もう一度', gHard:'難しい', gGood:'できた', gEasy:'簡単'
   },
@@ -824,9 +889,12 @@ const L = {
     badgeRev:'Review', badgeOver:'Backlog', badgeNew:'New', badgeMast:'Mastered',
     prRetention:r=>`Retention ${r}%`, prNew:'Not studied yet', prPins:n=>`📌${n}`,
     again:'Again', hard:'Hard', good:'Good', easy:'Easy',
-    secPin:'📌 Pinned questions', pinHint:'— focused review of weak spots',
-    pinDueCount:n=>`— ${n} due today`, pinDueNow:'review today', pinNext:s=>`next ${s}`, pinReviewed:'reviewed',
-    pinQ:n=>`${n}Q`, pinReviewed:'Reviewed', pinResolve:'Resolve',
+    secPin:'📌 Pin review (by part)', pinHint:'— review only weak sentences, part by part',
+    pinDueCount:n=>`— ${n} parts due today`, pinDueNow:'review today', pinNext:s=>`next ${s}`, pinReviewed:'Reviewed',
+    pinQ:n=>`${n}Q`, pinResolve:'Resolve',
+    pinPartTitle:'pin-only review', pinPartLessons:n=>`${n} lessons pinned`, pinTapEdit:'tap to edit count / note',
+    heroPinOnly:(n,m)=>`Today: <span class="hl">${n}</span> <b>part pin-reviews</b> (just the weak sentences, ~${m} min).`,
+    heroPinAdd:n=>` Plus <span class="hl">${n}</span> <b>part pin-reviews</b>.`,
     secStats:'Progress', stTotal:'Lessons', stStudied:'Studied', stMastered:'Mastered', stDue:'Due', stPin:'Pins', stStreak:'Streak',
     secScience:'How it works (forgetting curve)', retention:'Avg retention',
     fcText:`Per the <b>Ebbinghaus forgetting curve</b>, memory <span class="hl">decays exponentially</span> over time (dotted).<br><br>
@@ -863,8 +931,10 @@ const L = {
     mReps:n=>`Studied <b>${n}</b>×`, mNext:d=>`Next review <span class="hl">${d}</span>`,
     mRet:r=>`Retention <b>${r}%</b>`, mLast:d=>`Last ${d}`, mMastered:'🏅 Mastered (well consolidated)',
     mGradeLabel:'Log how it went (sets the next interval)',
-    mPinLabel:'📌 Questions you missed (pinned in Progrit)',
+    mPinLabel:'📌 Sentences you missed (pinned in Progrit)',
     mPinNote:'Notes (tricky phrases / grammar)', mPinPlaceholder:'e.g. causative have / perfect tenses …',
+    mPinHelp:'※ Pins are per sentence; review them per part (Part 1, etc.).',
+    mPinPartSched:(part,n)=>`Pin review for ${part} · ${n}Q total`,
     mSavePin:'Save pins', mUnstudy:'Mark as not studied', mClose:'Close', mHist:'History: ',
     gAgain:'Again', gHard:'Hard', gGood:'Good', gEasy:'Easy'
   }
@@ -942,19 +1012,22 @@ function renderAll(){
 
 function renderHero(){
   const p = buildPlan();
+  const pinN = p.pinReviews.length;
   $('h-rev').textContent = p.reviews.length;
   $('h-new').textContent = p.news.length;
   $('h-min').innerHTML = p.minutes + `<small>${T('min')}</small>`;
   let msg;
-  const totalToday = p.reviews.length + p.news.length;
+  const totalToday = p.reviews.length + p.news.length + pinN;
   const allDoneNothingLeft = totalToday===0 && p.newAvail===0;
   if (p.overBudget) msg = T('heroOver')(p.reviews.length);
   else if (totalToday===0 && allActiveLogged()) msg = T('heroDone');
   else if (p.reviews.length && p.news.length) msg = T('heroBoth')(p.reviews.length, p.news.length, p.minutes);
   else if (p.reviews.length) msg = T('heroRevOnly')(p.reviews.length, p.minutes);
   else if (p.news.length) msg = T('heroNewOnly')(p.news.length, p.minutes);
+  else if (pinN) msg = T('heroPinOnly')(pinN, p.minutes);
   else if (allDoneNothingLeft) msg = T('projDone');
   else msg = T('heroNone');
+  if (pinN && (p.reviews.length || p.news.length)) msg += T('heroPinAdd')(pinN);   // 通常プランに加えてピン復習も
   $('hero-sub').innerHTML = msg;
 }
 // 今日のおすすめが0かつ、すでに何かログした → 完了とみなす
@@ -980,6 +1053,7 @@ function renderPlan(){
   const wrap = $('plan-list');
   const rows = [];
   p.reviews.forEach(id => rows.push(planRow(id, isOverdue(id) ? 'over' : 'rev')));
+  p.pinReviews.forEach(pid => rows.push(pinPartRow(pid)));   // パート単位のピンのみ復習を織り込む
   p.news.forEach(id => rows.push(planRow(id, 'new')));
   const lessons = rows.length ? rows.join('')
     : `<div class="plan-empty">${ allActiveLogged() ? T('heroDone') : (p.newAvail===0 ? T('projDone') : T('heroNone')) }</div>`;
@@ -994,6 +1068,29 @@ function renderPlan(){
   wrap.querySelectorAll('[data-grade]').forEach(b => b.onclick = ()=>{
     review(b.dataset.id, b.dataset.grade); renderAll();
   });
+  wrap.querySelectorAll('[data-revpart]').forEach(b => b.onclick = ()=>{
+    reviewPartPins(b.dataset.revpart); renderAll();
+  });
+}
+// 「ピンのみ復習」のタスク行（パート単位・✓で次回へ繰り延べ）
+function pinPartRow(partId){
+  const p = PART_BY_ID[partId];
+  const cnt = partPinCount(partId), ls = partPinLessonCount(partId);
+  const dd = partPinDueDays(partId);
+  const over = dd!=null && dd<0;
+  return `<div class="plan-row pinpart">
+    <div class="pr-top">
+      <div class="pr-label"><span class="cn">${p.icon} ${p.courseName} · ${p.name} ·</span> <b>${T('pinPartTitle')}</b>
+        <div class="pr-sub">
+          <span class="badge pin">📌 ${T('pinQ')(cnt)}</span>
+          <span>${T('pinPartLessons')(ls)}</span>
+          ${over?`<span class="badge over">${T('badgeOver')}</span>`:''}
+        </div>
+      </div>
+      <span class="pr-chev">📌</span>
+    </div>
+    <div class="pinrow-act"><button class="pin-rev wide" data-revpart="${partId}">✓ ${T('pinReviewed')}</button></div>
+  </div>`;
 }
 function planRow(id, kind){
   const l = BY_ID[id], s = st(id);
@@ -1017,37 +1114,43 @@ function planRow(id, kind){
   </div>`;
 }
 
+// ピン復習はパート単位。ピンのあるパートを期限順に並べ、各パートの中で
+// ピンが立っているレッスン（編集用チップ）を見せる。
 function renderPins(){
-  const ids = ALL_IDS.filter(id => { const s=st(id); return s && s.pins>0; })
-    .sort((a,b)=>{
-      const da = isPinDue(a)?0:1, db = isPinDue(b)?0:1;     // 復習期限が来たものを先頭に
-      if (da!==db) return da-db;
-      const pa = pinDueDays(a), pb = pinDueDays(b);
-      if (pa!==pb) return (pa||0)-(pb||0);                  // 期限が近い順
-      return st(b).pins - st(a).pins;                       // 同じなら問題数の多い順
-    });
+  const parts = partsWithPins().sort((a,b)=>{
+    const da = isPartPinDue(a.id)?0:1, db = isPartPinDue(b.id)?0:1;     // 期限が来たパートを先頭に
+    if (da!==db) return da-db;
+    const pa = partPinDueDays(a.id)||0, pb = partPinDueDays(b.id)||0;
+    if (pa!==pb) return pa-pb;                                          // 期限が近い順
+    return partPinCount(b.id) - partPinCount(a.id);                     // 同じならピン数の多い順
+  });
   const sec = $('pin-section');
-  const dueCount = ids.filter(isPinDue).length;
+  const dueCount = parts.filter(p=>isPartPinDue(p.id)).length;
   const ph = $('t-pin-hint'); if (ph) ph.textContent = dueCount ? T('pinDueCount')(dueCount) : T('pinHint');
-  if (!ids.length){ sec.classList.add('hidden'); return; }
+  if (!parts.length){ sec.classList.add('hidden'); return; }
   sec.classList.remove('hidden');
-  $('pin-list').innerHTML = ids.map(id => {
-    const l = BY_ID[id], s = st(id);
-    const note = s.pinNote ? `<div class="pnote">${escapeHTML(s.pinNote)}</div>` : '';
-    const due = isPinDue(id);
-    const dd = pinDueDays(id);
+  $('pin-list').innerHTML = parts.map(p => {
+    const cnt = partPinCount(p.id), ls = partPinLessonCount(p.id);
+    const due = isPartPinDue(p.id), dd = partPinDueDays(p.id);
     const timing = due ? `<span class="ptiming due">🔴 ${T('pinDueNow')}</span>`
                        : `<span class="ptiming sched">⏳ ${T('pinNext')(humanInterval(dd))}</span>`;
-    const revBtn = `<button class="pin-rev" data-rev="${id}">✓ ${T('pinReviewed')}</button>`;
-    return `<div class="pin-item">
-      <span class="pc">📌 ${T('pinQ')(s.pins)}</span>
-      <div class="pmain">${lessonLabelHTML(l)} ${timing}${note}</div>
-      ${revBtn}
-      <button data-open="${id}">${lang==='ja'?'編集':'Edit'}</button>
+    const chips = p.ids.filter(id=>{ const s=st(id); return s&&s.pins>0; }).map(id=>{
+      const s = st(id), l = BY_ID[id];
+      const tip = s.pinNote ? ' · '+s.pinNote : '';
+      return `<button class="pinchip" data-open="${id}" title="L${l.n}${tip}">L${l.n}<span class="pcq">${s.pins}</span></button>`;
+    }).join('');
+    return `<div class="pin-item part">
+      <span class="pc">📌 ${T('pinQ')(cnt)}</span>
+      <div class="pmain">
+        <div class="pp-head">${p.icon} <b>${p.courseName} · ${p.name}</b> ${timing}</div>
+        <div class="pp-meta">${T('pinPartLessons')(ls)} ・ ${T('pinTapEdit')}</div>
+        <div class="pinchips">${chips}</div>
+      </div>
+      <button class="pin-rev" data-revpart="${p.id}">✓ ${T('pinReviewed')}</button>
     </div>`;
   }).join('');
   $('pin-list').querySelectorAll('[data-open]').forEach(b=> b.onclick=()=> openLesson(b.dataset.open));
-  $('pin-list').querySelectorAll('[data-rev]').forEach(b=> b.onclick=()=>{ reviewPins(b.dataset.rev); renderAll(); });
+  $('pin-list').querySelectorAll('[data-revpart]').forEach(b=> b.onclick=()=>{ reviewPartPins(b.dataset.revpart); renderAll(); });
 }
 
 function renderStats(){
@@ -1345,7 +1448,8 @@ function openLesson(id){
       <span class="pl">/ ${QPL} ${lang==='ja'?'問':'Q'}</span>
     </div>
     <textarea class="pin-note" id="pin-note" placeholder="${T('mPinNote')}: ${T('mPinPlaceholder')}">${escapeHTML(note)}</textarea>
-    ${pins>0 ? `<div class="pin-sched"><span class="${isPinDue(id)?'due':'sched'}">📌 ${isPinDue(id)?('🔴 '+T('pinDueNow')):('⏳ '+T('pinNext')(humanInterval(pinDueDays(id))))}</span><button class="pin-rev" id="m-pin-rev">✓ ${T('pinReviewed')}</button></div>` : ''}
+    <div class="pin-help">${T('mPinHelp')}</div>
+    ${partPinScheduleHTML(l.partId)}
     <div class="modal-foot">
       <button class="btn" id="m-pin-save" style="border-color:var(--pink);color:var(--pink);">${T('mSavePin')}</button>
       ${studied?`<button class="btn danger" id="m-unstudy">${T('mUnstudy')}</button>`:''}
@@ -1361,19 +1465,31 @@ function openLesson(id){
   $('pin-dec').onclick = ()=>{ const e=$('pin-num'); e.value=Math.max(0,(+e.value||0)-1); };
   $('pin-inc').onclick = ()=>{ const e=$('pin-num'); e.value=Math.min(QPL,(+e.value||0)+1); };
   $('m-pin-save').onclick = ()=>{ persistPin(id, true); closeModal(); renderAll(); };
-  const pr = $('m-pin-rev'); if (pr) pr.onclick = ()=>{ persistPin(id, false); reviewPins(id); closeModal(); renderAll(); };
   // 未学習に戻す: 削除ではなく「未学習・mtime更新」で記録（同期で復活しないように）
   const un = $('m-unstudy'); if (un) un.onclick = ()=>{ DB.lessons[id] = Object.assign(defState(id), { mtime:Date.now() }); save(); closeModal(); renderAll(); };
   $('modal-back').classList.add('show');
 }
-// ピン数/メモを保存。ensure: 未学習レッスンでもピンだけ記録できるよう状態を生成
+// パートのピン復習スケジュール（読み取り専用表示）。例文ごとのピンはレッスンで編集、
+// 復習はこのパート単位でまとめて行う旨を見せる。
+function partPinScheduleHTML(partId){
+  const cnt = partPinCount(partId); if (cnt<=0) return '';
+  const p = PART_BY_ID[partId]; const due = isPartPinDue(partId), dd = partPinDueDays(partId);
+  const timing = due ? `<span class="due">🔴 ${T('pinDueNow')}</span>`
+                     : `<span class="sched">⏳ ${T('pinNext')(humanInterval(dd))}</span>`;
+  return `<div class="pin-sched part"><span class="ps-l">${T('mPinPartSched')(p.name, cnt)}</span> ${timing}</div>`;
+}
+// ピン数/メモを保存。ensure: 未学習レッスンでもピンだけ記録できるよう状態を生成。
+// 保存後はパートのピン復習スケジュールを整える（新規ピン→今すぐ復習待ち、0→終了）。
 function persistPin(id, force){
   const numEl=$('pin-num'), noteEl=$('pin-note'); if(!numEl||!noteEl) return;
   const num = Math.max(0, Math.min(QPL, parseInt(numEl.value,10)||0));
   const note = noteEl.value.trim();
+  const partId = (BY_ID[id]||{}).partId;
+  const before = partId ? partPinCount(partId) : 0;
   const cur = st(id);
   if (!cur){ if(num===0 && !note && !force) return; DB.lessons[id] = Object.assign(defState(id), { pins:num, pinNote:note, mtime:Date.now() }); }
-  else { cur.pins = num; cur.pinNote = note; if (num===0){ cur.pinDue = 0; cur.pinReps = 0; } cur.mtime = Date.now(); }  // ピン解消でスケジュール終了
+  else { cur.pins = num; cur.pinNote = note; cur.mtime = Date.now(); }
+  if (partId) syncPartPinSchedule(partId, before, partPinCount(partId));
   save();
 }
 function closeModal(){ modalId=null; $('modal-back').classList.remove('show'); }
@@ -1389,7 +1505,7 @@ function stratHTML(){
     <b>Goal:</b> business-level conversation + enjoying movies/music without subtitles.<br>
     <b>Shift:</b> from "English for tests" to "English for use".
     <ul>
-      <li><b>Speaking core — this app.</b> Oral composition 15–20 min, 4–5 days/week. Cut the lag from meaning → speech. Reviews are scheduled on the forgetting curve; pinned questions get priority.</li>
+      <li><b>Speaking core — this app.</b> Oral composition 15–20 min, 4–5 days/week. Cut the lag from meaning → speech. Reviews follow the forgetting curve; weak sentences get part-level <b>pin-only review</b> sessions mixed in.</li>
       <li><b>🎧 Shadowing, ~30 min/day (daily).</b> Automate sound perception & rhythm — pinned as a fixed task in "Today".</li>
       <li><b>🗣 ELSA, 10–15 min.</b> Warm-up/cool-down around shadowing to fix individual sounds & intonation.</li>
       <li><b>📨 Work output.</b> Draft English emails yourself first, then refine with AI/Grammarly; stockpile expressions you couldn't produce.</li>
@@ -1401,7 +1517,7 @@ function stratHTML(){
     <b>目標:</b> ビジネスレベルの英会話＋字幕なしで洋画・洋楽を楽しむ。<br>
     <b>転換:</b>「試験のための英語」から「使うための英語」へ。
     <ul>
-      <li><b>スピーキングの核 — このアプリ。</b> 口頭英作文を15〜20分・週4〜5日。意味理解→発話のタイムラグを消す。復習は忘却曲線に沿って自動スケジュール、ピン留めは優先的に再出題。</li>
+      <li><b>スピーキングの核 — このアプリ。</b> 口頭英作文を15〜20分・週4〜5日。意味理解→発話のタイムラグを消す。復習は忘却曲線に沿って自動スケジュール。苦手な例文は<b>パート単位の「ピンのみ復習」</b>を交えて集中的に。</li>
       <li><b>🎧 シャドーイング（約30分／日・毎日）。</b> 音声知覚とリズムの自動化。「今日やること」に固定タスクとして表示。</li>
       <li><b>🗣 ELSA（10〜15分）。</b> シャドーイングの前後にウォームアップ／クールダウンとして発音・イントネーションを矯正。</li>
       <li><b>📨 業務アウトプット。</b> 英文メールは翻訳に頼らず自力ドラフト→AI/Grammarlyで添削。使えなかった表現をストック。</li>
@@ -1448,7 +1564,7 @@ $('import-file').onchange = (e)=>{
       const o = JSON.parse(reader.result);
       if (typeof o!=='object' || o===null) throw 0;
       if (!confirm(T('importConfirm'))) return;
-      DB = { lessons:o.lessons||{}, config:Object.assign({}, DEF_CFG, o.config||{}), routine:o.routine||{}, act:o.act||{} };
+      DB = { lessons:o.lessons||{}, config:Object.assign({}, DEF_CFG, o.config||{}), routine:o.routine||{}, act:o.act||{}, pinrev:o.pinrev||{} };
       DB.config._cfgMtime = Date.now();
       save(); fillSettings(); renderAll();
     }catch(_){ alert(T('importBad')); }
@@ -1458,7 +1574,7 @@ $('import-file').onchange = (e)=>{
 };
 $('set-reset').onclick = ()=>{
   if (!confirm(T('resetConfirm'))) return;
-  DB = { lessons:{}, config:Object.assign({}, DEF_CFG), routine:{}, act:{} };
+  DB = { lessons:{}, config:Object.assign({}, DEF_CFG), routine:{}, act:{}, pinrev:{} };
   DB.config._cfgMtime = Date.now();
   save(); fillSettings(); renderAll();
 };
