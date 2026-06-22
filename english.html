@@ -33,6 +33,8 @@
     .subtitle{color:var(--dim2);font-size:.72rem;letter-spacing:3px;text-align:center;margin-bottom:8px;}
     .greet{text-align:center;color:var(--dim);font-size:.8rem;margin-bottom:24px;}
     .greet b{color:var(--warn);}
+    .sync-status{text-align:center;font-size:.66rem;color:var(--good);letter-spacing:.5px;margin:-14px 0 18px;}
+    .sync-status.off{color:var(--warn);}
     #guest-banner{background:#1a1408;border:1px solid #4a3a1a;border-radius:10px;padding:11px 16px;margin-bottom:20px;font-size:.74rem;color:#caa84a;text-align:center;line-height:1.7;}
     #guest-banner a{color:var(--warn);text-decoration:underline;}
     /* hero (today's plan) */
@@ -283,6 +285,7 @@
     }
   </style>
   <script src="english-data.js"></script>
+  <script src="english-sync.js"></script>
 </head>
 <body>
 <button id="lang-btn">EN</button>
@@ -296,6 +299,7 @@
   <h1>ENGLISH</h1>
   <div class="subtitle" id="t-subtitle">PROGRIT 口頭英作文 ・ 学習マネージャー</div>
   <div class="greet" id="greet"></div>
+  <div id="sync-status" class="sync-status hidden"></div>
 
   <div id="guest-banner" class="hidden"></div>
 
@@ -501,7 +505,43 @@ function load(){
   }catch(_){ return { lessons:{}, config:Object.assign({}, DEF_CFG), routine:{}, act:{} }; }
 }
 let DB = load();
-function save(){ try{ localStorage.setItem(rootKey(), JSON.stringify(DB)); }catch(_){} }
+let sync = null;   // cloud-sync controller (set at boot when logged in)
+function save(){ try{ localStorage.setItem(rootKey(), JSON.stringify(DB)); }catch(_){} if (sync) sync.flush(); }
+
+// ── merge two english DBs (cross-device, no data loss) ───────────────────────
+// lessons: per-id newest by mtime wins. act: per-day max. routine: per-day OR.
+// config: newest by _cfgMtime wins.
+function mergeEngDB(local, remote){
+  local = local||{}; remote = remote||{};
+  const out = { lessons:{}, config:{}, routine:{}, act:{} };
+  const ll = local.lessons||{}, rl = remote.lessons||{};
+  new Set([...Object.keys(ll), ...Object.keys(rl)]).forEach(id=>{
+    const a = ll[id], b = rl[id];
+    if (!a) out.lessons[id] = b; else if (!b) out.lessons[id] = a;
+    else out.lessons[id] = ((b.mtime||b.last||0) > (a.mtime||a.last||0)) ? b : a;
+  });
+  const la = local.act||{}, ra = remote.act||{};
+  new Set([...Object.keys(la), ...Object.keys(ra)]).forEach(d=>{ out.act[d] = Math.max(la[d]||0, ra[d]||0); });
+  const lr = local.routine||{}, rr = remote.routine||{};
+  new Set([...Object.keys(lr), ...Object.keys(rr)]).forEach(d=>{
+    const a = lr[d]||{}, b = rr[d]||{}, m = {};
+    new Set([...Object.keys(a), ...Object.keys(b)]).forEach(k=>{ m[k] = !!(a[k]||b[k]); });
+    out.routine[d] = m;
+  });
+  const lc = local.config||{}, rc = remote.config||{};
+  out.config = ((rc._cfgMtime||0) > (lc._cfgMtime||0)) ? rc : lc;
+  return out;
+}
+function renderSyncStatus(){
+  const el = $('sync-status'); if(!el) return;
+  const u = getUser();
+  if (!u || !(sync && sync.enabled)){ el.classList.add('hidden'); return; }   // guest → guest-banner covers it
+  el.classList.remove('hidden');
+  const tried = sync.attempted && sync.attempted();
+  const online = sync.isOnline && sync.isOnline();
+  el.textContent = !tried ? T('syncPending') : (online ? T('syncOn')(u.username) : T('syncOff'));
+  el.classList.toggle('off', tried && !online);
+}
 
 // ── date helpers (study day rolls over at 03:00, not midnight) ───────────────
 // 00:00–02:59 は前日の学習として扱う。例: 6/17 2:00 の記録は 6/16 の学習。
@@ -526,7 +566,7 @@ function recordTs(){ return recordDay===todayKey() ? now() : (recordStart() + 12
 //  次の間隔が伸びる。レッスン単位（10問）でグレード付けして次回復習日を決める。
 // ════════════════════════════════════════════════════════════════════════════
 const Q = { again:1, hard:3, good:4, easy:5 };
-function defState(id){ return { id, studied:false, ef:2.4, reps:0, interval:0, due:0, lapses:0, first:0, last:0, pins:0, pinNote:'', pinDue:0, pinReps:0, history:[] }; }
+function defState(id){ return { id, studied:false, ef:2.4, reps:0, interval:0, due:0, lapses:0, first:0, last:0, pins:0, pinNote:'', pinDue:0, pinReps:0, mtime:0, history:[] }; }
 function st(id){ return DB.lessons[id]; }
 
 // ── pinned-question review schedule ─────────────────────────────────────────
@@ -539,7 +579,7 @@ function advancePin(s){
   const iv = PIN_INTERVALS[Math.min(s.pinReps-1, PIN_INTERVALS.length-1)];
   s.pinDue = recordStart() + iv*DAY;
 }
-function reviewPins(id){ const s = st(id); if (!s || !(s.pins>0)) return; advancePin(s); logActivity(recordDay); save(); }
+function reviewPins(id){ const s = st(id); if (!s || !(s.pins>0)) return; advancePin(s); s.mtime = Date.now(); logActivity(recordDay); save(); }
 // 未復習(pinDue=0)・期限到来は「今日復習すべき」とみなす
 function isPinDue(id){ const s = st(id); return !!(s && s.pins>0 && (!s.pinDue || s.pinDue <= endOfToday())); }
 function pinDueDays(id){ const s = st(id); if(!s||!(s.pins>0)) return null; if(!s.pinDue) return 0; return Math.round((s.pinDue - startOfToday())/DAY); }
@@ -578,6 +618,7 @@ function review(id, grade){
   n.pinReps = cur.pinReps||0; n.pinDue = cur.pinDue||0;
   if (Q[grade] >= 3 && n.pins>0) advancePin(n);    // 通しで復習＝ピンも復習したとみなし次回へ
   n.history = (cur.history||[]).concat([{ t:ts, g:grade }]).slice(-12);
+  n.mtime = Date.now();                             // for cross-device merge
   DB.lessons[id] = n;
   logActivity(recordDay);
   save();
@@ -741,7 +782,8 @@ const L = {
     resetConfirm:'すべての学習記録・ピン・ルーティンを消去します。よろしいですか？',
     importConfirm:'現在の記録を、読み込んだバックアップで上書きします。よろしいですか？',
     importBad:'ファイルを読み込めませんでした。',
-    footnote:'忘却曲線に基づく間隔反復（Spaced Repetition）。Progrit のアプリで学習し、ここで記録・スケジュール管理します。記録はこの端末に保存されます。',
+    footnote:'忘却曲線に基づく間隔反復（Spaced Repetition）。Progrit のアプリで学習し、ここで記録・スケジュール管理します。ログイン中はクラウドに同期され、端末・ブラウザをまたいで引き継げます。',
+    syncPending:'☁ クラウドと同期中…', syncOn:u=>`☁ @${u}：端末をまたいでクラウド同期中`, syncOff:'⚠ オフライン：この端末に保存（接続後に自動同期）',
     // modal
     mEyebrow:'口頭英作文', mQ:n=>`${n}問`,
     mNew:'まだ学習していません。Progrit で取り組んだら下のボタンで記録してください。',
@@ -806,7 +848,8 @@ const L = {
     resetConfirm:'Erase all progress, pins and routine. Are you sure?',
     importConfirm:'Overwrite current records with the imported backup. Continue?',
     importBad:'Could not read the file.',
-    footnote:'Spaced repetition on the forgetting curve. Study in the Progrit app; log & schedule here. Data is stored on this device.',
+    footnote:'Spaced repetition on the forgetting curve. Study in the Progrit app; log & schedule here. When logged in, progress syncs to the cloud across devices and browsers.',
+    syncPending:'☁ Syncing…', syncOn:u=>`☁ @${u}: synced across devices`, syncOff:'⚠ Offline — saved on this device; will sync when online',
     mEyebrow:'Oral composition', mQ:n=>`${n}Q`,
     mNew:'Not studied yet. After working through it in Progrit, log it with the buttons below.',
     mReps:n=>`Studied <b>${n}</b>×`, mNext:d=>`Next review <span class="hl">${d}</span>`,
@@ -862,6 +905,7 @@ function applyChrome(){
   $('footnote').textContent = T('footnote');
   $('strat-body').innerHTML = stratHTML();
   renderAuth();
+  renderSyncStatus();
 }
 
 function renderAll(){
@@ -1295,7 +1339,8 @@ function openLesson(id){
   $('pin-inc').onclick = ()=>{ const e=$('pin-num'); e.value=Math.min(QPL,(+e.value||0)+1); };
   $('m-pin-save').onclick = ()=>{ persistPin(id, true); closeModal(); renderAll(); };
   const pr = $('m-pin-rev'); if (pr) pr.onclick = ()=>{ persistPin(id, false); reviewPins(id); closeModal(); renderAll(); };
-  const un = $('m-unstudy'); if (un) un.onclick = ()=>{ delete DB.lessons[id]; save(); closeModal(); renderAll(); };
+  // 未学習に戻す: 削除ではなく「未学習・mtime更新」で記録（同期で復活しないように）
+  const un = $('m-unstudy'); if (un) un.onclick = ()=>{ DB.lessons[id] = Object.assign(defState(id), { mtime:Date.now() }); save(); closeModal(); renderAll(); };
   $('modal-back').classList.add('show');
 }
 // ピン数/メモを保存。ensure: 未学習レッスンでもピンだけ記録できるよう状態を生成
@@ -1304,8 +1349,8 @@ function persistPin(id, force){
   const num = Math.max(0, Math.min(QPL, parseInt(numEl.value,10)||0));
   const note = noteEl.value.trim();
   const cur = st(id);
-  if (!cur){ if(num===0 && !note && !force) return; DB.lessons[id] = Object.assign(defState(id), { pins:num, pinNote:note }); }
-  else { cur.pins = num; cur.pinNote = note; if (num===0){ cur.pinDue = 0; cur.pinReps = 0; } }  // ピン解消でスケジュール終了
+  if (!cur){ if(num===0 && !note && !force) return; DB.lessons[id] = Object.assign(defState(id), { pins:num, pinNote:note, mtime:Date.now() }); }
+  else { cur.pins = num; cur.pinNote = note; if (num===0){ cur.pinDue = 0; cur.pinReps = 0; } cur.mtime = Date.now(); }  // ピン解消でスケジュール終了
   save();
 }
 function closeModal(){ modalId=null; $('modal-back').classList.remove('show'); }
@@ -1359,6 +1404,7 @@ $('set-save').onclick = ()=>{
   const valid = ['adv2','cv','bp'];
   const order = $('set-order').value.split(',').map(s=>s.trim()).filter(s=>valid.includes(s));
   DB.config.courseOrder = order.length ? Array.from(new Set(order)) : ['adv2','cv','bp'];
+  DB.config._cfgMtime = Date.now();
   save(); fillSettings(); renderAll();
   flash($('set-save'), T('saved'));
 };
@@ -1380,6 +1426,7 @@ $('import-file').onchange = (e)=>{
       if (typeof o!=='object' || o===null) throw 0;
       if (!confirm(T('importConfirm'))) return;
       DB = { lessons:o.lessons||{}, config:Object.assign({}, DEF_CFG, o.config||{}), routine:o.routine||{}, act:o.act||{} };
+      DB.config._cfgMtime = Date.now();
       save(); fillSettings(); renderAll();
     }catch(_){ alert(T('importBad')); }
     finally{ e.target.value=''; }
@@ -1389,6 +1436,7 @@ $('import-file').onchange = (e)=>{
 $('set-reset').onclick = ()=>{
   if (!confirm(T('resetConfirm'))) return;
   DB = { lessons:{}, config:Object.assign({}, DEF_CFG), routine:{}, act:{} };
+  DB.config._cfgMtime = Date.now();
   save(); fillSettings(); renderAll();
 };
 
@@ -1443,6 +1491,13 @@ function renderGate(){
 user = getUser(); DB = load();
 fillSettings();
 renderAll();
+// cloud sync (logged-in only): pull+merge remote → re-render; push on every change
+if (window.ENGSYNC){
+  sync = ENGSYNC.init({ column:'data', key:rootKey, merge:mergeEngDB,
+    onMerged:()=>{ DB = load(); fillSettings(); renderAll(); } });
+  renderSyncStatus();
+  if (sync.enabled) sync.ready.then(()=>{ DB = load(); fillSettings(); renderAll(); });
+}
 window.addEventListener('resize', ()=> drawForgettingCurve());
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
