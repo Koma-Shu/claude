@@ -532,6 +532,7 @@ function mergeEngDB(local, remote){
   out.config = ((rc._cfgMtime||0) > (lc._cfgMtime||0)) ? rc : lc;
   return out;
 }
+function timeHM(ts){ const d = new Date(ts); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 function renderSyncStatus(){
   const el = $('sync-status'); if(!el) return;
   const u = getUser();
@@ -539,8 +540,14 @@ function renderSyncStatus(){
   el.classList.remove('hidden');
   const tried = sync.attempted && sync.attempted();
   const online = sync.isOnline && sync.isOnline();
-  el.textContent = !tried ? T('syncPending') : (online ? T('syncOn')(u.username) : T('syncOff'));
-  el.classList.toggle('off', tried && !online);
+  if (!tried){ el.textContent = T('syncPending'); el.classList.remove('off'); return; }
+  if (online){
+    const ts = sync.lastSync && sync.lastSync();
+    el.textContent = T('syncOn')(u.username) + (ts ? T('syncAt') + timeHM(ts) : '');
+    el.classList.remove('off');
+  } else {
+    el.textContent = T('syncOff'); el.classList.add('off');
+  }
 }
 
 // ── date helpers (study day rolls over at 03:00, not midnight) ───────────────
@@ -783,7 +790,7 @@ const L = {
     importConfirm:'現在の記録を、読み込んだバックアップで上書きします。よろしいですか？',
     importBad:'ファイルを読み込めませんでした。',
     footnote:'忘却曲線に基づく間隔反復（Spaced Repetition）。Progrit のアプリで学習し、ここで記録・スケジュール管理します。ログイン中はクラウドに同期され、端末・ブラウザをまたいで引き継げます。',
-    syncPending:'☁ クラウドと同期中…', syncOn:u=>`☁ @${u}：端末をまたいでクラウド同期中`, syncOff:'⚠ オフライン：この端末に保存（接続後に自動同期）',
+    syncPending:'☁ クラウドに接続中…', syncOn:u=>`☁ クラウド同期 ON（@${u}・端末間で自動同期）`, syncAt:'・最終同期 ', syncOff:'⚠ オフライン：この端末に保存（接続後に自動同期）',
     // modal
     mEyebrow:'口頭英作文', mQ:n=>`${n}問`,
     mNew:'まだ学習していません。Progrit で取り組んだら下のボタンで記録してください。',
@@ -849,7 +856,7 @@ const L = {
     importConfirm:'Overwrite current records with the imported backup. Continue?',
     importBad:'Could not read the file.',
     footnote:'Spaced repetition on the forgetting curve. Study in the Progrit app; log & schedule here. When logged in, progress syncs to the cloud across devices and browsers.',
-    syncPending:'☁ Syncing…', syncOn:u=>`☁ @${u}: synced across devices`, syncOff:'⚠ Offline — saved on this device; will sync when online',
+    syncPending:'☁ Connecting…', syncOn:u=>`☁ Cloud sync ON (@${u} · auto-synced across devices)`, syncAt:' · last sync ', syncOff:'⚠ Offline — saved on this device; will sync when online',
     mEyebrow:'Oral composition', mQ:n=>`${n}Q`,
     mNew:'Not studied yet. After working through it in Progrit, log it with the buttons below.',
     mReps:n=>`Studied <b>${n}</b>×`, mNext:d=>`Next review <span class="hl">${d}</span>`,
@@ -1494,7 +1501,8 @@ renderAll();
 // cloud sync (logged-in only): pull+merge remote → re-render; push on every change
 if (window.ENGSYNC){
   sync = ENGSYNC.init({ column:'data', key:rootKey, merge:mergeEngDB,
-    onMerged:()=>{ DB = load(); fillSettings(); renderAll(); } });
+    onMerged:()=>{ DB = load(); fillSettings(); renderAll(); },
+    onStatus:()=>renderSyncStatus() });
   renderSyncStatus();
   if (sync.enabled) sync.ready.then(()=>{ DB = load(); fillSettings(); renderAll(); });
 }

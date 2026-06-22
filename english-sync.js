@@ -28,7 +28,7 @@
   function getUser(){ try{ return JSON.parse(localStorage.getItem('arcade_user') || 'null'); }catch(_){ return null; } }
   function hdrs(extra){ return Object.assign({ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Content-Type':'application/json' }, extra||{}); }
 
-  const NOOP = { ready:Promise.resolve(false), flush:function(){}, enabled:false, isOnline:()=>false, attempted:()=>true };
+  const NOOP = { ready:Promise.resolve(false), flush:function(){}, enabled:false, isOnline:()=>false, attempted:()=>true, lastSync:()=>0 };
 
   function init(opts){
     const user = getUser();
@@ -37,7 +37,7 @@
     const col = opts.column;
     const lsGet = ()=>{ try{ return JSON.parse(localStorage.getItem(opts.key()) || '{}'); }catch(_){ return {}; } };
     const lsSet = (o)=>{ try{ localStorage.setItem(opts.key(), JSON.stringify(o)); }catch(_){ } };
-    let timer=null, busy=false, online=false, attempted=false;
+    let timer=null, busy=false, online=false, attempted=false, lastOk=0;
 
     async function fetchRemote(){
       const r = await fetch(SB_URL+'/rest/v1/'+TABLE+'?user_id=eq.'+encodeURIComponent(user.id)+'&select='+col, { headers:hdrs() });
@@ -63,9 +63,9 @@
         const changed = JSON.stringify(merged) !== JSON.stringify(local);
         if (changed){ lsSet(merged); if (opts.onMerged) opts.onMerged(); }
         await upsert(merged);
-        online = true; return changed;
+        online = true; lastOk = Date.now(); return changed;
       }catch(_){ online = false; return false; }
-      finally{ busy = false; attempted = true; }
+      finally{ busy = false; attempted = true; if (opts.onStatus){ try{ opts.onStatus({ online, lastOk }); }catch(_){} } }
     }
 
     const ready = doSync();
@@ -75,7 +75,7 @@
       w.addEventListener('focus', flush);
     }catch(_){}
 
-    return { ready, flush, enabled:true, isOnline:()=>online, attempted:()=>attempted };
+    return { ready, flush, enabled:true, isOnline:()=>online, attempted:()=>attempted, lastSync:()=>lastOk };
   }
 
   w.ENGSYNC = { init };
