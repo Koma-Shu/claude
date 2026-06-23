@@ -647,6 +647,34 @@ function syncPartPinSchedule(partId, before, after){
     DB.pinrev[partId] = { due:0, reps:0, mtime:Date.now() };   // due now, restart ramp
   }
 }
+// 旧モデル（レッスンごとの pinDue/pinReps）→ 新モデル（パート単位 DB.pinrev）への
+// 一度きりの移行。ピンがあるのに pinrev が無いパートだけを対象に、そのパート内の
+// ピン付きレッスンの旧スケジュールから導出する：
+//   ・reps = ピン付きレッスンの最小 pinReps（最も復習が進んでいないピンに合わせる）
+//   ・due  = 未復習のピンが1つでもあれば「今すぐ」(0)、無ければ最も早い pinDue
+// これで「以前ピン復習を回していたパート」が一律「今すぐ復習待ち」にならず、既存の
+// 進捗を引き継げる。導出値の mtime は 0（＝端末間マージで実際の復習に必ず負ける）。
+function migratePinrev(){
+  if (!DB.pinrev) DB.pinrev = {};
+  let changed = false;
+  PARTS.forEach(p=>{
+    if (DB.pinrev[p.id]) return;                       // 既に新スケジュールあり → 触らない
+    const pinned = p.ids.map(id=>st(id)).filter(s=> s && s.pins>0);
+    if (!pinned.length) return;                        // ピンなし
+    let minReps = Infinity, minDue = Infinity, anyUnreviewed = false;
+    pinned.forEach(s=>{
+      const r = s.pinReps||0, d = s.pinDue||0;
+      if (r < minReps) minReps = r;
+      if (r===0 || d===0) anyUnreviewed = true;         // 未復習のピンがある
+      if (d>0 && d < minDue) minDue = d;
+    });
+    const reps = (minReps===Infinity ? 0 : minReps);
+    const due  = anyUnreviewed ? 0 : (minDue===Infinity ? 0 : minDue);
+    DB.pinrev[p.id] = { due, reps, mtime:0 };
+    changed = true;
+  });
+  if (changed) save();
+}
 
 function simulate(s, grade, baseStart){
   const base = baseStart || startOfToday();    // 復習日の基準（記録日に対応）
@@ -1627,16 +1655,16 @@ function renderGate(){
 // ENGLISH is unlisted on the public portal (its card is admin-only), but the
 // page itself is directly accessible — so a saved/bookmarked link always opens
 // the dashboard without a login step. Data stays per-device in localStorage.
-user = getUser(); DB = load();
+user = getUser(); DB = load(); migratePinrev();
 fillSettings();
 renderAll();
 // cloud sync (logged-in only): pull+merge remote → re-render; push on every change
 if (window.ENGSYNC){
   sync = ENGSYNC.init({ column:'data', key:rootKey, merge:mergeEngDB,
-    onMerged:()=>{ DB = load(); fillSettings(); renderAll(); },
+    onMerged:()=>{ DB = load(); migratePinrev(); fillSettings(); renderAll(); },
     onStatus:()=>renderSyncStatus() });
   renderSyncStatus();
-  if (sync.enabled) sync.ready.then(()=>{ DB = load(); fillSettings(); renderAll(); });
+  if (sync.enabled) sync.ready.then(()=>{ DB = load(); migratePinrev(); fillSettings(); renderAll(); });
 }
 window.addEventListener('resize', ()=> drawForgettingCurve());
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
