@@ -261,7 +261,7 @@ let user = getUser();
 function cfgKey(){ return 'engdiary_cfg_v1_' + (user ? user.id : 'guest'); }
 function dataKey(){ return 'engdiary_v1_' + (user ? user.id : 'guest'); }
 const DEF_PROFILE = 'TOEIC 820 / Versant 55。目標はビジネスレベルの英会話と、字幕なしで洋画・洋楽を楽しむこと。PROGRITのプログラム後に学習を再開中。';
-const DEF_MODELS = { claude:'claude-opus-4-8', openai:'gpt-4o-mini', gemini:'gemini-2.0-flash' };
+const DEF_MODELS = { claude:'claude-sonnet-4-6', openai:'gpt-4o-mini', gemini:'gemini-2.0-flash' };
 function loadCfg(){
   try{
     const o = JSON.parse(localStorage.getItem(cfgKey()) || '{}');
@@ -277,6 +277,9 @@ function loadCfg(){
   }catch(_){ return { provider:'claude', models:Object.assign({},DEF_MODELS), keys:{claude:'',openai:'',gemini:''}, sttLang:'en-US', profile:DEF_PROFILE, topic:'', customTopics:[] }; }
 }
 let cfg = loadCfg();
+// 既定モデルは Sonnet（バランス・低コスト）。まだ未設定（Claudeキー未入力）で旧既定の
+// opus のままなら Sonnet に寄せる。キーを入れて使い始めた人の選択は尊重する。
+if (cfg.models.claude === 'claude-opus-4-8' && !(cfg.keys && cfg.keys.claude)) cfg.models.claude = 'claude-sonnet-4-6';
 function saveCfg(){ try{ localStorage.setItem(cfgKey(), JSON.stringify(cfg)); }catch(_){} }
 function loadData(){ try{ const o=JSON.parse(localStorage.getItem(dataKey())||'{}'); return { entries:o.entries||[] }; }catch(_){ return { entries:[] }; } }
 let DB = loadData();
@@ -327,7 +330,7 @@ function providerRequest(provider, text, key, model, profile){
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: { model: model || 'claude-opus-4-8', max_tokens: 4096, system: sys,
+      body: { model: model || 'claude-sonnet-4-6', max_tokens: 4096, system: sys,
               messages: [{ role:'user', content: usr }] }
     };
   }
@@ -421,14 +424,14 @@ const L = {
     fb:'添削結果', copyfb:'結果をコピー',
     elsa:'🗣 仕上げに、上の「添削後」の文を <a href="https://elsaspeak.com/ja/" target="_blank" rel="noopener">ELSA Speak</a> で音読し、発音を矯正しましょう。声に出すとスピーキングに直結します。',
     hist:'これまでの日記', histHint:'— タップで開く', histEmpty:'まだ日記がありません。今日の1本から始めましょう。',
-    set:'設定', prov:'添削に使うAI（自分のAPIキーで実行）', provU:'Claude を既定にしています（モデルは下で変更可）。',
+    set:'設定', prov:'添削に使うAI（自分のAPIキーで実行）', provU:'Claude（Anthropic）が既定。モデルは Sonnet（バランス・低コスト）を既定にしています（下で変更可）。',
     model:'モデル', key:'APIキー', keyU:'この端末にのみ保存されます。Claudeのキーは <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--blue)">console.anthropic.com</a> で発行（従量課金）。', stt:'音声入力の言語', profile:'学習者プロフィール（添削の前提）',
     save:'保存', saved:'保存しました', clearkey:'このAIのキーを削除', show:'表示', hide:'隠す',
     warn:'⚠ APIキーはこの端末（ブラウザ）にのみ保存され、添削時に各社へ直接送信されます。共有端末では使わず、利用上限・権限を絞ったキーの利用を推奨します。キーを使いたくない場合は下の「契約中のAIに渡す」をご利用ください。',
     needText:'日記を入力してください。',
     needKey:'まず設定でAPIキーを入力してください（または「契約中のAIに渡す」をご利用ください）。設定を開きます。',
     footnote:'添削はあなたのAPIキーで各社AIに直接リクエストします。記録はこの端末に保存されます。ELSAは発音練習用です。',
-    modelU:{claude:'例: claude-opus-4-8（最高品質）/ claude-sonnet-4-6 / claude-haiku-4-5（低コスト）', openai:'例: gpt-4o-mini / gpt-4o など', gemini:'例: gemini-2.0-flash / gemini-1.5-pro など'},
+    modelU:{claude:'例: claude-sonnet-4-6（既定・バランス）/ claude-opus-4-8（最高品質）/ claude-haiku-4-5（低コスト）', openai:'例: gpt-4o-mini / gpt-4o など', gemini:'例: gemini-2.0-flash / gemini-1.5-pro など'},
     openLabel:'で開く'
   },
   en:{
@@ -445,14 +448,14 @@ const L = {
     fb:'Feedback', copyfb:'Copy result',
     elsa:'🗣 To finish, read the “corrected” sentences aloud in <a href="https://elsaspeak.com/" target="_blank" rel="noopener">ELSA Speak</a> to fix pronunciation. Speaking aloud feeds straight into fluency.',
     hist:'Past entries', histHint:'— tap to open', histEmpty:'No entries yet. Start with today’s.',
-    set:'Settings', prov:'AI for correction (runs with your API key)', provU:'Claude is the default (change the model below).',
+    set:'Settings', prov:'AI for correction (runs with your API key)', provU:'Claude (Anthropic) is the default provider; the default model is Sonnet (balanced, low-cost). Change below.',
     model:'Model', key:'API key', keyU:'Stored on this device only. Get a Claude key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--blue)">console.anthropic.com</a> (pay-as-you-go).', stt:'Speech input language', profile:'Learner profile (context for feedback)',
     save:'Save', saved:'Saved', clearkey:'Delete this AI’s key', show:'Show', hide:'Hide',
     warn:'⚠ API keys are stored only in this browser and sent directly to each provider when correcting. Avoid shared devices; prefer a scoped, usage-limited key. Don’t want to use a key? Use “hand it to an AI” below.',
     needText:'Please write your diary first.',
     needKey:'Add an API key in settings first (or use “hand it to an AI”). Opening settings.',
     footnote:'Correction calls each provider directly with your key. Entries are stored on this device. ELSA is for pronunciation practice.',
-    modelU:{claude:'e.g. claude-opus-4-8 (best) / claude-sonnet-4-6 / claude-haiku-4-5 (cheap)', openai:'e.g. gpt-4o-mini / gpt-4o', gemini:'e.g. gemini-2.0-flash / gemini-1.5-pro'},
+    modelU:{claude:'e.g. claude-sonnet-4-6 (default, balanced) / claude-opus-4-8 (best) / claude-haiku-4-5 (cheap)', openai:'e.g. gpt-4o-mini / gpt-4o', gemini:'e.g. gemini-2.0-flash / gemini-1.5-pro'},
     openLabel:'Open in'
   }
 };

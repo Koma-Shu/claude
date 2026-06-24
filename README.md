@@ -131,7 +131,7 @@ PROGRIT のアプリで行い、こちらでは「**どこまで学習したか�
 - **AI添削（ダッシュボード内で完結）**: 自分の API キーで各社 AI に直接リクエストし、**添削後の自然な英文・
   主な修正点（文法/構文/語法/語彙/自然さ）・構成へのフィードバック・より自然な言い回し・良かった点・
   レベル目安**を Markdown で受け取り整形表示。
-  - 対応プロバイダ: **Claude（既定: `claude-opus-4-8`）** / OpenAI（ChatGPT）/ Google（Gemini）。
+  - 対応プロバイダ: **Claude（Anthropic・既定。既定モデル `claude-sonnet-4-6`＝バランス・低コスト。設定で `claude-opus-4-8` 等に変更可）** / OpenAI（ChatGPT）/ Google（Gemini）。
     Claude はブラウザ直叩き用ヘッダ `anthropic-dangerous-direct-browser-access` を付与し、`refusal` も処理。
   - API キーは**この端末（localStorage）にのみ保存**し、添削時に各社へ直接送信（共有端末非推奨・スコープを絞ったキー推奨）。
 - **外部AI連携（キー不要）**: 「プロンプトをコピー」＋ Claude / ChatGPT / Gemini を開くボタンで、
