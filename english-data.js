@@ -24,7 +24,9 @@
     minutesNew: 6,
     minutesReview: 3,
     // 「定着」とみなす間隔（日）。これを超えて生き残った記憶は忘却曲線上で十分に安定。
-    masteredIntervalDays: 30
+    // 復習ポリシー（1周目→ピンのみ復習→しばらく後に全文を解き直し）に合わせ、全文の
+    // 解き直し間隔が十分に伸びた(=数回 解き直して安定した)ものを「定着」とする。
+    masteredIntervalDays: 45
   };
 
   w.ENGLISH_COURSES = [

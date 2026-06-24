@@ -364,12 +364,6 @@
   <div class="sec-title"><span id="t-sec-routine">今日のルーティン</span> <span class="hint" id="t-routine-hint">— 口頭英作文以外の習慣</span></div>
   <div class="routine" id="routine"></div>
 
-  <!-- ───────── PINNED ───────── -->
-  <div id="pin-section" class="hidden">
-    <div class="sec-title"><span id="t-sec-pin">📌 ピン留め中の問題</span> <span class="hint" id="t-pin-hint">— 苦手として集中復習</span></div>
-    <div class="pin-list" id="pin-list"></div>
-  </div>
-
   <!-- ───────── DIARY ───────── -->
   <div class="sec-title"><span id="t-sec-diary">✍️ 英語日記</span> <span class="hint" id="t-diary-hint">— 口頭入力・AI添削</span></div>
   <a class="diary-card" href="english-diary.html">
@@ -634,8 +628,10 @@ function partPinCount(partId){ const p = PART_BY_ID[partId]; if(!p) return 0;
 function partPinLessonCount(partId){ const p = PART_BY_ID[partId]; if(!p) return 0;
   return p.ids.reduce((a,id)=>{ const s=st(id); return a + (s&&s.pins>0?1:0); }, 0); }
 function partsWithPins(){ return PARTS.filter(p => partPinCount(p.id) > 0); }
-// 未復習(scheduleなし/due=0)・期限到来は「今日復習すべき」
-function isPartPinDue(partId){ if(partPinCount(partId)<=0) return false;
+// 1周目完了 = そのパートの全レッスンを少なくとも1回学習済み
+function partFirstPassDone(partId){ const p = PART_BY_ID[partId]; return !!(p && p.ids.every(isStudied)); }
+// ピンのみ復習は「そのパートを1周し終えてから」。未復習(scheduleなし/due=0)・期限到来は今日復習すべき。
+function isPartPinDue(partId){ if(partPinCount(partId)<=0 || !partFirstPassDone(partId)) return false;
   const r = DB.pinrev[partId]; return !r || !r.due || r.due <= endOfToday(); }
 function partPinDueDays(partId){ if(partPinCount(partId)<=0) return null;
   const r = DB.pinrev[partId]; if(!r || !r.due) return 0; return Math.round((r.due - startOfToday())/DAY); }
@@ -689,25 +685,48 @@ function migratePinrev(){
   if (changed) save();
 }
 
+// ── full-text review intervals (intentionally LONG) ─────────────────────────
+// 復習ポリシー: 1周目＝全レッスンを通しで学習 → 2〜4周目＝パート単位のピンのみ復習
+// （そのパートを1周し終えてから）→ しばらく経ってから各レッスンを全文で解き直す。
+// よって「全文の解き直し」は短い間隔で出さず、最初から長め。near-term の復習はピンが担う。
+const FULL_BASE = { hard: 14, good: 30, easy: 45 };   // 1周目グレード後、次の全文復習までの日数
+const FULL_MAX = 120;                                  // 全文解き直しの最長間隔（約4か月）
+function fullInterval(grade, reps){
+  const g = grade==='hard' ? 'hard' : grade==='easy' ? 'easy' : 'good';
+  let iv = FULL_BASE[g];
+  for (let r = 1; r < Math.max(1, reps); r++)            // 解き直すたびさらに伸ばす
+    iv = Math.round(Math.max(iv + 7, iv * (g==='hard' ? 1.0 : g==='easy' ? 1.6 : 1.35)));
+  return Math.min(iv, FULL_MAX);
+}
 function simulate(s, grade, baseStart){
   const base = baseStart || startOfToday();    // 復習日の基準（記録日に対応）
   const n = Object.assign({}, s);
-  const q = Q[grade] != null ? Q[grade] : 4;
-  if (q < 3){                                  // 「もう一度」: 再学習。翌日に再出題
-    n.reps = 0; n.interval = 0;
-    n.due = base + DAY;                         // 明日もう一度
-  } else {
-    if (n.reps === 0) n.interval = grade==='easy' ? 2 : 1;       // 初回 → 1日後（簡単なら2日）
-    else if (n.reps === 1) n.interval = grade==='easy' ? 6 : 3;  // 2回目 → 3日後
-    else {
-      const mult = grade==='hard' ? 0.7 : grade==='easy' ? 1.3 : 1.0;
-      n.interval = Math.max(n.interval + 1, Math.round(n.interval * n.ef * mult));
-    }
-    n.reps += 1;
-    n.ef = Math.max(1.3, n.ef + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)));
-    n.due = base + n.interval * DAY;
+  if (Q[grade] != null && Q[grade] < 3){       // 「もう一度」: 翌日に再学習
+    n.reps = 0; n.interval = 0; n.due = base + DAY;
+    return n;
   }
+  n.reps = (n.reps || 0) + 1;
+  n.interval = fullInterval(grade, n.reps);
+  n.due = base + n.interval * DAY;
   return n;
+}
+// 旧ポリシー（1→3→7日の短い間隔）で溜まった復習を、新ポリシーの長い間隔へ移行。
+// グローバルなフラグではなく「間隔が新ポリシーの想定より短いレッスンだけ」を対象にするので
+// 冪等で、別端末から後から同期されてきた旧データも（出てきた時点で）自動的に伸ばせる。
+function migrateReviewIntervals(){
+  let changed = false;
+  ALL_IDS.forEach(id=>{
+    const s = DB.lessons[id]; if(!s || !s.studied) return;
+    const lastG = (s.history && s.history.length) ? s.history[s.history.length-1].g : 'good';
+    if (Q[lastG] != null && Q[lastG] < 3) return;       // 「もう一度」は短いまま（再学習が必要）
+    const want = fullInterval(lastG, s.reps||1);
+    if ((s.interval||0) >= want) return;                // 既に新ポリシーの長い間隔（または以上）
+    s.interval = want;
+    s.due = (s.last || recordStart()) + want * DAY;
+    s.mtime = Date.now();
+    changed = true;
+  });
+  if (changed) save();
 }
 
 // 1レッスンを学習/復習として記録（grade: again|hard|good|easy）
@@ -851,7 +870,7 @@ const L = {
     heroNone:'今日の必須の復習はありません。新しいレッスンに進むか、軽く流し復習を。',
     heroBoth:(r,n,m)=>`忘却曲線にちょうど乗った復習 <span class="hl">${r}</span> レッスンと、新規 <span class="hl">${n}</span> レッスン（計 約${m}分）がおすすめです。`,
     heroRevOnly:(r,m)=>`今日は復習 <span class="hl">${r}</span> レッスンが最優先（約${m}分）。これを片付けてから新規へ。`,
-    heroNewOnly:(n,m)=>`新規 <span class="hl">${n}</span> レッスン（約${m}分）から始めましょう。明日以降に復習として戻ってきます。`,
+    heroNewOnly:(n,m)=>`新規 <span class="hl">${n}</span> レッスン（約${m}分）から始めましょう。まずは1周。ピンのみ復習・全文の解き直しは後でまとめて戻ってきます。`,
     heroOver:(r)=>`<span class="pin">復習が ${r} レッスン</span>たまっています。今日は新規をお休みし、復習の消化を優先しましょう。`,
     heroDone:'🎉 今日のおすすめは全て完了！お疲れさまでした。やる気があれば下の進捗から追加で進められます。',
     secToday:'今日やること', todayHint:'— Progrit で学習したらタップして記録',
@@ -862,6 +881,7 @@ const L = {
     pinDueCount:n=>`— 今日復習すべき ${n}パート`, pinDueNow:'今日復習', pinNext:s=>`次回 ${s}`, pinReviewed:'復習した',
     pinQ:n=>`${n}問`, pinResolve:'解決',
     pinPartTitle:'ピンのみ復習', pinPartLessons:n=>`${n}レッスンにピン`, pinTapEdit:'タップで本数・メモを編集',
+    pinAfterFirstPass:'このパートを1周してから復習開始',
     heroPinOnly:(n,m)=>`今日は <span class="hl">${n}</span> パートの<b>ピンのみ復習</b>（苦手な例文だけ）がおすすめです（約${m}分）。`,
     heroPinAdd:n=>` 加えて <span class="hl">${n}</span> パートの<b>ピンのみ復習</b>も予定に入っています。`,
     secStats:'進捗サマリー',
@@ -923,7 +943,7 @@ const L = {
     heroNone:'No required reviews today. Move on to new lessons or do a light review.',
     heroBoth:(r,n,m)=>`Recommended: <span class="hl">${r}</span> reviews (right on the forgetting curve) + <span class="hl">${n}</span> new lessons (~${m} min).`,
     heroRevOnly:(r,m)=>`Reviews come first today: <span class="hl">${r}</span> lessons (~${m} min). Clear these, then new.`,
-    heroNewOnly:(n,m)=>`Start with <span class="hl">${n}</span> new lessons (~${m} min). They return later as reviews.`,
+    heroNewOnly:(n,m)=>`Start with <span class="hl">${n}</span> new lessons (~${m} min). Just the first pass — pin-only review and full re-solves come back later.`,
     heroOver:(r)=>`<span class="pin">${r} reviews piled up.</span> Skip new lessons today and clear the backlog first.`,
     heroDone:"🎉 Today's plan is complete — nice work! Add more from the progress grid if you like.",
     secToday:'Today', todayHint:'— tap to log after studying in Progrit',
@@ -934,6 +954,7 @@ const L = {
     pinDueCount:n=>`— ${n} parts due today`, pinDueNow:'review today', pinNext:s=>`next ${s}`, pinReviewed:'Reviewed',
     pinQ:n=>`${n}Q`, pinResolve:'Resolve',
     pinPartTitle:'pin-only review', pinPartLessons:n=>`${n} lessons pinned`, pinTapEdit:'tap to edit count / note',
+    pinAfterFirstPass:'starts after a full first pass of this part',
     heroPinOnly:(n,m)=>`Today: <span class="hl">${n}</span> <b>part pin-reviews</b> (just the weak sentences, ~${m} min).`,
     heroPinAdd:n=>` Plus <span class="hl">${n}</span> <b>part pin-reviews</b>.`,
     secStats:'Progress', stTotal:'Lessons', stStudied:'Studied', stMastered:'Mastered', stDue:'Due', stPin:'Pins', stStreak:'Streak',
@@ -1008,7 +1029,6 @@ function applyChrome(){
       if (standalone || dismissed){ el.classList.add('hidden'); }
       else { el.classList.remove('hidden'); $('a2hs-txt').innerHTML = T('a2hs'); }
   } }
-  set('t-sec-pin','secPin'); set('t-pin-hint','pinHint');
   set('t-sec-stats','secStats'); set('t-sec-science','secScience'); set('t-retention','retention');
   $('fc-text').innerHTML = T('fcText');
   set('t-sec-plan','secPlan'); set('t-upc','upc');
@@ -1037,7 +1057,6 @@ function renderAll(){
   renderHero();
   renderRecordBar();
   renderPlan();
-  renderPins();
   renderStats();
   drawForgettingCurve();
   renderRetentionGauge();
@@ -1193,45 +1212,6 @@ function planRow(id, kind){
     </button>
     <div class="grades">${grades}</div>
   </div>`;
-}
-
-// ピン復習はパート単位。ピンのあるパートを期限順に並べ、各パートの中で
-// ピンが立っているレッスン（編集用チップ）を見せる。
-function renderPins(){
-  const parts = partsWithPins().sort((a,b)=>{
-    const da = isPartPinDue(a.id)?0:1, db = isPartPinDue(b.id)?0:1;     // 期限が来たパートを先頭に
-    if (da!==db) return da-db;
-    const pa = partPinDueDays(a.id)||0, pb = partPinDueDays(b.id)||0;
-    if (pa!==pb) return pa-pb;                                          // 期限が近い順
-    return partPinCount(b.id) - partPinCount(a.id);                     // 同じならピン数の多い順
-  });
-  const sec = $('pin-section');
-  const dueCount = parts.filter(p=>isPartPinDue(p.id)).length;
-  const ph = $('t-pin-hint'); if (ph) ph.textContent = dueCount ? T('pinDueCount')(dueCount) : T('pinHint');
-  if (!parts.length){ sec.classList.add('hidden'); return; }
-  sec.classList.remove('hidden');
-  $('pin-list').innerHTML = parts.map(p => {
-    const cnt = partPinCount(p.id), ls = partPinLessonCount(p.id);
-    const due = isPartPinDue(p.id), dd = partPinDueDays(p.id);
-    const timing = due ? `<span class="ptiming due">🔴 ${T('pinDueNow')}</span>`
-                       : `<span class="ptiming sched">⏳ ${T('pinNext')(humanInterval(dd))}</span>`;
-    const chips = p.ids.filter(id=>{ const s=st(id); return s&&s.pins>0; }).map(id=>{
-      const s = st(id), l = BY_ID[id];
-      const tip = s.pinNote ? ' · '+s.pinNote : '';
-      return `<button class="pinchip" data-open="${id}" title="L${l.n}${tip}">L${l.n}<span class="pcq">${s.pins}</span></button>`;
-    }).join('');
-    return `<div class="pin-item part">
-      <span class="pc">📌 ${T('pinQ')(cnt)}</span>
-      <div class="pmain">
-        <div class="pp-head">${p.icon} <b>${p.courseName} · ${p.name}</b> ${timing}</div>
-        <div class="pp-meta">${T('pinPartLessons')(ls)} ・ ${T('pinTapEdit')}</div>
-        <div class="pinchips">${chips}</div>
-      </div>
-      <button class="pin-rev" data-revpart="${p.id}">✓ ${T('pinReviewed')}</button>
-    </div>`;
-  }).join('');
-  $('pin-list').querySelectorAll('[data-open]').forEach(b=> b.onclick=()=> openLesson(b.dataset.open));
-  $('pin-list').querySelectorAll('[data-revpart]').forEach(b=> b.onclick=()=>{ reviewPartPins(b.dataset.revpart); renderAll(); });
 }
 
 function renderStats(){
@@ -1554,9 +1534,12 @@ function openLesson(id){
 // 復習はこのパート単位でまとめて行う旨を見せる。
 function partPinScheduleHTML(partId){
   const cnt = partPinCount(partId); if (cnt<=0) return '';
-  const p = PART_BY_ID[partId]; const due = isPartPinDue(partId), dd = partPinDueDays(partId);
-  const timing = due ? `<span class="due">🔴 ${T('pinDueNow')}</span>`
-                     : `<span class="sched">⏳ ${T('pinNext')(humanInterval(dd))}</span>`;
+  const p = PART_BY_ID[partId];
+  // ピンのみ復習は「そのパートを1周し終えてから」開始
+  const timing = !partFirstPassDone(partId)
+    ? `<span class="sched">⏳ ${T('pinAfterFirstPass')}</span>`
+    : (isPartPinDue(partId) ? `<span class="due">🔴 ${T('pinDueNow')}</span>`
+                            : `<span class="sched">⏳ ${T('pinNext')(humanInterval(partPinDueDays(partId)))}</span>`);
   return `<div class="pin-sched part"><span class="ps-l">${T('mPinPartSched')(p.name, cnt)}</span> ${timing}</div>`;
 }
 // ピン数/メモを保存。ensure: 未学習レッスンでもピンだけ記録できるよう状態を生成。
@@ -1586,7 +1569,7 @@ function stratHTML(){
     <b>Goal:</b> business-level conversation + enjoying movies/music without subtitles.<br>
     <b>Shift:</b> from "English for tests" to "English for use".
     <ul>
-      <li><b>Speaking core — this app.</b> Oral composition 15–20 min, 4–5 days/week. Cut the lag from meaning → speech. Reviews follow the forgetting curve; weak sentences get part-level <b>pin-only review</b> sessions mixed in.</li>
+      <li><b>Speaking core — this app.</b> Oral composition 15–20 min, 4–5 days/week. Cut the lag from meaning → speech. <b>Light review policy:</b> 1st pass through every lesson → once a part's first pass is done, <b>pin-only review</b> (just the weak sentences) for the next few rounds → re-solve full lessons only much later (long interval). Keeps the daily load low.</li>
       <li><b>🎧 Shadowing, ~30 min/day (daily).</b> Automate sound perception & rhythm — pinned as a fixed task in "Today".</li>
       <li><b>🗣 ELSA, 10–15 min.</b> Warm-up/cool-down around shadowing to fix individual sounds & intonation.</li>
       <li><b>📨 Work output.</b> Draft English emails yourself first, then refine with AI/Grammarly; stockpile expressions you couldn't produce.</li>
@@ -1598,7 +1581,7 @@ function stratHTML(){
     <b>目標:</b> ビジネスレベルの英会話＋字幕なしで洋画・洋楽を楽しむ。<br>
     <b>転換:</b>「試験のための英語」から「使うための英語」へ。
     <ul>
-      <li><b>スピーキングの核 — このアプリ。</b> 口頭英作文を15〜20分・週4〜5日。意味理解→発話のタイムラグを消す。復習は忘却曲線に沿って自動スケジュール。苦手な例文は<b>パート単位の「ピンのみ復習」</b>を交えて集中的に。</li>
+      <li><b>スピーキングの核 — このアプリ。</b> 口頭英作文を15〜20分・週4〜5日。意味理解→発話のタイムラグを消す。<b>負荷を抑えた復習方針:</b> まず全レッスンを1周 → そのパートを1周し終えたら<b>ピンのみ復習</b>（苦手な例文だけ）を数回 → 全文の解き直しはしばらく経ってから（長い間隔）。毎日の負担を軽く保つ。</li>
       <li><b>🎧 シャドーイング（約30分／日・毎日）。</b> 音声知覚とリズムの自動化。「今日やること」に固定タスクとして表示。</li>
       <li><b>🗣 ELSA（10〜15分）。</b> シャドーイングの前後にウォームアップ／クールダウンとして発音・イントネーションを矯正。</li>
       <li><b>📨 業務アウトプット。</b> 英文メールは翻訳に頼らず自力ドラフト→AI/Grammarlyで添削。使えなかった表現をストック。</li>
@@ -1708,16 +1691,16 @@ function renderGate(){
 // ENGLISH is unlisted on the public portal (its card is admin-only), but the
 // page itself is directly accessible — so a saved/bookmarked link always opens
 // the dashboard without a login step. Data stays per-device in localStorage.
-user = getUser(); DB = load(); migratePinrev();
+user = getUser(); DB = load(); migratePinrev(); migrateReviewIntervals();
 fillSettings();
 renderAll();
 // cloud sync (logged-in only): pull+merge remote → re-render; push on every change
 if (window.ENGSYNC){
   sync = ENGSYNC.init({ column:'data', key:rootKey, merge:mergeEngDB,
-    onMerged:()=>{ DB = load(); migratePinrev(); fillSettings(); renderAll(); },
+    onMerged:()=>{ DB = load(); migratePinrev(); migrateReviewIntervals(); fillSettings(); renderAll(); },
     onStatus:()=>renderSyncStatus() });
   renderSyncStatus();
-  if (sync.enabled) sync.ready.then(()=>{ DB = load(); migratePinrev(); fillSettings(); renderAll(); });
+  if (sync.enabled) sync.ready.then(()=>{ DB = load(); migratePinrev(); migrateReviewIntervals(); fillSettings(); renderAll(); });
 }
 window.addEventListener('resize', ()=> drawForgettingCurve());
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
