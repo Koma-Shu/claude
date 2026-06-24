@@ -718,12 +718,12 @@ function migrateReviewIntervals(){
   ALL_IDS.forEach(id=>{
     const s = DB.lessons[id]; if(!s || !s.studied) return;
     const lastG = (s.history && s.history.length) ? s.history[s.history.length-1].g : 'good';
-    if (Q[lastG] != null && Q[lastG] < 3) return;       // 「もう一度」は短いまま（再学習が必要）
-    const want = fullInterval(lastG, s.reps||1);
-    if ((s.interval||0) >= want) return;                // 既に新ポリシーの長い間隔（または以上）
-    s.interval = want;
-    s.due = (s.last || recordStart()) + want * DAY;
-    s.mtime = Date.now();
+    const isAgain = (Q[lastG] != null && Q[lastG] < 3);
+    if (isAgain && s.due >= startOfToday()) return;     // まだ未消化の「もう一度」は尊重して触らない
+    const want = fullInterval(isAgain ? 'hard' : lastG, s.reps||1);
+    const newDue = (s.last || recordStart()) + want * DAY;
+    if (newDue <= s.due) return;                        // 既に同等以上に先 → 冪等・live review を壊さない
+    s.interval = want; s.due = newDue; s.mtime = Date.now();
     changed = true;
   });
   if (changed) save();
@@ -769,8 +769,19 @@ function retention(id){
   return Math.max(0, Math.min(1, Math.exp(-elapsed/stability)));
 }
 function isStudied(id){ const s = st(id); return !!(s && s.studied); }
-function isDue(id){ const s = st(id); return !!(s && s.studied && s.due <= endOfToday()); }
-function isOverdue(id){ const s = st(id); return !!(s && s.studied && s.due < startOfToday()); }
+// 全文の解き直しフェーズの開始: そのパートを1周し終えた時刻 + 猶予。猶予の間（＝2〜4周目）は
+// 全文復習を出さず、ピンのみ復習に専念する。1周目が未完のパートは Infinity（=まだ出さない）。
+const RESOLVE_DELAY = 30;   // 1周目完了から全文の解き直しを始めるまでの日数（この間はピンのみ）
+function partFirstPassAt(partId){
+  const p = PART_BY_ID[partId]; if (!p) return Infinity;
+  let mx = 0;
+  for (const id of p.ids){ const s = st(id); if (!s || !s.studied) return Infinity; const f = s.first || s.last || 0; if (f > mx) mx = f; }
+  return mx || Infinity;
+}
+// このレッスンの「全文での復習」を今出してよいか（=パートの解き直しフェーズに入っているか）
+function fullReviewActive(id){ const l = BY_ID[id]; if (!l) return true; return now() >= partFirstPassAt(l.partId) + RESOLVE_DELAY*DAY; }
+function isDue(id){ const s = st(id); return !!(s && s.studied && s.due <= endOfToday() && fullReviewActive(id)); }
+function isOverdue(id){ const s = st(id); return !!(s && s.studied && s.due < startOfToday() && fullReviewActive(id)); }
 function isMastered(id){ const s = st(id); return !!(s && s.interval >= EM.masteredIntervalDays); }
 
 // ── activity / streak ───────────────────────────────────────────────────────
@@ -894,7 +905,7 @@ const L = {
     projLine:(date,wk,total)=>`現在のペースなら、未学習 <b>${total}</b> レッスンの初回学習は <span class="hl">約${wk}週間</span>後（${date}頃）に完了する見込みです。`,
     projDone:'🎓 全レッスンの初回学習が完了しています。あとは復習で定着を仕上げましょう。',
     today:'今日', overdue:'延滞',
-    secCourses:'コース進捗', coursesHint:'— セルをタップして記録・ピン編集',
+    secCourses:'コース進捗', coursesHint:'— セルをタップして記録',
     cProg:(a,b)=>`${a} / ${b} レッスン`, cDue:n=>`復習 ${n}`,
     cLap:(avg,full)=>`周回 ${avg}・全${full}周`, pLap:full=>`${full}周`, repsTitle:n=>`${n}周`,
     legNew:'未学習', legSched:'復習予定', legDue:'要復習', legOver:'延滞', legMast:'定着🏅', legPin:'ピンあり',
@@ -966,7 +977,7 @@ const L = {
     projLine:(date,wk,total)=>`At your current pace, first-pass study of the remaining <b>${total}</b> lessons finishes in <span class="hl">~${wk} weeks</span> (around ${date}).`,
     projDone:'🎓 First pass complete on all lessons. Now consolidate with reviews.',
     today:'Today', overdue:'Late',
-    secCourses:'Course progress', coursesHint:'— tap a cell to log / edit pins',
+    secCourses:'Course progress', coursesHint:'— tap a cell to log',
     cProg:(a,b)=>`${a} / ${b} lessons`, cDue:n=>`Due ${n}`,
     cLap:(avg,full)=>`laps ${avg} · ${full} full`, pLap:full=>`${full}× full`, repsTitle:n=>`${n} laps`,
     legNew:'New', legSched:'Scheduled', legDue:'Due', legOver:'Late', legMast:'Mastered🏅', legPin:'Pinned',
@@ -1239,6 +1250,7 @@ function renderUpcoming(){
   const DAYS = 14, buckets = new Array(DAYS).fill(0);
   const t0 = startOfToday();
   ALL_IDS.forEach(id => { const s = st(id); if(!s||!s.studied) return;
+    if (!fullReviewActive(id)) return;             // ピンのみ復習フェーズ中の全文復習は予定に出さない
     let idx = Math.floor((s.due - t0)/DAY);
     if (idx < 0) idx = 0; if (idx < DAYS) buckets[idx]++;
   });
@@ -1294,10 +1306,9 @@ function renderCourses(){
       for(let n=1;n<=p.lessons;n++){
         const id = p.id+'-L'+String(n).padStart(2,'0'); pIds.push(id); const s = st(id);
         const reps = (s && s.reps) || 0;
-        const pin = s && s.pins>0 ? '<span class="pindot"></span>' : '';
         const star = isMastered(id) ? '<span class="star">🏅</span>' : '';
         const rb = reps>=1 ? `<span class="cellreps" title="${T('repsTitle')(reps)}">${reps}</span>` : '';
-        cells += `<button class="cell ${cellClass(id)}" data-open="${id}" title="${c.name} ${p.name} L${n} · ${T('repsTitle')(reps)}">${rb}${n}${pin}${star}</button>`;
+        cells += `<button class="cell ${cellClass(id)}" data-open="${id}" title="${c.name} ${p.name} L${n} · ${T('repsTitle')(reps)}">${rb}${n}${star}</button>`;
       }
       const pStudied = pIds.filter(isStudied).length;
       const pLap = lapStats(pIds);
@@ -1324,8 +1335,7 @@ function renderLegend(){
     ['#15151f','legNew'],['rgba(52,211,153,.10)','legSched'],['rgba(251,191,36,.13)','legDue'],
     ['rgba(255,85,102,.13)','legOver'],['rgba(52,211,153,.22)','legMast']
   ];
-  $('legend').innerHTML = items.map(([c,k])=>`<span><i style="background:${c}"></i>${T(k)}</span>`).join('')
-    + `<span><i style="background:var(--pink);border-radius:50%"></i>${T('legPin')}</span>`;
+  $('legend').innerHTML = items.map(([c,k])=>`<span><i style="background:${c}"></i>${T(k)}</span>`).join('');
 }
 
 // ── routine ──────────────────────────────────────────────────────────────────
