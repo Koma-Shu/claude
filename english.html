@@ -178,7 +178,6 @@
     .pin-item .ptiming.sched{color:var(--dim2);}
     .pin-rev{background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--good);font-family:inherit;font-size:.66rem;padding:6px 9px;cursor:pointer;white-space:nowrap;}
     .pin-rev:hover{border-color:var(--good);}
-    .pin-rev.wide{width:100%;padding:11px;font-size:.8rem;}
     .pin-sched{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.74rem;margin:10px 0 2px;}
     .pin-sched .due{color:var(--warn);} .pin-sched .sched{color:var(--dim);}
     .pin-sched.part{justify-content:flex-start;gap:8px;font-size:.7rem;}
@@ -193,9 +192,22 @@
     .pinchip:hover{border-color:var(--pink);}
     .pinchip .pcq{background:var(--pink);color:#1a0a12;border-radius:10px;padding:0 5px;font-weight:bold;font-size:.6rem;}
     .pin-help{font-size:.62rem;color:var(--dim2);margin-top:7px;line-height:1.6;}
-    /* pin-only review task row (in today's plan) */
-    .plan-row.pinpart{border-color:#5b2a44;background:linear-gradient(180deg,rgba(91,42,68,.10),var(--panel));}
-    .pinrow-act{margin-top:11px;}
+    /* today's plan — grouped by Part (collapsible full-text reviews + visible pin-only review) */
+    .plan-part{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:7px 8px;display:flex;flex-direction:column;gap:8px;}
+    .plan-part-head{display:flex;align-items:center;gap:9px;width:100%;background:none;border:none;color:inherit;font-family:inherit;text-align:left;cursor:pointer;padding:6px 7px;border-radius:8px;}
+    .plan-part-head:hover:not(.static){background:#15151f;}
+    .plan-part-head.static{cursor:default;}
+    .ppg-label{font-size:.8rem;color:var(--dim);flex-shrink:0;}
+    .ppg-counts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto;}
+    .ppg-chev{color:var(--dim2);font-size:.85rem;transition:transform .15s;flex-shrink:0;}
+    .ppg-chev.open{transform:rotate(90deg);}
+    .plan-part-body{display:flex;flex-direction:column;gap:10px;padding:2px 1px 4px;}
+    .plan-part .plan-row{background:#13131c;}
+    /* pin-only review row (under a Part head) */
+    .plan-pinrow{display:flex;align-items:center;gap:10px;background:linear-gradient(180deg,rgba(91,42,68,.14),#13131c);border:1px solid #5b2a44;border-radius:10px;padding:11px 13px;}
+    .plan-pinrow .ppr-main{flex:1;font-size:.82rem;}
+    .plan-pinrow .ppr-main b{color:var(--pink);}
+    .plan-pinrow .ppr-meta{display:block;font-size:.64rem;color:var(--dim2);margin-top:3px;}
     /* routine calendar */
     .cal-head{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px;}
     .cal-title{font-size:.85rem;color:var(--txt);letter-spacing:1px;min-width:118px;text-align:center;}
@@ -511,6 +523,7 @@ COURSES.forEach(c => c.parts.forEach(p => {
                courseId:c.id, courseName:c.name, color:c.color, icon:c.icon });
 }));
 const PART_BY_ID = {}; PARTS.forEach(p => PART_BY_ID[p.id] = p);
+const PART_INDEX = {}; PARTS.forEach((p,i)=> PART_INDEX[p.id] = i);   // 並び順用
 
 // ── persistence (per user; device-local) ───────────────────────────────────
 function getUser(){ try{ return JSON.parse(localStorage.getItem('arcade_user')||'null'); }catch(_){ return null; } }
@@ -1076,21 +1089,48 @@ function dailyTaskHTML(){
     <div class="rt-main"><div class="rt-label">${it.label[lang]}</div><div class="rt-note">${it.note[lang]}</div></div>
   </div>`;
 }
+// パート見出しの開閉状態（セッション内のみ。既定は最も急ぎのパートだけ開く）
+let expandedParts = {};
+function earliestDue(ids){ let m=Infinity; ids.forEach(id=>{ const s=st(id); if(s && s.due<m) m=s.due; }); return m; }
+// 今日やること: 個別レッスンの全文復習はパート見出しでまとめて折りたたみ、
+// パート単位の「ピンのみ復習」は見出し直下に常時表示して交互に提示する。
 function renderPlan(){
   const p = buildPlan();
   const wrap = $('plan-list');
-  const rows = [];
-  p.reviews.forEach(id => rows.push(planRow(id, isOverdue(id) ? 'over' : 'rev')));
-  p.pinReviews.forEach(pid => rows.push(pinPartRow(pid)));   // パート単位のピンのみ復習を織り込む
-  p.news.forEach(id => rows.push(planRow(id, 'new')));
-  const lessons = rows.length ? rows.join('')
-    : `<div class="plan-empty">${ allActiveLogged() ? T('heroDone') : (p.newAvail===0 ? T('projDone') : T('heroNone')) }</div>`;
-  wrap.innerHTML = dailyTaskHTML() + lessons;
+  // レッスンをパートごとに束ねる（復習/新規）＋ピン期限フラグ
+  const byPart = {};
+  function bucket(id, kind){
+    const pid = BY_ID[id].partId;
+    const b = byPart[pid] || (byPart[pid] = { rev:[], nw:[], pinDue:false });
+    (kind==='new' ? b.nw : b.rev).push(id);
+  }
+  p.reviews.forEach(id => bucket(id, 'rev'));
+  p.news.forEach(id => bucket(id, 'new'));
+  p.pinReviews.forEach(pid => { (byPart[pid] || (byPart[pid] = { rev:[], nw:[], pinDue:false })).pinDue = true; });
+  // 並び順: 復習の期限が早い順。ピン期限到来は「今日」相当として上位に。新規のみは末尾。
+  const t0 = startOfToday();
+  const sortKey = pid => { const b=byPart[pid]; let k=earliestDue(b.rev); if(b.pinDue) k=Math.min(k,t0); return k; };
+  const partIds = Object.keys(byPart).sort((a,b)=>{
+    const ka=sortKey(a), kb=sortKey(b);
+    if (ka!==kb) return ka-kb;
+    return PART_INDEX[a]-PART_INDEX[b];
+  });
+  let html = dailyTaskHTML();
+  if (!partIds.length){
+    html += `<div class="plan-empty">${ allActiveLogged() ? T('heroDone') : (p.newAvail===0 ? T('projDone') : T('heroNone')) }</div>`;
+  } else {
+    const firstPid = partIds[0];     // 既定で開くパート（最優先の1つだけ）
+    html += partIds.map(pid => planPartGroup(pid, byPart[pid], firstPid)).join('');
+  }
+  wrap.innerHTML = html;
   wrap.querySelectorAll('[data-task]').forEach(el => el.onclick = ()=>{
     const day = recordDay, key = el.dataset.task;
     DB.routine[day] = DB.routine[day] || {};
     DB.routine[day][key] = !DB.routine[day][key];
     save(); renderAll();
+  });
+  wrap.querySelectorAll('[data-fold]').forEach(el => el.onclick = ()=>{
+    const pid = el.dataset.fold; expandedParts[pid] = !isPartOpen(pid, el.dataset.first); renderPlan();
   });
   wrap.querySelectorAll('[data-open]').forEach(b => b.onclick = ()=> openLesson(b.dataset.open));
   wrap.querySelectorAll('[data-grade]').forEach(b => b.onclick = ()=>{
@@ -1100,24 +1140,37 @@ function renderPlan(){
     reviewPartPins(b.dataset.revpart); renderAll();
   });
 }
-// 「ピンのみ復習」のタスク行（パート単位・✓で次回へ繰り延べ）
-function pinPartRow(partId){
-  const p = PART_BY_ID[partId];
-  const cnt = partPinCount(partId), ls = partPinLessonCount(partId);
-  const dd = partPinDueDays(partId);
-  const over = dd!=null && dd<0;
-  return `<div class="plan-row pinpart">
-    <div class="pr-top">
-      <div class="pr-label"><span class="cn">${p.icon} ${p.courseName} · ${p.name} ·</span> <b>${T('pinPartTitle')}</b>
-        <div class="pr-sub">
-          <span class="badge pin">📌 ${T('pinQ')(cnt)}</span>
-          <span>${T('pinPartLessons')(ls)}</span>
-          ${over?`<span class="badge over">${T('badgeOver')}</span>`:''}
-        </div>
-      </div>
-      <span class="pr-chev">📌</span>
+function isPartOpen(pid, firstPid){ return expandedParts[pid]===undefined ? (pid===firstPid) : !!expandedParts[pid]; }
+// 1パート分のグループ: 見出し（折りたたみトグル）＋ピンのみ復習（常時表示）＋個別レッスン（折りたたみ）
+function planPartGroup(pid, b, firstPid){
+  const part = PART_BY_ID[pid];
+  const revN = b.rev.length, newN = b.nw.length, foldable = (revN+newN) > 0;
+  const open = foldable && isPartOpen(pid, firstPid);
+  const badges = [];
+  if (revN) badges.push(`<span class="badge ${b.rev.some(isOverdue)?'over':'rev'}">${T('badgeRev')} ${revN}</span>`);
+  if (newN) badges.push(`<span class="badge new">${T('badgeNew')} ${newN}</span>`);
+  if (b.pinDue) badges.push(`<span class="badge pin">📌 ${T('pinPartTitle')}</span>`);
+  const chev = foldable ? `<span class="ppg-chev ${open?'open':''}">▸</span>` : '';
+  const headInner = `<span class="ppg-label">${part.icon} ${part.courseName} · ${part.name}</span>
+      <span class="ppg-counts">${badges.join('')}</span>${chev}`;
+  const head = foldable
+    ? `<button class="plan-part-head" data-fold="${pid}" data-first="${firstPid}">${headInner}</button>`
+    : `<div class="plan-part-head static">${headInner}</div>`;
+  const pinRow = b.pinDue ? pinPartRowCompact(pid) : '';
+  const lessonRows = b.rev.map(id=>planRow(id, isOverdue(id)?'over':'rev')).join('')
+                   + b.nw.map(id=>planRow(id,'new')).join('');
+  const body = foldable ? `<div class="plan-part-body${open?'':' hidden'}">${lessonRows}</div>` : '';
+  return `<div class="plan-part">${head}${pinRow}${body}</div>`;
+}
+// パート見出し直下の「ピンのみ復習」行（見出しがパート名を出すので名前は省略）
+function pinPartRowCompact(pid){
+  const cnt = partPinCount(pid), ls = partPinLessonCount(pid);
+  const dd = partPinDueDays(pid), over = dd!=null && dd<0;
+  return `<div class="plan-pinrow">
+    <div class="ppr-main"><b>📌 ${T('pinPartTitle')}</b>
+      <span class="ppr-meta">${T('pinQ')(cnt)} · ${T('pinPartLessons')(ls)}${over?' · '+T('badgeOver'):''}</span>
     </div>
-    <div class="pinrow-act"><button class="pin-rev wide" data-revpart="${partId}">✓ ${T('pinReviewed')}</button></div>
+    <button class="pin-rev" data-revpart="${pid}">✓ ${T('pinReviewed')}</button>
   </div>`;
 }
 function planRow(id, kind){
