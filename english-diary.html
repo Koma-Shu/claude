@@ -422,7 +422,7 @@ const L = {
     elsa:'🗣 仕上げに、上の「添削後」の文を <a href="https://elsaspeak.com/ja/" target="_blank" rel="noopener">ELSA Speak</a> で音読し、発音を矯正しましょう。声に出すとスピーキングに直結します。',
     hist:'これまでの日記', histHint:'— タップで開く', histEmpty:'まだ日記がありません。今日の1本から始めましょう。',
     set:'設定', prov:'添削に使うAI（自分のAPIキーで実行）', provU:'Claude を既定にしています（モデルは下で変更可）。',
-    model:'モデル', key:'APIキー', keyU:'この端末にのみ保存されます。', stt:'音声入力の言語', profile:'学習者プロフィール（添削の前提）',
+    model:'モデル', key:'APIキー', keyU:'この端末にのみ保存されます。Claudeのキーは <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--blue)">console.anthropic.com</a> で発行（従量課金）。', stt:'音声入力の言語', profile:'学習者プロフィール（添削の前提）',
     save:'保存', saved:'保存しました', clearkey:'このAIのキーを削除', show:'表示', hide:'隠す',
     warn:'⚠ APIキーはこの端末（ブラウザ）にのみ保存され、添削時に各社へ直接送信されます。共有端末では使わず、利用上限・権限を絞ったキーの利用を推奨します。キーを使いたくない場合は下の「契約中のAIに渡す」をご利用ください。',
     needText:'日記を入力してください。',
@@ -446,7 +446,7 @@ const L = {
     elsa:'🗣 To finish, read the “corrected” sentences aloud in <a href="https://elsaspeak.com/" target="_blank" rel="noopener">ELSA Speak</a> to fix pronunciation. Speaking aloud feeds straight into fluency.',
     hist:'Past entries', histHint:'— tap to open', histEmpty:'No entries yet. Start with today’s.',
     set:'Settings', prov:'AI for correction (runs with your API key)', provU:'Claude is the default (change the model below).',
-    model:'Model', key:'API key', keyU:'Stored on this device only.', stt:'Speech input language', profile:'Learner profile (context for feedback)',
+    model:'Model', key:'API key', keyU:'Stored on this device only. Get a Claude key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--blue)">console.anthropic.com</a> (pay-as-you-go).', stt:'Speech input language', profile:'Learner profile (context for feedback)',
     save:'Save', saved:'Saved', clearkey:'Delete this AI’s key', show:'Show', hide:'Hide',
     warn:'⚠ API keys are stored only in this browser and sent directly to each provider when correcting. Avoid shared devices; prefer a scoped, usage-limited key. Don’t want to use a key? Use “hand it to an AI” below.',
     needText:'Please write your diary first.',
@@ -457,6 +457,9 @@ const L = {
   }
 };
 const T = k => L[lang][k];
+// 添削に使うAIの表示名（ボタンに「Claudeで添削」と出す）
+const PROV_NAME = { claude:'Claude', openai:'ChatGPT', gemini:'Gemini' };
+function runText(){ return lang==='ja' ? `🤖 ${PROV_NAME[cfg.provider]||'AI'}で添削する` : `🤖 Correct with ${PROV_NAME[cfg.provider]||'AI'}`; }
 
 // ════════════════════════════════════════════════════════════════════════════
 //  UI
@@ -502,10 +505,11 @@ function applyChrome(){
   set('back-btn','back'); set('t-title','title'); set('t-subtitle','subtitle'); set('t-roll','genTopic'); set('t-date','date');
   set('clear','clear'); set('t-settings','settings'); set('t-handoff','handoff'); set('t-copy','copy');
   set('t-fb','fb'); set('t-copyfb','copyfb'); set('t-hist','hist'); set('t-hist-hint','histHint');
-  set('t-set','set'); set('t-prov','prov'); set('t-prov-u','provU'); set('t-model','model'); set('t-key','key'); set('t-key-u','keyU');
+  set('t-set','set'); set('t-prov','prov'); set('t-prov-u','provU'); set('t-model','model'); set('t-key','key');
+  { const e=$('t-key-u'); if(e) e.innerHTML = T('keyU'); }   // リンクを含むので innerHTML
   set('t-stt','stt'); set('t-profile','profile'); set('t-mytopics','myTopics'); set('set-save','save'); set('set-clearkey','clearkey');
   $('mic-label').textContent = recording ? T('micStop') : T('micStart');
-  $('run-label').textContent = busy ? T('running') : T('run');
+  $('run-label').textContent = busy ? T('running') : runText();
   $('mic-note').textContent = T('micNote');
   $('diary').placeholder = T('placeholder');
   $('t-warn').textContent = T('warn');
@@ -553,7 +557,7 @@ function toggleRec(){
 
 // ── correction ───────────────────────────────────────────────────────────────
 let busy = false;
-function setBusy(v){ busy=v; const b=$('run-ai'); b.disabled=v; $('run-label').innerHTML = v ? (T('running')+' <span class="spinner"></span>') : T('run'); }
+function setBusy(v){ busy=v; const b=$('run-ai'); b.disabled=v; $('run-label').innerHTML = v ? (T('running')+' <span class="spinner"></span>') : runText(); }
 function showErr(msg){ const e=$('err'); e.classList.remove('hidden'); e.textContent = msg; }
 function clearErr(){ $('err').classList.add('hidden'); }
 function showFeedback(md){ $('fb').innerHTML = mdToHtml(md); $('fb-section').classList.remove('hidden'); $('fb-section').scrollIntoView({behavior:'smooth',block:'start'}); }
@@ -678,7 +682,7 @@ function wire(){
     const t=$('diary').value.trim(); if(t){ doCopy(handoffPrompt(t, cfg.profile), 'copy-prompt', 'copied'); }
     window.open(b.dataset.ext, '_blank', 'noopener');
   });
-  $('set-provider').onchange = ()=>{ cfg.provider = $('set-provider').value; $('set-model').value = cfg.models[cfg.provider]||''; $('set-key').value = cfg.keys[cfg.provider]||''; $('t-model-u').textContent = T('modelU')[cfg.provider]; };
+  $('set-provider').onchange = ()=>{ cfg.provider = $('set-provider').value; $('set-model').value = cfg.models[cfg.provider]||''; $('set-key').value = cfg.keys[cfg.provider]||''; $('t-model-u').textContent = T('modelU')[cfg.provider]; $('run-label').textContent = runText(); };
   $('key-toggle').onclick = ()=>{ const i=$('set-key'); i.type = i.type==='password'?'text':'password'; $('key-toggle').textContent = i.type==='password'?T('show'):T('hide'); };
   $('set-save').onclick = ()=>{
     const p = $('set-provider').value; cfg.provider = p;
