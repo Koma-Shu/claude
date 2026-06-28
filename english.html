@@ -73,13 +73,21 @@
     .badge.mast{border-color:#1d5c46;color:var(--good);}
     .grades{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:11px;}
     .grade{border:1px solid var(--line2);border-radius:8px;background:#0a0a14;color:var(--txt);font-family:inherit;padding:9px 4px;cursor:pointer;text-align:center;transition:.13s;}
-    .grade:hover{transform:translateY(-2px);}
     .grade .g{font-size:.76rem;font-weight:bold;}
     .grade .gi{font-size:.56rem;color:var(--dim2);margin-top:3px;}
-    .grade.again{border-color:#5c1d28;}.grade.again:hover{background:rgba(255,85,102,.1);}
-    .grade.hard{border-color:#5c4a1d;}.grade.hard:hover{background:rgba(251,191,36,.1);}
-    .grade.good{border-color:#1d5c46;}.grade.good:hover{background:rgba(52,211,153,.1);}
-    .grade.easy{border-color:#234a6b;}.grade.easy:hover{background:rgba(96,165,250,.1);}
+    .grade.again{border-color:#5c1d28;}
+    .grade.hard{border-color:#5c4a1d;}
+    .grade.good{border-color:#1d5c46;}
+    .grade.easy{border-color:#234a6b;}
+    /* ホバーの装飾はマウス等の実ポインタ環境のみ。タッチ端末で「ホバーが固着」して
+       再描画後に指の下のボタン（次の行など）が選択風にハイライトされるのを防ぐ。 */
+    @media (hover: hover){
+      .grade:hover{transform:translateY(-2px);}
+      .grade.again:hover{background:rgba(255,85,102,.1);}
+      .grade.hard:hover{background:rgba(251,191,36,.1);}
+      .grade.good:hover{background:rgba(52,211,153,.1);}
+      .grade.easy:hover{background:rgba(96,165,250,.1);}
+    }
     /* stats row */
     .stats-row{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:6px;}
     .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 6px;text-align:center;}
