@@ -76,6 +76,7 @@
 <div id="status">vs CPU モード</div>
 <div id="mode-buttons">
   <button class="mbtn active" id="btn-cpu">vs CPU</button>
+  <button class="mbtn" id="btn-local">👥 <span id="lbl-local">ローカル 2P</span></button>
   <button class="mbtn" id="btn-online">🌐 <span id="lbl-online">オンライン 2P</span></button>
 </div>
 <div id="diff-row">
@@ -128,7 +129,8 @@
 <script>
 const LANG={
   ja:{yourTurn:'⚫ あなたの番（黒）',cpuThink:'CPU 思考中...',win:'あなたの勝ち！🎉',cpuWin:'CPU の勝ち',opWin:'相手の勝ち',draw:'引き分け（盤面が埋まりました）',resign:'投了',resignMsg:'投了しますか？',weak:'弱い',normal:'普通',strong:'強い',
-      blackLabel:'黒',whiteLabel:'白',onlineMode:'オンライン 2P',helpBtn:'? ルール',
+      blackLabel:'黒',whiteLabel:'白',onlineMode:'オンライン 2P',localMode:'ローカル 2P',
+      bWins:'黒の勝ち！',wWins:'白の勝ち！',helpBtn:'? ルール',
       rateGame:'このゲームを評価する',roomCode:'ルームコード',shareCode:'相手にこのコードを伝えてください',
       codePlaceholder:'コードを入力',joinBtn:'参加',submitBtn:'送信',commentPlaceholder:'コメント（任意）...',
       noRatings:'まだ評価がありません',enter6:'6文字のコードを入力してください',
@@ -141,7 +143,8 @@ const LANG={
       gameEnd:'ゲーム終了 — {msg}',
       helpContent:'⚫ 黒から先に打ちます<br>● 縦・横・斜めに5つ並んだ方が勝ち<br>● どの空きマスにも置けます<br>● 盤面が埋まったら引き分け<br>● 禁じ手なし（フリー五目）'},
   en:{yourTurn:'⚫ Your turn (Black)',cpuThink:'CPU thinking...',win:'You win! 🎉',cpuWin:'CPU wins',opWin:'Opponent wins',draw:'Draw (board full)',resign:'Resign',resignMsg:'Resign?',weak:'Weak',normal:'Normal',strong:'Strong',
-      blackLabel:'B',whiteLabel:'W',onlineMode:'Online 2P',helpBtn:'? Rules',
+      blackLabel:'B',whiteLabel:'W',onlineMode:'Online 2P',localMode:'Local 2P',
+      bWins:'Black wins!',wWins:'White wins!',helpBtn:'? Rules',
       rateGame:'Rate this game',roomCode:'Room Code',shareCode:'Share this code with opponent',
       codePlaceholder:'Enter code',joinBtn:'Join',submitBtn:'Submit',commentPlaceholder:'Comment (optional)...',
       noRatings:'No ratings yet',enter6:'Enter a 6-character code',
@@ -160,6 +163,7 @@ function applyLang(){
   document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
   document.documentElement.lang=lang;
   document.getElementById('lbl-online').textContent=T('onlineMode');
+  document.getElementById('lbl-local').textContent=T('localMode');
   document.getElementById('btn-create').textContent=T('createRoom');
   document.getElementById('btn-resign').textContent=T('resign');
   document.getElementById('lbl-black').textContent=T('blackLabel');
@@ -334,7 +338,7 @@ function draw() {
 
 function setStatus(msg) { document.getElementById('status').textContent=msg; }
 function updateResignBtn() {
-  const canResign=!gameOver&&!cpuBusy&&(mode==='cpu'?turn===myColor:turn===myColor);
+  const canResign=!gameOver&&!cpuBusy&&(mode==='local'?true:turn===myColor);
   document.getElementById('btn-resign').style.display=canResign?'inline-block':'none';
 }
 
@@ -387,10 +391,14 @@ function endGame(winner) {
   else if (mode==='cpu') {
     if(winner===myColor){msg=T('win');if(window.SND)SND.sfx.win();}
     else{msg=T('cpuWin');if(window.SND)SND.sfx.lose();}
+  } else if (mode==='local') {
+    msg=winner===1?T('bWins'):T('wWins');if(window.SND)SND.sfx.win();
   } else {
     if(winner===myColor){msg=T('win');if(window.SND)SND.sfx.win();}
     else{msg=T('opWin');if(window.SND)SND.sfx.lose();}
   }
+  if (mode!=='local'&&window.TRACK&&TRACK.result)
+    TRACK.result(winner===0?'draw':winner===myColor?'win':'loss');
   setStatus(T('gameEnd',{msg}));
   draw(); updateResignBtn();
   if (pollTid) { clearInterval(pollTid); pollTid=null; }
@@ -400,8 +408,10 @@ function doResign() {
   if (gameOver) return;
   if (!confirm(T('resignMsg'))) return;
   gameOver=true;
-  const winner=myColor===1?T('whiteLabel'):T('blackLabel');
+  const loserC = mode==='local' ? turn : myColor;   // local 2P: side to move resigns
+  const winner=loserC===1?T('whiteLabel'):T('blackLabel');
   setStatus(T('resignWin',{w:winner}));
+  if (mode!=='local'&&window.TRACK&&TRACK.result) TRACK.result('loss');
   draw(); updateResignBtn();
   if (mode==='online') {
     const wc=myColor===1?2:1;
@@ -427,19 +437,30 @@ canvas.addEventListener('touchend',e=>{
 },{passive:false});
 
 document.getElementById('btn-resign').addEventListener('click',doResign);
+function setModeBtns(activeId){
+  ['btn-cpu','btn-local','btn-online'].forEach(id=>
+    document.getElementById(id).classList.toggle('active', id===activeId));
+}
 document.getElementById('btn-cpu').addEventListener('click',()=>{
   mode='cpu';
-  document.getElementById('btn-cpu').classList.add('active');
-  document.getElementById('btn-online').classList.remove('active');
+  setModeBtns('btn-cpu');
   document.getElementById('online-panel').classList.remove('open');
   document.getElementById('diff-row').style.display='flex';
   if (pollTid) { clearInterval(pollTid); pollTid=null; }
   startGame();
 });
+document.getElementById('btn-local').addEventListener('click',()=>{
+  mode='local';
+  setModeBtns('btn-local');
+  document.getElementById('online-panel').classList.remove('open');
+  document.getElementById('diff-row').style.display='none';
+  if (pollTid) { clearInterval(pollTid); pollTid=null; }
+  startGame();
+  setStatus(T('blackTurn'));
+});
 document.getElementById('btn-online').addEventListener('click',()=>{
   mode='online'; gameOver=true;
-  document.getElementById('btn-online').classList.add('active');
-  document.getElementById('btn-cpu').classList.remove('active');
+  setModeBtns('btn-online');
   document.getElementById('online-panel').classList.add('open');
   document.getElementById('diff-row').style.display='none';
   setStatus(T('createLabel'));
@@ -467,7 +488,10 @@ document.getElementById('btn-join').addEventListener('click',async()=>{
     if (!rows||!rows.length) { alert(T('roomNotFound')); return; }
     const room=rows[0];
     if (room.status!=='waiting') { alert(T('roomStarted')); return; }
-    await sb(`/rest/v1/rooms?id=eq.${code}`,{method:'PATCH',body:JSON.stringify({player2_token:tok,status:'playing'})});
+    // Atomic claim: only succeeds while the room is still 'waiting', so two
+    // simultaneous joiners can't both take the guest seat.
+    const claimed=await sb(`/rest/v1/rooms?id=eq.${code}&status=eq.waiting`,{method:'PATCH',body:JSON.stringify({player2_token:tok,status:'playing'})});
+    if(!claimed||!claimed.length){ alert(T('roomStarted')); return; }
     roomId=code; myRole='guest'; myColor=2; lastMoves=0;
     const st=room.state;
     board=st.board; turn=st.turn; gameOver=false; lastMove=st.lastMove||null; moveCount=st.moves||0; winLine=null;

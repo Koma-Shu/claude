@@ -197,6 +197,7 @@ ja:{
   cpu:'CPU',
   wins_col:'勝利',
   host:'ホスト',
+  wait_host:'ホストの操作を待っています…',
   need_2:'2人以上で開始できます',
   code_short:'コードは4文字で入力してください',
   room_full:'部屋が満員です',
@@ -230,6 +231,7 @@ en:{
   cpu:'CPU',
   wins_col:'Wins',
   host:'HOST',
+  wait_host:'Waiting for host…',
   need_2:'Need at least 2 players',
   code_short:'Code must be 4 characters',
   room_full:'Room is full',
@@ -283,6 +285,7 @@ let NUM_PLAYERS=2;
 let TOTAL_ROUNDS=3;
 let ERASERS_PER=1;       // 1|2|3 erasers per player
 let IS_HOST=false;
+let trackSent=false;
 let LOCAL_IDX=0;         // which player index I control (online)
 let playerNames=[];
 let erasers=[];          // [{x,y,vx,vy,angle,av,alive,player}]
@@ -353,8 +356,11 @@ function createRoom(){
   setOlMsg(T('waiting'));
   // Verify the relay (room_messages) is reachable, then start polling.
   // keshibato needs ONLY room_messages — no `rooms` table dependency.
-  sbReq('/rest/v1/room_messages',{method:'POST',body:JSON.stringify({room:code,sender:'host',payload:{type:'host-ready'}})})
-    .then(()=>rmStart(hostOnMsg))
+  // Prefer:return=representation so we learn our row's seq — polling starts
+  // AFTER it, ignoring any stale messages left from a past room with this code.
+  sbReq('/rest/v1/room_messages',{method:'POST',headers:{'Prefer':'return=representation'},
+      body:JSON.stringify({room:code,sender:'host',payload:{type:'host-ready'}})})
+    .then(rows=>{ if(rows&&rows[0]&&rows[0].seq)RM_SEQ=rows[0].seq; rmStart(hostOnMsg); })
     .catch(e=>setOlMsg(e.message==='NO_TABLE'?T('need_tables'):T('error')+': '+e.message));
 }
 
@@ -396,7 +402,11 @@ async function joinRoom(){
   setOlMsg(T('connecting'));
   // Announce ourselves to the host via the relay (verifies room_messages too).
   try{
-    await sbReq('/rest/v1/room_messages',{method:'POST',body:JSON.stringify({room:RM_ROOM,sender:RM_ME,payload:{type:'hello',name:myName}})});
+    // Start polling after our own hello's seq — the host's lobby reply comes
+    // later, and anything older is stale traffic from a previous session.
+    const rows=await sbReq('/rest/v1/room_messages',{method:'POST',headers:{'Prefer':'return=representation'},
+      body:JSON.stringify({room:RM_ROOM,sender:RM_ME,payload:{type:'hello',name:myName}})});
+    if(rows&&rows[0]&&rows[0].seq)RM_SEQ=rows[0].seq;
   }catch(e){ RM_ROOM=null; setOlMsg(e.message==='NO_TABLE'?T('need_tables'):T('error')+': '+e.message); return; }
   rmStart(guestOnMsg);
   document.getElementById('ol-join').style.display='none';
@@ -443,11 +453,15 @@ function guestReceive(d){
   if(d.type==='start'){
     NUM_PLAYERS=d.n; TOTAL_ROUNDS=d.rounds; playerNames=d.names;
     ERASERS_PER=d.erasersPerPlayer||1;
-    roundNum=1; roundWins=[0,0,0,0];
+    roundNum=1; roundWins=[0,0,0,0]; trackSent=false;
     initRound(d.state);
     showScreen('scr-game');
   }
   if(d.type==='state') applyNetState(d.g);
+  if(d.type==='round'){    // host advanced to the next round / rematch
+    roundNum=d.roundNum;roundWins=d.roundWins;trackSent=(d.roundNum!==1)&&trackSent;
+    initRound(d.state);showScreen('scr-game');
+  }
 }
 
 function broadcastLobby(){
@@ -483,7 +497,7 @@ function startOnlineGame(){
   TOTAL_ROUNDS=parseInt(document.getElementById('sel-rounds-ol').value)||3;
   ERASERS_PER=parseInt(document.getElementById('sel-erasers-ol').value)||1;
   playerNames=lobbySlots.map((s,i)=>s.name||T('player_n',i+1));
-  roundNum=1; roundWins=[0,0,0,0];
+  roundNum=1; roundWins=[0,0,0,0]; trackSent=false;
   const state=buildState();
   sendToAll({type:'start',n:NUM_PLAYERS,rounds:TOTAL_ROUNDS,erasersPerPlayer:ERASERS_PER,names:playerNames,state});
   initRound(state);
@@ -609,6 +623,13 @@ function showResult(){
     btn.textContent=T('play_again');
     btn.onclick=playAgain;
     phase='gameend';
+    if(MODE!=='local'&&!trackSent&&window.TRACK&&TRACK.result){
+      const me=MODE==='cpu'?0:LOCAL_IDX;
+      if(me>=0){
+        trackSent=true;
+        TRACK.result(roundWins[me]===maxW?(ws.length>1?'draw':'win'):'loss');
+      }
+    }
     if(typeof SND!=='undefined'){
       SND.stopBGM();
       const me=MODE==='cpu'?0:(MODE==='online'?LOCAL_IDX:-1);
@@ -620,6 +641,9 @@ function showResult(){
     btn.textContent=T('next_round');
     btn.onclick=nextRound;
   }
+  // Online guests wait for the host to advance — their click would desync.
+  if(MODE==='online'&&!IS_HOST){btn.textContent=T('wait_host');btn.disabled=true;}
+  else btn.disabled=false;
   let html=`<tr><th></th><th>${T('wins_col')}</th></tr>`;
   for(let i=0;i<NUM_PLAYERS;i++){
     html+=`<tr><td><span style="color:${PC[i]}">■</span> ${playerNames[i]}</td><td style="font-weight:bold">${roundWins[i]}</td></tr>`;
@@ -628,8 +652,29 @@ function showResult(){
   showScreen('scr-result');
 }
 
-function nextRound(){roundNum++;initRound(null);showScreen('scr-game');}
-function playAgain(){roundNum=1;roundWins=[0,0,0,0];initRound(null);showScreen('scr-game');}
+function nextRound(){
+  if(MODE==='online'){
+    if(!IS_HOST)return;                      // guests wait for the host's 'round'
+    roundNum++;
+    const state=buildState();
+    sendToAll({type:'round',roundNum,roundWins:[...roundWins],state});
+    initRound(state);showScreen('scr-game');
+    return;
+  }
+  roundNum++;initRound(null);showScreen('scr-game');
+}
+function playAgain(){
+  trackSent=false;
+  if(MODE==='online'){
+    if(!IS_HOST)return;
+    roundNum=1;roundWins=[0,0,0,0];
+    const state=buildState();
+    sendToAll({type:'round',roundNum,roundWins:[0,0,0,0],state});
+    initRound(state);showScreen('scr-game');
+    return;
+  }
+  roundNum=1;roundWins=[0,0,0,0];initRound(null);showScreen('scr-game');
+}
 
 // ═══════════════════════════════════════════════════
 // PHYSICS
@@ -961,7 +1006,7 @@ function startLocal(){
   TOTAL_ROUNDS=parseInt(document.getElementById('sel-rounds').value)||3;
   ERASERS_PER=parseInt(document.getElementById('sel-erasers').value)||1;
   if(MODE==='local') NUM_PLAYERS=parseInt(document.getElementById('sel-count').value)||2;
-  roundNum=1; roundWins=[0,0,0,0];
+  roundNum=1; roundWins=[0,0,0,0]; trackSent=false;
   playerNames=Array.from({length:NUM_PLAYERS},(_,i)=>
     MODE==='cpu'?(i===0?T('player_n',1):T('cpu')):T('player_n',i+1));
   initRound(null);

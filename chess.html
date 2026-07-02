@@ -79,6 +79,7 @@
 <div id="status">vs CPU モード</div>
 <div id="mode-buttons">
   <button class="mbtn active" id="btn-cpu">vs CPU</button>
+  <button class="mbtn" id="btn-local">👥 <span id="lbl-local">ローカル 2P</span></button>
   <button class="mbtn" id="btn-online">🌐 <span id="lbl-online">オンライン 2P</span></button>
 </div>
 <div id="diff-row">
@@ -144,7 +145,8 @@ const LANG={
   ja:{yourTurn:'♙ あなたの番（白）',cpuThink:'CPU 思考中...',win:'あなたの勝ち！🎉',cpuWin:'CPU の勝ち',opWin:'相手の勝ち',draw:'引き分け',resign:'投了',resignMsg:'投了しますか？',weak:'弱い',normal:'普通',strong:'強い',checkmate:'チェックメイト',stalemate:'ステールメイト — 引き分け',check:'チェック！⚠',
       whiteTurn:'♙ 白の番',blackTurn:'♟ 黒の番',checkWhite:'チェック！⚠ 白の番',checkBlack:'チェック！⚠ 黒の番',
       yourTurnW:'♙ あなたの番',yourTurnB:'♟ あなたの番',oppTurnW:'♙ 相手の番',oppTurnB:'♟ 相手の番',
-      whiteLabel:'白',blackLabel:'黒',onlineMode:'オンライン 2P',helpBtn:'? ルール',
+      whiteLabel:'白',blackLabel:'黒',onlineMode:'オンライン 2P',localMode:'ローカル 2P',
+      wWins:'白の勝ち！',bWins:'黒の勝ち！',helpBtn:'? ルール',
       rateGame:'このゲームを評価する',roomCode:'ルームコード',shareCode:'相手にこのコードを伝えてください',
       codePlaceholder:'コードを入力',joinBtn:'参加',submitBtn:'送信',commentPlaceholder:'コメント（任意）...',
       noRatings:'まだ評価がありません',enter6:'6文字のコードを入力してください',
@@ -158,7 +160,8 @@ const LANG={
   en:{yourTurn:'♙ Your turn (White)',cpuThink:'CPU thinking...',win:'You win! 🎉',cpuWin:'CPU wins',opWin:'Opponent wins',draw:'Draw',resign:'Resign',resignMsg:'Resign?',weak:'Weak',normal:'Normal',strong:'Strong',checkmate:'Checkmate',stalemate:'Stalemate — Draw',check:'Check! ⚠',
       whiteTurn:'♙ White\'s turn',blackTurn:'♟ Black\'s turn',checkWhite:'Check! ⚠ White\'s turn',checkBlack:'Check! ⚠ Black\'s turn',
       yourTurnW:'♙ Your turn',yourTurnB:'♟ Your turn',oppTurnW:'♙ Opponent\'s turn',oppTurnB:'♟ Opponent\'s turn',
-      whiteLabel:'White',blackLabel:'Black',onlineMode:'Online 2P',helpBtn:'? Rules',
+      whiteLabel:'White',blackLabel:'Black',onlineMode:'Online 2P',localMode:'Local 2P',
+      wWins:'White wins!',bWins:'Black wins!',helpBtn:'? Rules',
       rateGame:'Rate this game',roomCode:'Room Code',shareCode:'Share this code with opponent',
       codePlaceholder:'Enter code',joinBtn:'Join',submitBtn:'Submit',commentPlaceholder:'Comment (optional)...',
       noRatings:'No ratings yet',enter6:'Enter a 6-character code',
@@ -176,6 +179,7 @@ function applyLang(){
   document.getElementById('lang-btn').textContent=lang==='ja'?'EN':'JA';
   document.documentElement.lang=lang;
   document.getElementById('lbl-online').textContent=T('onlineMode');
+  document.getElementById('lbl-local').textContent=T('localMode');
   document.getElementById('btn-create').textContent=T('createRoom');
   document.getElementById('btn-resign').textContent=T('resign');
   document.getElementById('lbl-white').textContent=T('whiteLabel');
@@ -539,7 +543,7 @@ function updateCaptured() {
 
 function setStatus(msg) { document.getElementById('status').textContent=msg; }
 function updateResignBtn() {
-  const can=!gameOver&&!cpuBusy&&(mode==='cpu'?turn===myColor:turn===myColor);
+  const can=!gameOver&&!cpuBusy&&(mode==='local'?true:turn===myColor);
   document.getElementById('btn-resign').style.display=can?'inline-block':'none';
 }
 
@@ -626,13 +630,16 @@ function checkEndGame() {
   if (moves.length===0) {
     gameOver=true;
     if (inCheck(board,cl)) {
-      const ckWinner = cl===myColor ? (mode==='cpu'?T('cpuWin'):T('opWin')) : T('win');
+      const ckWinner = mode==='local' ? (cl===1?T('bWins'):T('wWins'))
+        : cl===myColor ? (mode==='cpu'?T('cpuWin'):T('opWin')) : T('win');
       setStatus(T('checkmate')+' — '+ckWinner);
-      if(window.SND){if(cl===myColor)SND.sfx.lose();else SND.sfx.win();}
+      if(window.SND){if(mode!=='local'&&cl===myColor)SND.sfx.lose();else SND.sfx.win();}
+      if (mode!=='local'&&window.TRACK&&TRACK.result) TRACK.result(cl===myColor?'loss':'win');
       if (mode==='online') pushGameOver(3-cl);
     } else {
       setStatus(T('stalemate'));
       if(window.SND) SND.sfx.lose();
+      if (mode!=='local'&&window.TRACK&&TRACK.result) TRACK.result('draw');
       if (mode==='online') pushGameOver(3);
     }
     updateResignBtn();
@@ -664,8 +671,10 @@ function doResign() {
   if (gameOver) return;
   if (!confirm(T('resignMsg'))) return;
   gameOver=true;
-  const winner=myColor===1?T('blackLabel'):T('whiteLabel');
+  const loserC = mode==='local' ? turn : myColor;   // local 2P: side to move resigns
+  const winner=loserC===1?T('blackLabel'):T('whiteLabel');
   setStatus(T('resignWin',{w:winner}));
+  if (mode!=='local'&&window.TRACK&&TRACK.result) TRACK.result('loss');
   draw(); updateResignBtn();
   if (mode==='online') pushGameOver(3-myColor);
   if (pollTid) { clearInterval(pollTid); pollTid=null; }
@@ -687,20 +696,31 @@ canvas.addEventListener('touchend',e=>{
 },{passive:false});
 
 // Online
+function setModeBtns(activeId){
+  ['btn-cpu','btn-local','btn-online'].forEach(id=>
+    document.getElementById(id).classList.toggle('active', id===activeId));
+}
 document.getElementById('btn-cpu').addEventListener('click',()=>{
   mode='cpu';
-  document.getElementById('btn-cpu').classList.add('active');
-  document.getElementById('btn-online').classList.remove('active');
+  setModeBtns('btn-cpu');
   document.getElementById('online-panel').classList.remove('open');
   document.getElementById('diff-row').style.display='flex';
   if (pollTid) { clearInterval(pollTid); pollTid=null; }
   startGame();
 });
+document.getElementById('btn-local').addEventListener('click',()=>{
+  mode='local';
+  setModeBtns('btn-local');
+  document.getElementById('online-panel').classList.remove('open');
+  document.getElementById('diff-row').style.display='none';
+  if (pollTid) { clearInterval(pollTid); pollTid=null; }
+  startGame();
+  setStatus(T('whiteTurn'));
+});
 document.getElementById('btn-online').addEventListener('click',()=>{
   mode='online'; gameOver=true;
   document.getElementById('diff-row').style.display='none';
-  document.getElementById('btn-online').classList.add('active');
-  document.getElementById('btn-cpu').classList.remove('active');
+  setModeBtns('btn-online');
   document.getElementById('online-panel').classList.add('open');
   setStatus(T('createLabel'));
   board=mkBoard(); draw(); updateResignBtn();
@@ -729,7 +749,10 @@ document.getElementById('btn-join').addEventListener('click',async()=>{
     if (!rows||!rows.length) { alert(T('roomNotFound')); return; }
     const room=rows[0];
     if (room.status!=='waiting') { alert(T('roomStarted')); return; }
-    await sb(`/rest/v1/rooms?id=eq.${code}`,{method:'PATCH',body:JSON.stringify({player2_token:tok,status:'playing'})});
+    // Atomic claim: only succeeds while the room is still 'waiting', so two
+    // simultaneous joiners can't both take the guest seat.
+    const claimed=await sb(`/rest/v1/rooms?id=eq.${code}&status=eq.waiting`,{method:'PATCH',body:JSON.stringify({player2_token:tok,status:'playing'})});
+    if(!claimed||!claimed.length){ alert(T('roomStarted')); return; }
     roomId=code; myRole='guest'; myColor=2; lastMoveCount=0;
     const st=room.state;
     board=deserBoard(st.board); turn=st.turn; gameOver=false;
