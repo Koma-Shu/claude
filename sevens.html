@@ -69,6 +69,12 @@ let np=parseInt(localStorage.getItem('sevens_np'))||4;
 let difficulty=localStorage.getItem('sevens_diff')||'medium';
 if(difficulty==='normal')difficulty='medium'; // legacy value from old button bug
 let gameMode='solo',myIdx=0,onlineRole=null,roomId=null,onlineSeq=-1,sbar=null;
+let trackSent=false;
+function reportTrack(myRank,total){
+  if(trackSent||gameMode==='local2p'||!(window.TRACK&&TRACK.result))return;
+  trackSent=true;
+  TRACK.result(myRank===1?'win':myRank===total?'loss':'draw');
+}
 let hands,placed,passesLeft,turn,finishOrder,busted,gameOver;
 
 function isHuman(p){return gameMode==='solo'?p===myIdx:(p===0||p===1);}
@@ -105,7 +111,7 @@ function setup(){
   myIdx=(gameMode==='online'&&onlineRole==='guest')?1:0;
   const st=computeInitState(); onlineSeq=st.seq;
   applyState(st);
-  $('winmsg').textContent='';$('ranklist').textContent='';
+  $('winmsg').textContent='';$('ranklist').textContent='';trackSent=false;
   render(); afterTurnChange();
 }
 
@@ -246,6 +252,7 @@ function endGame(){
   if(gameMode==='online'){NETPLAY.stopPoll();if(sbar)sbar.remove();}
   for(let p=0;p<np;p++)if(!finishOrder.includes(p))finishOrder.push(p);
   const myRank=finishOrder.indexOf(myIdx)+1;
+  reportTrack(myRank,np);
   const m=$('winmsg');
   if(myRank===1){m.textContent='🏆 '+t('you')+' 1st!';m.style.color='#7dffb0';SND.sfx.win&&SND.sfx.win();}
   else{m.textContent=`${t('you')}: ${myRank}${lang==='ja'?'位':'th'}`;m.style.color='#ffe27a';SND.sfx.lose&&SND.sfx.lose();}
@@ -299,14 +306,14 @@ function initUI(){
         roomId=id;onlineRole='host';myIdx=0;gameMode='online';
         applyState(room.state);onlineSeq=room.state.seq;
         if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('host');
-        $('winmsg').textContent='';$('ranklist').textContent='';
+        $('winmsg').textContent='';$('ranklist').textContent='';trackSent=false;
         render();afterTurnChange();NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();
       },
       onJoin:(room,tok)=>{
         roomId=room.id;onlineRole='guest';myIdx=1;gameMode='online';
         applyState(room.state);onlineSeq=room.state.seq;
         if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('guest');
-        $('winmsg').textContent='';$('ranklist').textContent='';
+        $('winmsg').textContent='';$('ranklist').textContent='';trackSent=false;
         render();afterTurnChange();NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();
       },
       onCancel:()=>{}

@@ -405,14 +405,20 @@
     if (!_bgmRunning || !_ctx) return;
     const seq = THEMES[_bgmTheme] || THEMES.title;
     const now = _ctx.currentTime;
-    const dur = _scheduleSeq(seq, 'mel',  now, 0.13, 'square');
-    _scheduleSeq(seq, 'bass', now, 0.075, 'sine');
+    const melDur  = _scheduleSeq(seq, 'mel',  now, 0.13, 'square');
+    const bassDur = _scheduleSeq(seq, 'bass', now, 0.075, 'sine');
+    // Loop after BOTH voices finish — melody and bass differ in total length
+    // in most themes, and looping on the melody alone stacked the next bass
+    // pass on top of the still-playing one.
+    const dur = Math.max(melDur, bassDur);
     _bgmTimer = setTimeout(_scheduleLoop, Math.max(50, (dur - 0.25) * 1000));
   }
 
   function startBGM(theme) {
-    if (_bgmMuted) return;
+    // Remember the requested theme even while muted, so unmuting later
+    // resumes the page's own theme instead of the stale default.
     _bgmTheme = theme || _bgmTheme;
+    if (_bgmMuted) return;
     _bgmRunning = true;
     if (_bgmTimer) { clearTimeout(_bgmTimer); _bgmTimer = null; }
     _ac();

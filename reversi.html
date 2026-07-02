@@ -249,6 +249,8 @@ let board, turn, gameOver, lastMove, validMoves;
 let mode = 'cpu';
 let myColor = 1, cpuColor = 2, cpuBusy = false;
 let roomId = null, myRole = null, pollTid = null, lastMoves = -1;
+let resultReported = false;
+function reportResult(res){if(resultReported)return;resultReported=true;if(window.TRACK&&TRACK.result)TRACK.result(res);}
 
 // --- Time control ---
 let timeMode = 'none'; // 'none'|'move'|'total'
@@ -325,6 +327,7 @@ function timeoutLose(loser) {
   const winner = loser === 1 ? T('whiteLabel') : T('blackLabel');
   const loserName = loser === 1 ? T('blackLabel') : T('whiteLabel');
   setStatus(T('timeoutLose',{loser:loserName,winner}));
+  reportResult(loser===myColor?'loss':'win');
   draw();
   updateResignBtn();
 }
@@ -471,7 +474,7 @@ function updateResignBtn() {
 // --- Game flow ---
 function startCpu() {
   board=initBoard(); turn=1; gameOver=false; lastMove=null; cpuBusy=false;
-  myColor=1; cpuColor=2;
+  myColor=1; cpuColor=2; resultReported=false;
   validMoves=validFor(board,turn);
   setStatus('⬛ '+T('yourTurn'));
   initTimers();
@@ -550,6 +553,10 @@ function endGame() {
   }
   if(lang==='ja') setStatus(`ゲーム終了 — ${msg}  (黒:${bk} 白:${wh})`);
   else setStatus(`Game over — ${msg}  (B:${bk} W:${wh})`);
+  {
+    const iWin=(mode==='cpu'&&bk>wh)||(mode!=='cpu'&&((myColor===1&&bk>wh)||(myColor===2&&wh>bk)));
+    reportResult(bk===wh?'draw':iWin?'win':'loss');
+  }
   draw(); updateResignBtn();
   if (pollTid) { clearInterval(pollTid); pollTid=null; }
 }
@@ -562,6 +569,7 @@ function doResign() {
   const loser = myColor;
   const winner = loser === 1 ? T('whiteLabel') : T('blackLabel');
   setStatus(T('resignWin',{w:winner}));
+  reportResult('loss');
   draw(); updateResignBtn();
   if (mode === 'online') {
     const mc = lastMoves + 1;
@@ -617,7 +625,7 @@ document.getElementById('btn-online').addEventListener('click',()=>{
 // Online: Create room
 document.getElementById('btn-create').addEventListener('click', async () => {
   const code=genCode(), tok=genTok();
-  roomId=code; myRole='host'; myColor=1; lastMoves=0;
+  roomId=code; myRole='host'; myColor=1; lastMoves=0; resultReported=false;
   const state={board:initBoard(),turn:1,moves:0,winner:0,lastMove:null};
   try {
     await sb('/rest/v1/rooms',{method:'POST',body:JSON.stringify({id:code,game:GAME,state,player1_token:tok,status:'waiting'})});
@@ -641,7 +649,7 @@ document.getElementById('btn-join').addEventListener('click', async () => {
     const room=rows[0];
     if (room.status!=='waiting') { alert(T('roomStarted')); return; }
     await sb(`/rest/v1/rooms?id=eq.${code}`,{method:'PATCH',body:JSON.stringify({player2_token:tok,status:'playing'})});
-    roomId=code; myRole='guest'; myColor=2; lastMoves=0;
+    roomId=code; myRole='guest'; myColor=2; lastMoves=0; resultReported=false;
     const st=room.state;
     board=st.board; turn=st.turn; gameOver=false; lastMove=st.lastMove||null;
     validMoves=validFor(board,turn);
@@ -675,6 +683,7 @@ async function pollRoom() {
         const omsg=st.winner===3?T('draw'):won?T('win'):T('opWin');
         if(lang==='ja') setStatus(`ゲーム終了 — ${omsg}  (黒:${bk} 白:${wh})`);
         else setStatus(`Game over — ${omsg}  (B:${bk} W:${wh})`);
+        reportResult(st.winner===3?'draw':won?'win':'loss');
         clearInterval(pollTid); pollTid=null;
       } else {
         setStatus(turn===myColor?(myColor===1?T('yourTurnB'):T('yourTurnW')):(myColor===1?T('oppTurnW'):T('oppTurnB')));

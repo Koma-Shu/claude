@@ -122,7 +122,12 @@
     ov.appendChild(row);
     document.body.appendChild(ov);
 
+    // once-guard: tapping early must not let the auto-dismiss timer fire
+    // onDone a second time (games pass state-advancing callbacks here).
+    let done = false;
     const dismiss = () => {
+      if (done) return;
+      done = true;
       ov.style.transition = 'opacity 0.3s';
       ov.style.opacity = '0';
       setTimeout(() => { if (ov.parentNode) document.body.removeChild(ov); if (onDone) onDone(); }, 310);

@@ -76,6 +76,7 @@ let jokerTrail=null; // tracks which player most recently received a no-match ca
 let np=parseInt(localStorage.getItem('oldmaid_np'))||4;
 let gameMode='solo',myIdx=0,onlineRole=null,roomId=null,onlineSeq=-1,sbar=null;
 let hands,turn,safeOrder,gameOver,phase,victim;
+let trackSent=false;
 
 function isHuman(p){return gameMode==='solo'?p===myIdx:(p===0||p===1);}
 function playerLabel(p){
@@ -109,7 +110,7 @@ function setup(){
   myIdx=(gameMode==='online'&&onlineRole==='guest')?1:0;
   const st=computeInitState();onlineSeq=st.seq;
   applyState(st);
-  $('winmsg').textContent='';$('ranklist').textContent='';
+  $('winmsg').textContent='';$('ranklist').textContent='';trackSent=false;
   render();
   if(checkSafe())return;
   setTimeout(startTurn,500);
@@ -238,6 +239,10 @@ function endGame(){
   gameOver=true;SND.stopBGM&&SND.stopBGM();
   if(gameMode==='online'){NETPLAY.stopPoll();if(sbar)sbar.remove();}
   const loser=safeOrder[safeOrder.length-1];
+  if(!trackSent&&gameMode!=='local2p'&&window.TRACK&&TRACK.result){
+    trackSent=true;
+    TRACK.result(loser===myIdx?'loss':'win');
+  }
   const m=$('winmsg');
   if(loser===myIdx){m.textContent='😱 '+t('youlose');m.style.color='#ff9090';SND.sfx.lose&&SND.sfx.lose();}
   else{m.textContent='🎉 '+t('youwin');m.style.color='#7dffb0';SND.sfx.win&&SND.sfx.win();}
@@ -292,8 +297,8 @@ function initUI(){
   onbtn.onclick=()=>{
     NETPLAY.showLobby({
       game:'oldmaid',lang,initState:()=>computeInitState(),
-      onHost:(id,room)=>{roomId=id;onlineRole='host';myIdx=0;gameMode='online';applyState(room.state);onlineSeq=room.state.seq;if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('host');$('winmsg').textContent='';$('ranklist').textContent='';render();if(checkSafe())return;setTimeout(startTurn,500);NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();},
-      onJoin:(room,tok)=>{roomId=room.id;onlineRole='guest';myIdx=1;gameMode='online';applyState(room.state);onlineSeq=room.state.seq;if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('guest');$('winmsg').textContent='';$('ranklist').textContent='';render();NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();},
+      onHost:(id,room)=>{roomId=id;onlineRole='host';myIdx=0;gameMode='online';applyState(room.state);onlineSeq=room.state.seq;if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('host');$('winmsg').textContent='';$('ranklist').textContent='';trackSent=false;render();if(checkSafe())return;setTimeout(startTurn,500);NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();},
+      onJoin:(room,tok)=>{roomId=room.id;onlineRole='guest';myIdx=1;gameMode='online';applyState(room.state);onlineSeq=room.state.seq;if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('guest');$('winmsg').textContent='';$('ranklist').textContent='';trackSent=false;render();NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();},
       onCancel:()=>{}
     });
   };

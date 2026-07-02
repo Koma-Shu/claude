@@ -1,4 +1,4 @@
-const CACHE = 'arcade-v3.37';
+const CACHE = 'arcade-v3.38';
 
 // Base path of the SW (e.g. '/claude/' on GitHub Pages, '/' on root)
 const BASE = self.location.pathname.replace(/sw\.js$/, '');
@@ -88,6 +88,9 @@ self.addEventListener('fetch', e => {
   // Supabase / external API → network only
   if (url.hostname !== self.location.hostname) return;
 
+  // Only GET is cacheable — let POST etc. pass through untouched
+  if (e.request.method !== 'GET') return;
+
   // Game & static files → network first (always fresh when online),
   // fall back to cache when offline. `cache: 'reload'` bypasses the browser's
   // HTTP cache so we never get a stale copy (GitHub Pages sets max-age=600);
@@ -100,6 +103,8 @@ self.addEventListener('fetch', e => {
         caches.open(CACHE).then(c => c.put(e.request, clone));
       }
       return res;
-    }).catch(() => caches.match(e.request))
+    }).catch(() =>
+      caches.match(e.request).then(r => r || caches.match(BASE + 'arcade.html'))
+    )
   );
 });

@@ -109,6 +109,26 @@
     .sort-btn:hover { border-color:#555; color:#aaa; }
     .sort-btn.active { border-color:#00d4aa; color:#00d4aa; background:rgba(0,212,170,0.07); }
     #no-results { color:#333; letter-spacing:3px; font-size:0.75rem; text-align:center; padding:40px; display:none; width:100%; }
+    /* Category filter chips */
+    .cat-btns { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; width:100%; margin-top:2px; }
+    .cat-btn { background:transparent; border:1px solid #2a2a3a; border-radius:20px; color:#555; font-family:'Courier New',monospace; font-size:0.68rem; padding:6px 14px; cursor:pointer; letter-spacing:2px; transition:all .15s; }
+    .cat-btn:hover { border-color:#555; color:#aaa; }
+    .cat-btn.active { border-color:#ffd700; color:#ffd700; background:rgba(255,215,0,0.06); }
+    /* Favorite toggle on each card */
+    .fav-btn { background:none; border:none; cursor:pointer; font-size:1.05rem; color:#333; padding:0 2px; line-height:1; transition:color .15s, transform .1s; }
+    .fav-btn:hover { color:#666; }
+    .fav-btn.on { color:#ffd700; }
+    .fav-btn:active { transform:scale(1.25); }
+    /* Mobile */
+    @media (max-width: 520px) {
+      body { padding: 56px 10px 40px; }
+      h1 { font-size: 1.5rem; letter-spacing: 6px; }
+      .subtitle { margin-bottom: 32px; }
+      .cards { gap: 22px; }
+      .card { width: 100%; max-width: 340px; }
+      .preview { width: 100%; height: auto; }
+      #search-sort { gap: 8px; }
+    }
   </style>
   <script src="sound.js"></script>
 </head>
@@ -125,7 +145,16 @@
     <button class="sort-btn active" data-sort="popular" id="sb-popular">★ 人気順</button>
     <button class="sort-btn" data-sort="rating" id="sb-rating">評価順</button>
     <button class="sort-btn" data-sort="plays" id="sb-plays">プレイ数順</button>
+    <button class="sort-btn" data-sort="recent" id="sb-recent">最近</button>
     <button class="sort-btn" data-sort="name" id="sb-name">名前順</button>
+  </div>
+  <div class="cat-btns" id="cat-btns">
+    <button class="cat-btn active" data-cat="all">ALL</button>
+    <button class="cat-btn" data-cat="fav">★ お気に入り</button>
+    <button class="cat-btn" data-cat="board">ボード</button>
+    <button class="cat-btn" data-cat="card">カード</button>
+    <button class="cat-btn" data-cat="action">アクション</button>
+    <button class="cat-btn" data-cat="online">オンライン</button>
   </div>
 </div>
 
@@ -863,8 +892,27 @@ const GAME_NAMES = {
   yacht:       {ja:'ヨット',         en:'YACHT DICE'},
 };
 
+// Category + online metadata per game (drives the filter chips)
+const GAME_META = {
+  snake:{cat:'action'}, symbiont:{cat:'action'}, capbaseball:{cat:'action'},
+  keshibato:{cat:'action',online:true}, bikerun:{cat:'action'}, tennis:{cat:'action'},
+  reversi:{cat:'board',online:true}, gomoku:{cat:'board',online:true},
+  chess:{cat:'board',online:true}, shogi:{cat:'board',online:true},
+  mahjong:{cat:'board',online:true}, connect4:{cat:'board',online:true},
+  mancala:{cat:'board',online:true}, yacht:{cat:'board',online:true},
+  blackjack:{cat:'card'}, poker:{cat:'card'},
+  daifugo:{cat:'card',online:true}, sevens:{cat:'card',online:true},
+  memory:{cat:'card',online:true}, oldmaid:{cat:'card',online:true},
+};
+
+// Favorites (pin to top + FAV filter), persisted as one array
+let favs = new Set();
+try { favs = new Set(JSON.parse(localStorage.getItem('arcade_favs') || '[]')); } catch(_) {}
+function saveFavs(){ try{ localStorage.setItem('arcade_favs', JSON.stringify([...favs])); }catch(_){} }
+
 const gameStats = {}; // game → {avg, count, plays}
 let currentSort = 'popular';
+let currentCat = 'all';
 let searchQuery = '';
 
 function popScore(g) {
@@ -882,31 +930,50 @@ function sortAndFilter() {
     const g = c.dataset.game;
     const name = (GAME_NAMES[g]?.[lang] || g).toLowerCase();
     const desc = (c.querySelector('.card-desc')?.textContent || '').toLowerCase();
-    const vis = !q || name.includes(q) || desc.includes(q) || g.includes(q);
+    const meta = GAME_META[g] || {};
+    const catOk = currentCat === 'all'
+      || (currentCat === 'fav' && favs.has(g))
+      || (currentCat === 'online' && meta.online)
+      || meta.cat === currentCat;
+    const vis = catOk && (!q || name.includes(q) || desc.includes(q) || g.includes(q));
     c.style.display = vis ? '' : 'none';
     if (vis) any = true;
   });
   document.getElementById('no-results').style.display = any ? 'none' : '';
 
+  const lastPlay = g => parseInt(localStorage.getItem('lastplay_' + g) || '0');
   const visible = cards.filter(c => c.style.display !== 'none');
   visible.sort((a, b) => {
     const ga = a.dataset.game, gb = b.dataset.game;
+    // favorites always pin to the top within any sort
+    const fa = favs.has(ga) ? 1 : 0, fb = favs.has(gb) ? 1 : 0;
+    if (fa !== fb) return fb - fa;
     if (currentSort === 'popular') return popScore(gb) - popScore(ga);
     if (currentSort === 'rating')  return (gameStats[gb]?.avg || 0) - (gameStats[ga]?.avg || 0);
     if (currentSort === 'plays')   return (gameStats[gb]?.plays || 0) - (gameStats[ga]?.plays || 0);
-    return ga.localeCompare(gb);
+    if (currentSort === 'recent')  return lastPlay(gb) - lastPlay(ga);
+    const na = GAME_NAMES[ga]?.[lang] || ga, nb = GAME_NAMES[gb]?.[lang] || gb;
+    return na.localeCompare(nb, lang);
   });
   visible.forEach(c => container.appendChild(c));
 }
 
 function updateSortLabels() {
   const lbls = {
-    ja: { popular:'★ 人気順', rating:'評価順', plays:'プレイ数順', name:'名前順' },
-    en: { popular:'★ Popular', rating:'Rating', plays:'Most Played', name:'A–Z' }
+    ja: { popular:'★ 人気順', rating:'評価順', plays:'プレイ数順', recent:'最近', name:'名前順' },
+    en: { popular:'★ Popular', rating:'Rating', plays:'Most Played', recent:'Recent', name:'A–Z' }
   };
   document.querySelectorAll('.sort-btn').forEach(btn => {
     const k = btn.dataset.sort;
     if (lbls[lang]?.[k]) btn.textContent = lbls[lang][k];
+  });
+  const clbls = {
+    ja: { all:'ALL', fav:'★ お気に入り', board:'ボード', card:'カード', action:'アクション', online:'オンライン' },
+    en: { all:'ALL', fav:'★ Favorites', board:'Board', card:'Card', action:'Action', online:'Online' }
+  };
+  document.querySelectorAll('.cat-btn').forEach(btn => {
+    const k = btn.dataset.cat;
+    if (clbls[lang]?.[k]) btn.textContent = clbls[lang][k];
   });
   const noRes = document.getElementById('no-results');
   if (noRes) noRes.textContent = lang === 'ja' ? '該当するゲームがありません' : 'No games found';
@@ -920,7 +987,18 @@ document.querySelectorAll('.sort-btn').forEach(btn => {
     currentSort = btn.dataset.sort;
     document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    SND.sfx.click();
+    if (window.SND) SND.sfx.click();
+    sortAndFilter();
+  });
+});
+
+// Category chips
+document.querySelectorAll('.cat-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentCat = btn.dataset.cat;
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (window.SND) SND.sfx.click();
     sortAndFilter();
   });
 });
@@ -931,13 +1009,34 @@ document.getElementById('game-search').addEventListener('input', e => {
   sortAndFilter();
 });
 
-// Play count tracking (localStorage)
+// Favorite star on every card header
+document.querySelectorAll('.card[data-game]').forEach(card => {
+  const g = card.dataset.game;
+  const header = card.querySelector('.card-header');
+  if (!header) return;
+  const b = document.createElement('button');
+  b.className = 'fav-btn' + (favs.has(g) ? ' on' : '');
+  b.textContent = favs.has(g) ? '★' : '☆';
+  b.setAttribute('aria-label', 'favorite');
+  b.addEventListener('click', () => {
+    if (favs.has(g)) favs.delete(g); else favs.add(g);
+    b.classList.toggle('on', favs.has(g));
+    b.textContent = favs.has(g) ? '★' : '☆';
+    saveFavs();
+    if (window.SND) SND.sfx.click();
+    sortAndFilter();
+  });
+  header.appendChild(b);
+});
+
+// Play count + last-played tracking (localStorage)
 document.querySelectorAll('.play-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const game = btn.closest('.card[data-game]')?.dataset.game;
     if (!game) return;
     const n = parseInt(localStorage.getItem('plays_' + game) || '0') + 1;
     localStorage.setItem('plays_' + game, n);
+    localStorage.setItem('lastplay_' + game, Date.now());
   });
 });
 
@@ -947,6 +1046,8 @@ async function loadAllStats() {
                   'blackjack','poker','daifugo','sevens','memory','oldmaid','connect4','mancala','bikerun','tennis','yacht'];
   GAMES.forEach(g => {
     gameStats[g] = { avg: 0, count: 0, plays: parseInt(localStorage.getItem('plays_' + g) || '0') };
+    const el = document.getElementById('avg-' + g);
+    if (el && !el.textContent) el.textContent = '★ –';
   });
 
   try {
@@ -987,21 +1088,20 @@ loadAllStats();
 
 // ── BGM: start on first user interaction ──────────────────────
 document.addEventListener('click', function startAudio() {
-  SND.startBGM('title');
-  SND.createBtn();
+  if (window.SND) { SND.startBGM('title'); SND.createBtn(); }
   document.removeEventListener('click', startAudio);
 }, { once: true });
 
 // Also initialize on first keydown (for keyboard users)
 document.addEventListener('keydown', function startAudioKey() {
-  SND.startBGM('title');
-  SND.createBtn();
+  if (window.SND) { SND.startBGM('title'); SND.createBtn(); }
   document.removeEventListener('keydown', startAudioKey);
 }, { once: true });
 
 // --- Snake preview ---
 (function() {
   const c = document.getElementById('snakePreview');
+  if (!c) return;
   const ctx = c.getContext('2d');
   const W = c.width, H = c.height;
   const CELL = 16, COLS = Math.floor(W/CELL), ROWS = Math.floor(H/CELL);
@@ -1027,6 +1127,7 @@ document.addEventListener('keydown', function startAudioKey() {
 // --- Symbiont preview ---
 (function() {
   const c = document.getElementById('symbPreview');
+  if (!c) return;
   const ctx = c.getContext('2d');
   const W = c.width, H = c.height, MID = H/2;
   const lg=ctx.createLinearGradient(0,0,0,MID); lg.addColorStop(0,'#1a1a2e'); lg.addColorStop(1,'#16213e');
@@ -1147,6 +1248,7 @@ document.addEventListener('keydown', function startAudioKey() {
 // --- Reversi preview ---
 (function() {
   const c=document.getElementById('revPreview');
+  if(!c)return;
   const ctx=c.getContext('2d');
   const W=c.width,H=c.height,CELL=Math.floor(Math.min(W,H)/8);
   const OX=Math.floor((W-CELL*8)/2), OY=Math.floor((H-CELL*8)/2);

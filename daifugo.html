@@ -75,6 +75,7 @@ let gameMode='solo'; // 'solo' | 'local2p' | 'online'
 let myIdx=0;         // my player index (0=host/solo, 1=guest)
 let onlineRole=null; // 'host' | 'guest'
 let roomId=null,onlineSeq=-1,sbar=null;
+let trackSent=false;
 
 let hands,field,turn,lastPlayer,passed,finishOrder,gameOver,selected,cut8flash;
 
@@ -108,7 +109,7 @@ function setup(){
   onlineSeq=st.seq;
   hands=st.hands;field=st.field;lastPlayer=st.lastPlayer;passed=st.passed;
   finishOrder=st.finishOrder;gameOver=st.gameOver;cut8flash=st.cut8flash;turn=st.turn;
-  selected=new Set();
+  selected=new Set();trackSent=false;
   $('winmsg').textContent='';$('ranklist').textContent='';
   render();
   afterTurnChange();
@@ -313,10 +314,17 @@ function enumeratePlays(hand){
   }
   return res;
 }
+function reportTrack(){
+  if(trackSent||gameMode==='local2p'||!(window.TRACK&&TRACK.result))return;
+  trackSent=true;
+  const r=finishOrder.indexOf(myIdx);
+  TRACK.result(r===0?'win':r===finishOrder.length-1?'loss':'draw');
+}
 function endGame(){
   gameOver=true;SND.stopBGM&&SND.stopBGM();
   if(gameMode==='online')NETPLAY.stopPoll();
   for(let p=0;p<np;p++)if(!finishOrder.includes(p))finishOrder.push(p);
+  reportTrack();
   const myRank=finishOrder.indexOf(myIdx);
   const m=$('winmsg');
   if(myRank===0){m.textContent='🏆 '+rankName(0)+'！';m.style.color='#7dffb0';SND.sfx.win&&SND.sfx.win();}
@@ -344,7 +352,7 @@ function applyState(st){
 function onPoll(room){
   if(!room.state||room.state.seq<=onlineSeq)return;
   applyState(room.state);
-  if(room.state.gameOver)NETPLAY.stopPoll();
+  if(room.state.gameOver){NETPLAY.stopPoll();reportTrack();}
   afterTurnChange();
 }
 

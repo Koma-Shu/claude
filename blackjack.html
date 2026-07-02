@@ -24,16 +24,18 @@
   button{font-family:inherit;font-size:.95rem;font-weight:bold;border:none;border-radius:10px;
     padding:11px 26px;cursor:pointer;letter-spacing:1px;transition:transform .1s,filter .1s;}
   button:active{transform:scale(.95);} button:disabled{opacity:.4;cursor:default;}
-  .b-hit{background:#3b82f6;color:#fff;} .b-stand{background:#ef4444;color:#fff;}
+  .b-hit{background:#3b82f6;color:#fff;} .b-stand{background:#ef4444;color:#fff;} .b-double{background:#a855f7;color:#fff;}
   .b-deal{background:#ffe27a;color:#222;} .b-bet{background:#10b981;color:#fff;font-size:.85rem;padding:9px 16px;}
   .bet-row{display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:12px;flex-wrap:wrap;}
   .bet-amt{font-size:1.05rem;color:#ffe27a;font-weight:bold;min-width:60px;text-align:center;}
   .topbtn{position:fixed;top:12px;border-radius:8px;padding:7px 14px;font-size:.8rem;}
   .back{left:12px;background:#374151;color:#fff;}
+  .langbtn{position:fixed;top:52px;left:12px;background:#1e1e2e;border:1px solid #444;border-radius:6px;color:#888;font-size:.72rem;padding:5px 10px;cursor:pointer;letter-spacing:1px;}
 </style>
 </head>
 <body>
 <button class="topbtn back" id="backbtn" onclick="location.href='arcade.html'">戻る</button>
+<button class="langbtn" id="langbtn">EN</button>
 <h1 id="title">ブラックジャック</h1>
 <div class="chips" id="chips"></div>
 
@@ -63,14 +65,17 @@ const L={
   win:{ja:'あなたの勝ち！',en:'You win!'},lose:{ja:'あなたの負け…',en:'You lose…'},
   push:{ja:'引き分け',en:'Push'},bust:{ja:'バスト！',en:'Bust!'},
   bj:{ja:'ブラックジャック！',en:'Blackjack!'},dbust:{ja:'ディーラー バスト！',en:'Dealer busts!'},
-  broke:{ja:'チップ切れ。タップでリセット',en:'Out of chips. Tap to reset'},
-  back:{ja:'戻る',en:'Back'},
+  broke:{ja:'チップ切れ！「配る」で500にリセット',en:'Out of chips! Deal to reset to 500'},
+  back:{ja:'戻る',en:'Back'},double:{ja:'ダブル',en:'Double'},
 };
 let lang=localStorage.getItem('lang')||'ja';
 const t=k=>(L[k]&&L[k][lang])||k;
 const C=window.CARDS;
-let deck,player,dealer,chips=500,bet=100,phase='bet',msgKey='',msgCls='';
-let holeEl=null, dealing=false;
+let chips=parseInt(localStorage.getItem('bj_chips'),10);
+if(!Number.isFinite(chips)||chips<0)chips=500;
+let deck,player,dealer,bet=100,phase='bet',msgKey='',msgCls='';
+let holeEl=null, dealing=false, baseBet=100, doubled=false;
+function saveChips(){try{localStorage.setItem('bj_chips',String(chips));}catch(_){}}
 const $=id=>document.getElementById(id);
 
 function handValue(h){
@@ -99,9 +104,17 @@ function renderControls(){
     const h=document.createElement('button');h.className='b-hit';h.textContent=t('hit');h.onclick=hit;
     const s=document.createElement('button');s.className='b-stand';s.textContent=t('stand');s.onclick=stand;
     ctr.appendChild(h);ctr.appendChild(s);
+    // Double down: first two cards only, and only if chips cover the doubled bet
+    if(player.length===2&&!doubled&&chips>=bet*2){
+      const d=document.createElement('button');d.className='b-double';d.textContent=t('double');d.onclick=doubleDown;
+      ctr.appendChild(d);
+    }
   } else if(phase==='over'){
     const b=document.createElement('button');b.className='b-deal';b.textContent=t('deal');
-    b.onclick=()=>{phase='bet';msgKey='';renderControls();};ctr.appendChild(b);
+    b.onclick=()=>{
+      if(chips<=0){chips=500;saveChips();}
+      phase='bet';msgKey='';renderControls();
+    };ctr.appendChild(b);
   }
 }
 
@@ -118,8 +131,9 @@ function dealOneCard(container, card, faceUp, onDone){
 
 function startRound(){
   if(dealing)return;
+  if(chips<=0){chips=500;saveChips();}
   if(chips<bet)bet=chips;
-  if(chips<=0)chips=500;
+  baseBet=bet; doubled=false;
   deck=C.shuffle(C.makeDeck());
   player=[deck.pop(),deck.pop()];
   dealer=[deck.pop(),deck.pop()];
@@ -168,6 +182,19 @@ function hit(){
   });
 }
 
+function doubleDown(){
+  if(dealing||phase!=='player'||player.length!==2||doubled||chips<bet*2)return;
+  doubled=true; bet*=2;
+  dealing=true;
+  renderControls();
+  const card=deck.pop();player.push(card);
+  dealOneCard($('player'),card,true,()=>{
+    dealing=false;
+    $('pscore').textContent=handValue(player);
+    if(handValue(player)>21){ finish(); } else stand();
+  });
+}
+
 function stand(){
   if(dealing||phase!=='player')return;
   phase='dealer';
@@ -209,7 +236,10 @@ function finish(){
     if(outcome>0){chips+=Math.floor(bet*outcome);msgCls='win';SND.sfx.win&&SND.sfx.win();}
     else if(outcome<0){chips-=bet;msgCls='lose';SND.sfx.lose&&SND.sfx.lose();}
     else{msgCls='push';SND.sfx.point&&SND.sfx.point();}
-    bet=Math.min(bet,Math.max(50,chips));
+    if(window.TRACK&&TRACK.result)TRACK.result(outcome>0?'win':outcome<0?'loss':'draw');
+    bet=Math.min(baseBet,Math.max(50,chips));
+    saveChips();
+    if(chips<=0)msgKey='broke';
     $('dscore').textContent=handValue(dealer);
     renderControls();
   };
@@ -218,6 +248,15 @@ function finish(){
   } else doFinish();
 }
 
+$('langbtn').textContent=lang==='ja'?'EN':'JA';
+$('langbtn').onclick=()=>{
+  lang=lang==='ja'?'en':'ja';
+  localStorage.setItem('lang',lang);
+  $('langbtn').textContent=lang==='ja'?'EN':'JA';
+  document.documentElement.lang=lang;
+  document.title=t('title');
+  renderControls();
+};
 player=[];dealer=[];renderControls();
 if(typeof SND!=='undefined'){SND.createBtn(document.body);SND.startBGM('game');}
 </script>

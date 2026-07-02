@@ -57,8 +57,11 @@ async function joinRoom(code,game){
   const room=rows[0];
   if(room.status!=='waiting')throw new Error('ROOM_STARTED');
   const tok=genTok();
-  await sb(`/rest/v1/rooms?id=eq.${room.id}`,{method:'PATCH',
+  // Atomic claim: filter on status=waiting so two simultaneous joiners can't
+  // both take the guest seat — the loser's PATCH matches 0 rows.
+  const claimed=await sb(`/rest/v1/rooms?id=eq.${room.id}&status=eq.waiting`,{method:'PATCH',
     body:JSON.stringify({player2_token:tok,status:'playing',updated_at:new Date().toISOString()})});
+  if(!claimed||!claimed.length)throw new Error('ROOM_STARTED');
   return{room,tok};
 }
 async function pushState(roomId,state){
@@ -73,8 +76,12 @@ async function getRoom(roomId){
 let _pollTid=null;
 function startPoll(roomId,ms,cb){
   stopPoll();
+  let busy=false;
   _pollTid=setInterval(async()=>{
+    if(busy||document.hidden)return;   // skip while a poll is in flight or tab is hidden
+    busy=true;
     try{const r=await getRoom(roomId);if(r)cb(r);}catch(e){console.error('np-poll',e);}
+    busy=false;
   },ms||1500);
 }
 function stopPoll(){if(_pollTid){clearInterval(_pollTid);_pollTid=null;}}
@@ -144,7 +151,15 @@ function showLobby(opts){
   document.body.appendChild(ov);
 
   let waitTid=null;
-  codeDisp.onclick=()=>{ try{navigator.clipboard.writeText(codeDisp.textContent);}catch(_){} };
+  codeDisp.onclick=()=>{
+    const code=codeDisp.textContent;
+    try{
+      navigator.clipboard.writeText(code).then(
+        ()=>{copyHint.textContent=T('コピーしました！','Copied!');},
+        ()=>{});
+    }catch(_){}
+  };
+  codeInput.addEventListener('keydown',e=>{if(e.key==='Enter')joinBtn.click();});
 
   createBtn.onclick=async()=>{
     createBtn.disabled=true;status.textContent=T('作成中…','Creating…');

@@ -30,6 +30,19 @@ function cpuDepth(){return difficulty==='easy'?2:difficulty==='medium'?4:6;}
 let gameMode='solo'; // 'solo'|'local2p'|'online'
 let myIdx=0; // 0=host/P1, 1=guest/P2
 let onlineRole=null,roomId=null,onlineSeq=-1,sbar=null;
+let resultReported=false;
+
+function reportEnd(){
+  if(resultReported)return;
+  resultReported=true;
+  if(!(window.TRACK&&TRACK.result))return;
+  if(gameMode==='solo'){
+    TRACK.result(winner===P1?'win':winner===P2?'loss':'draw');
+  }else if(gameMode==='online'){
+    const myP=myIdx===0?P1:P2;
+    TRACK.result(winner===0?'draw':winner===myP?'win':'loss');
+  }
+}
 
 const STR={
   title:{ja:'四目並べ',en:'Connect Four'},
@@ -75,7 +88,7 @@ function resize(){
 function initBoard(){
   board=Array.from({length:ROWS},()=>new Array(COLS).fill(0));
   turn=P1;gameOver=false;winner=0;winCells=null;
-  dropping=false;dropVy=0;cpuPending=false;pulse=0;
+  dropping=false;dropVy=0;cpuPending=false;pulse=0;resultReported=false;
   if(gameMode==='solo')afterTurnChange();
 }
 
@@ -233,9 +246,11 @@ function onLand(col,row,p){
       if(p===P1)scores.p1++;else scores.p2++;
       SND.sfx.pointWin?.();
     }
+    reportEnd();
     if(gameMode==='online')pushOnline();
   }else if(board[0].every(x=>x!==0)){
     gameOver=true;winner=0;SND.stopBGM?.();SND.sfx.point?.();
+    reportEnd();
     if(gameMode==='online')pushOnline();
   }else{
     turn=turn===P1?P2:P1;
@@ -264,6 +279,9 @@ function applyState(st){
       if(winCells)break;
     }
     SND.stopBGM?.();
+    reportEnd();
+  }else{
+    resultReported=false;
   }
   onlineSeq=st.seq;
 }

@@ -92,6 +92,23 @@
       </table>
     </div>
 
+    <!-- Play stats -->
+    <div class="section" id="stats-section" style="display:none">
+      <div class="sec-title" id="sec-stats">プレイ統計</div>
+      <div class="info-row"><span class="info-label" id="lbl-total-time">総プレイ時間</span><span class="info-val" id="val-total-time"></span></div>
+      <div class="info-row"><span class="info-label" id="lbl-total-sessions">総プレイ回数</span><span class="info-val" id="val-total-sessions"></span></div>
+      <table class="rating-table" style="margin-top:16px">
+        <thead>
+          <tr>
+            <th id="th-stat-game">ゲーム</th>
+            <th id="th-stat-sessions">回数</th>
+            <th id="th-stat-time">時間</th>
+          </tr>
+        </thead>
+        <tbody id="stats-tbody"></tbody>
+      </table>
+    </div>
+
     <!-- Actions -->
     <div class="section">
       <div class="sec-title" id="sec-actions">アクション</div>
@@ -109,9 +126,17 @@ const SUPABASE_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SUPABASE_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
 
 const T_={
-  ja:{pgTitle:'PROFILE',secInfo:'ユーザー情報',lFullname:'氏名',lUid:'ユーザID',lBirth:'生年月日',lSince:'登録日',secOverall:'総合レーティング',overallLabel:'OVERALL RATING',secGames:'ゲーム別レーティング',thGame:'ゲーム',thRating:'レーティング',thWins:'勝',thLosses:'敗',thDraws:'引',secActions:'アクション',btnChat:'チャット',btnFriends:'フレンド',logout:'ログアウト',noLogin:'ログインしていません',noLoginBtn:'ログイン',back:'← HOME',loading:'読み込み中…',noData:'まだ記録がありません',wld:'勝{w} 敗{l} 引{d}'},
-  en:{pgTitle:'PROFILE',secInfo:'User Info',lFullname:'Full Name',lUid:'User ID',lBirth:'Date of Birth',lSince:'Registered',secOverall:'Overall Rating',overallLabel:'OVERALL RATING',secGames:'Per-Game Ratings',thGame:'Game',thRating:'Rating',thWins:'W',thLosses:'L',thDraws:'D',secActions:'Actions',btnChat:'CHAT',btnFriends:'FRIENDS',logout:'LOGOUT',noLogin:'You are not logged in',noLoginBtn:'Login',back:'← HOME',loading:'Loading…',noData:'No records yet',wld:'{w}W {l}L {d}D'}
+  ja:{pgTitle:'PROFILE',secInfo:'ユーザー情報',lFullname:'氏名',lUid:'ユーザID',lBirth:'生年月日',lSince:'登録日',secOverall:'総合レーティング',overallLabel:'OVERALL RATING',secGames:'ゲーム別レーティング',thGame:'ゲーム',thRating:'レーティング',thWins:'勝',thLosses:'敗',thDraws:'引',secActions:'アクション',btnChat:'チャット',btnFriends:'フレンド',logout:'ログアウト',noLogin:'ログインしていません',noLoginBtn:'ログイン',back:'← HOME',loading:'読み込み中…',noData:'まだ記録がありません',wld:'勝{w} 敗{l} 引{d}',secStats:'プレイ統計',lTotalTime:'総プレイ時間',lTotalSessions:'総プレイ回数',thStatGame:'ゲーム',thStatSessions:'回数',thStatTime:'時間',hUnit:'時間',mUnit:'分',timesUnit:'回'},
+  en:{pgTitle:'PROFILE',secInfo:'User Info',lFullname:'Full Name',lUid:'User ID',lBirth:'Date of Birth',lSince:'Registered',secOverall:'Overall Rating',overallLabel:'OVERALL RATING',secGames:'Per-Game Ratings',thGame:'Game',thRating:'Rating',thWins:'W',thLosses:'L',thDraws:'D',secActions:'Actions',btnChat:'CHAT',btnFriends:'FRIENDS',logout:'LOGOUT',noLogin:'You are not logged in',noLoginBtn:'Login',back:'← HOME',loading:'Loading…',noData:'No records yet',wld:'{w}W {l}L {d}D',secStats:'Play Stats',lTotalTime:'Total Play Time',lTotalSessions:'Total Sessions',thStatGame:'Game',thStatSessions:'Plays',thStatTime:'Time',hUnit:'h',mUnit:'m',timesUnit:''}
 };
+// Full ja/en display names for every game
+const GN={reversi:['リバーシ','Reversi'],gomoku:['五目並べ','Gomoku'],chess:['チェス','Chess'],shogi:['将棋','Shogi'],mahjong:['麻雀','Mahjong'],connect4:['コネクト4','Connect 4'],mancala:['マンカラ','Mancala'],yacht:['ヨット','Yacht Dice'],daifugo:['大富豪','Daifugo'],sevens:['七並べ','Sevens'],oldmaid:['ババ抜き','Old Maid'],memory:['神経衰弱','Memory'],poker:['ポーカー','Poker'],blackjack:['ブラックジャック','Blackjack'],snake:['スネーク','Snake'],tennis:['テニス','Tennis'],bikerun:['ニャンダッシュ','Nyan Dash'],keshibato:['消しバト','Eraser Battle'],capbaseball:['キャップ野球','Cap Baseball'],symbiont:['シンビオント','Symbiont']};
+function gname(g){const n=GN[g];return n?(lang==='ja'?n[0]:n[1]):g.toUpperCase();}
+function fmtTime(sec){
+  const h=Math.floor(sec/3600),m=Math.round(sec%3600/60);
+  if(lang==='ja')return h?`${h}時間${m}分`:`${m}分`;
+  return h?`${h}h ${m}m`:`${m}m`;
+}
 let lang=localStorage.getItem('lang')||'ja';
 function T(k,v={}){let s=T_[lang][k]||T_.ja[k]||k;Object.entries(v).forEach(([a,b])=>s=s.replace('{'+a+'}',b));return s;}
 function applyLang(){
@@ -137,9 +162,20 @@ function applyLang(){
   document.getElementById('no-login-msg').textContent=T('noLogin');
   document.getElementById('no-login-btn').textContent=T('noLoginBtn');
   document.getElementById('back-btn').textContent=T('back');
+  document.getElementById('sec-stats').textContent=T('secStats');
+  document.getElementById('lbl-total-time').textContent=T('lTotalTime');
+  document.getElementById('lbl-total-sessions').textContent=T('lTotalSessions');
+  document.getElementById('th-stat-game').textContent=T('thStatGame');
+  document.getElementById('th-stat-sessions').textContent=T('thStatSessions');
+  document.getElementById('th-stat-time').textContent=T('thStatTime');
   document.documentElement.lang=lang;
 }
-document.getElementById('lang-btn').addEventListener('click',()=>{lang=lang==='ja'?'en':'ja';localStorage.setItem('lang',lang);applyLang();});
+document.getElementById('lang-btn').addEventListener('click',()=>{
+  lang=lang==='ja'?'en':'ja';localStorage.setItem('lang',lang);applyLang();
+  // re-render loaded tables from cache so game names/units relocalize
+  if(window.renderRatings)renderRatings();
+  if(window.renderStats)renderStats();
+});
 applyLang();
 
 async function sb(path){
@@ -162,7 +198,14 @@ if(!user){
       document.getElementById('val-birth').textContent=u.birth_date?u.birth_date.replace(/-/g,'/'):'- ';
       document.getElementById('val-since').textContent=u.created_at?u.created_at.slice(0,10).replace(/-/g,'/'):'- ';
     }
-    const ratings=await sb(`/rest/v1/user_ratings?user_id=eq.${user.id}&select=game,rating,wins,losses,draws`);
+    cachedRatings=await sb(`/rest/v1/user_ratings?user_id=eq.${user.id}&select=game,rating,wins,losses,draws`);
+    renderRatings();
+    loadStats();
+  }
+
+  let cachedRatings=null,cachedStats=null;
+  window.renderRatings=function(){
+    const ratings=cachedRatings;
     const tbody=document.getElementById('game-ratings-tbody');
     tbody.innerHTML='';
     if(!ratings||ratings.length===0){
@@ -172,17 +215,43 @@ if(!user){
       return;
     }
     let totalW=0,totalL=0,totalD=0,ratingSum=0;
-    const gameNames={reversi:'REVERSI',gomoku:'GOMOKU',chess:'CHESS',shogi:lang==='ja'?'将棋':'SHOGI'};
     ratings.forEach(r=>{
       totalW+=r.wins;totalL+=r.losses;totalD+=r.draws;ratingSum+=r.rating;
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${gameNames[r.game]||r.game.toUpperCase()}</td><td class="rating-val">${r.rating}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.draws}</td>`;
+      tr.innerHTML=`<td>${gname(r.game)}</td><td class="rating-val">${r.rating}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.draws}</td>`;
       tbody.appendChild(tr);
     });
     const overall=Math.round(ratingSum/ratings.length);
     document.getElementById('overall-rating').textContent=overall;
     document.getElementById('overall-wld').textContent=T('wld',{w:totalW,l:totalL,d:totalD});
+  };
+
+  // Play-time stats from play_sessions (section stays hidden if the table
+  // doesn't exist yet or there are no records).
+  async function loadStats(){
+    const rows=await sb(`/rest/v1/play_sessions?user_id=eq.${user.id}&select=game,seconds`);
+    if(!rows||!rows.length)return;
+    cachedStats=rows;
+    renderStats();
   }
+  window.renderStats=function(){
+    if(!cachedStats)return;
+    const per={};let totalSec=0;
+    cachedStats.forEach(r=>{
+      if(!per[r.game])per[r.game]={n:0,sec:0};
+      per[r.game].n++;per[r.game].sec+=r.seconds||0;totalSec+=r.seconds||0;
+    });
+    document.getElementById('stats-section').style.display='';
+    document.getElementById('val-total-time').textContent=fmtTime(totalSec);
+    document.getElementById('val-total-sessions').textContent=cachedStats.length+(lang==='ja'?' 回':'');
+    const tbody=document.getElementById('stats-tbody');
+    tbody.innerHTML='';
+    Object.entries(per).sort((a,b)=>b[1].sec-a[1].sec).forEach(([g,s])=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${gname(g)}</td><td>${s.n}</td><td>${fmtTime(s.sec)}</td>`;
+      tbody.appendChild(tr);
+    });
+  };
   loadProfile();
 }
 

@@ -65,6 +65,7 @@ let difficulty=localStorage.getItem('memory_diff')||'medium';
 if(difficulty==='normal')difficulty='medium'; // legacy value from old button bug
 let gameMode='solo',myIdx=0,onlineRole=null,roomId=null,onlineSeq=-1,sbar=null;
 let cards,flipped,matched,turn,scores,busy,cellEls=[],cpuMem={};
+let trackSent=false;
 
 // In solo/local2P: myIdx=0 always (opponent is CPU or P2)
 // In online: myIdx=0 (host) or 1 (guest)
@@ -85,7 +86,7 @@ function setup(){
   myIdx=(gameMode==='online'&&onlineRole==='guest')?1:0;
   const st=computeInitState();onlineSeq=st.seq;
   applyState(st,true);
-  cpuMem={};$('winmsg').textContent='';
+  cpuMem={};$('winmsg').textContent='';trackSent=false;
   if(gameMode==='solo'&&turn!==myIdx)setTimeout(cpuTurn,700);
 }
 
@@ -181,6 +182,10 @@ function endGame(){
   if(gameMode==='online'){NETPLAY.stopPoll();if(sbar)sbar.remove();}
   const m=$('winmsg');
   const myS=scores[myIdx],oppS=scores[1-myIdx];
+  if(!trackSent&&gameMode!=='local2p'&&window.TRACK&&TRACK.result){
+    trackSent=true;
+    TRACK.result(myS>oppS?'win':myS<oppS?'loss':'draw');
+  }
   if(myS>oppS){m.textContent=t('win');m.className='win-msg w';SND.sfx.win&&SND.sfx.win();}
   else if(myS<oppS){m.textContent=oppLabel()+t('lose');m.className='win-msg l';SND.sfx.lose&&SND.sfx.lose();}
   else{m.textContent=t('draw');m.className='win-msg d';SND.sfx.point&&SND.sfx.point();}
@@ -226,8 +231,8 @@ function initUI(){
   onbtn.onclick=()=>{
     NETPLAY.showLobby({
       game:'memory',lang,initState:()=>computeInitState(),
-      onHost:(id,room)=>{roomId=id;onlineRole='host';myIdx=0;gameMode='online';const st=room.state;onlineSeq=st.seq;cards=st.cards;matched=st.matched;scores=st.scores;turn=st.turn;flipped=[];busy=false;cpuMem={};if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('host');$('winmsg').textContent='';buildGrid();renderStatus();NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();},
-      onJoin:(room,tok)=>{roomId=room.id;onlineRole='guest';myIdx=1;gameMode='online';const st=room.state;onlineSeq=st.seq;cards=st.cards;matched=st.matched;scores=st.scores;turn=st.turn;flipped=[];busy=false;cpuMem={};if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('guest');$('winmsg').textContent='';buildGrid();renderStatus();NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();},
+      onHost:(id,room)=>{roomId=id;onlineRole='host';myIdx=0;gameMode='online';const st=room.state;onlineSeq=st.seq;cards=st.cards;matched=st.matched;scores=st.scores;turn=st.turn;flipped=[];busy=false;cpuMem={};if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('host');$('winmsg').textContent='';trackSent=false;buildGrid();renderStatus();NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();},
+      onJoin:(room,tok)=>{roomId=room.id;onlineRole='guest';myIdx=1;gameMode='online';const st=room.state;onlineSeq=st.seq;cards=st.cards;matched=st.matched;scores=st.scores;turn=st.turn;flipped=[];busy=false;cpuMem={};if(sbar)sbar.remove();sbar=NETPLAY.statusBar(lang);sbar.online('guest');$('winmsg').textContent='';trackSent=false;buildGrid();renderStatus();NETPLAY.startPoll(roomId,1500,onPoll);updateBtns();},
       onCancel:()=>{}
     });
   };
