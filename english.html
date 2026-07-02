@@ -39,7 +39,9 @@
     #guest-banner a{color:var(--warn);text-decoration:underline;}
     /* hero (today's plan) */
     .hero{background:linear-gradient(135deg,#241608,#13131f);border:1px solid #4a3214;border-radius:14px;padding:22px 24px;margin-bottom:18px;}
-    .hero-h{font-size:.7rem;letter-spacing:3px;color:var(--dim);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+    .hero-h{font-size:.7rem;letter-spacing:3px;color:var(--dim);margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .hero-h .hint{letter-spacing:0;color:var(--dim2);font-size:.64rem;}
+    .hero-stat.pinstat .v{color:var(--pink);}
     .hero-row{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;}
     .hero-nums{display:flex;gap:26px;align-items:flex-end;}
     .hero-stat .v{font-size:2.4rem;color:var(--accent);font-weight:bold;line-height:1;}
@@ -92,6 +94,7 @@
     .stats-row{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:6px;}
     .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 6px;text-align:center;}
     .stat .v{font-size:1.4rem;font-weight:bold;color:var(--accent);}
+    .stat .v small{font-size:.66rem;color:var(--dim);font-weight:normal;margin-left:1px;}
     .stat .l{font-size:.56rem;letter-spacing:1px;color:var(--dim2);margin-top:4px;}
     /* forgetting curve */
     .fc-flex{display:flex;gap:22px;flex-wrap:wrap;align-items:center;}
@@ -103,25 +106,32 @@
     .gauge{flex:1;height:9px;background:#0a0a14;border-radius:5px;overflow:hidden;}
     .gauge>div{height:100%;background:linear-gradient(90deg,var(--bad),var(--warn),var(--good));border-radius:5px;transition:width .5s;}
     .gauge-val{font-size:.8rem;color:var(--good);font-weight:bold;min-width:42px;text-align:right;}
-    /* upcoming review bar chart */
+    /* upcoming review bar chart (stacked: full re-solve + pin-only) */
     .upc{display:flex;align-items:flex-end;gap:4px;height:108px;margin-top:6px;}
     .upc-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;}
-    .upc-bar{width:100%;max-width:22px;background:linear-gradient(180deg,var(--accent),#7a3d12);border-radius:3px 3px 0 0;min-height:2px;transition:height .4s;}
-    .upc-bar.today{background:linear-gradient(180deg,var(--warn),#7a5a12);}
-    .upc-bar.zero{background:#1a1a26;}
+    .upc-stack{width:100%;max-width:22px;display:flex;flex-direction:column;justify-content:flex-end;gap:1px;}
+    .upc-seg{width:100%;border-radius:3px 3px 0 0;transition:height .4s;}
+    .upc-seg.full{background:linear-gradient(180deg,var(--accent),#7a3d12);}
+    .upc-seg.full.today{background:linear-gradient(180deg,var(--warn),#7a5a12);}
+    .upc-seg.pin{background:linear-gradient(180deg,var(--pink),#7a2d52);}
+    .upc-seg.zero{background:#1a1a26;}
     .upc-n{font-size:.56rem;color:var(--dim);}
     .upc-d{font-size:.54rem;color:var(--dim2);}
+    .upc-leg{display:flex;gap:14px;justify-content:flex-end;font-size:.6rem;color:var(--dim2);margin-top:8px;}
+    .upc-leg span{display:flex;align-items:center;gap:5px;}
+    .upc-leg i{width:10px;height:10px;border-radius:3px;display:inline-block;}
     .proj{margin-top:14px;font-size:.76rem;color:var(--dim);line-height:1.8;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:11px 14px;}
     .proj b{color:var(--txt);} .proj .hl{color:var(--accent);}
-    /* courses → parts → lesson grid */
-    .course{margin-bottom:20px;}
-    .course-head{display:flex;align-items:center;gap:10px;padding:6px 2px 9px;border-bottom:1px solid var(--line);margin-bottom:12px;}
+    /* courses → parts → lesson grid（コース単位で折りたたみ） */
+    .course{margin-bottom:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px 10px;}
+    .course-head{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:inherit;font-family:inherit;text-align:left;cursor:pointer;padding:8px 2px;}
     .course-icon{font-size:1.2rem;}
     .course-name{font-size:1.02rem;font-weight:bold;letter-spacing:2px;}
-    .course-prog{margin-left:auto;font-size:.66rem;color:var(--dim2);letter-spacing:1px;}
+    .course-prog{margin-left:auto;font-size:.66rem;color:var(--dim2);letter-spacing:1px;text-align:right;}
     .course-prog .due{color:var(--warn);}
-    .course-bar{height:6px;background:#0a0a14;border-radius:4px;overflow:hidden;margin-bottom:14px;}
+    .course-bar{height:6px;background:#0a0a14;border-radius:4px;overflow:hidden;margin:2px 0 6px;}
     .course-bar>div{height:100%;border-radius:4px;transition:width .4s;}
+    .course-body{padding-top:10px;}
     .part{margin-bottom:13px;}
     .part-head{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--dim);margin-bottom:7px;}
     .part-head .pcount{color:var(--dim2);font-size:.62rem;}
@@ -138,39 +148,24 @@
     .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.62rem;color:var(--dim2);margin-top:14px;}
     .legend span{display:flex;align-items:center;gap:5px;}
     .legend i{width:11px;height:11px;border-radius:3px;display:inline-block;border:1px solid var(--line2);}
-    /* pinned section */
-    .pin-list{display:flex;flex-direction:column;gap:9px;}
-    .pin-item{background:var(--panel);border:1px solid #3a2030;border-radius:10px;padding:11px 14px;display:flex;align-items:flex-start;gap:10px;}
-    .pin-item .pc{color:var(--pink);font-weight:bold;white-space:nowrap;}
-    .pin-item .pmain{flex:1;font-size:.78rem;line-height:1.55;}
-    .pin-item .pnote{color:var(--dim);font-size:.7rem;margin-top:3px;white-space:pre-wrap;}
-    .pin-item button{background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--dim);font-family:inherit;font-size:.68rem;padding:6px 9px;cursor:pointer;white-space:nowrap;}
-    .pin-item button:hover{border-color:var(--accent);color:var(--accent);}
-    /* routine */
-    .routine{display:flex;flex-direction:column;gap:8px;}
-    .rt{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 14px;cursor:pointer;transition:.13s;}
+    /* routine — 2列グリッドでコンパクトに（6項目で縦に伸びすぎないように） */
+    .routine{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .rt{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;transition:.13s;min-width:0;}
     .rt:hover{border-color:#444;}
     .rt.done{border-color:#1d5c46;background:rgba(52,211,153,.06);}
     .rt.opt:not(.done){opacity:.5;}
     .rt.plan-task .rt-ico{color:var(--blue);}
     .rt-check{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line2);display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;color:transparent;}
     .rt.done .rt-check{background:var(--good);border-color:var(--good);color:#04130d;}
-    .rt-ico{font-size:1.1rem;}
-    .rt-main{flex:1;}
-    .rt-label{font-size:.84rem;}
-    .rt-note{font-size:.66rem;color:var(--dim2);margin-top:2px;}
+    .rt-ico{font-size:1.05rem;}
+    .rt-main{flex:1;min-width:0;}
+    .rt-label{font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .rt-note{font-size:.62rem;color:var(--dim2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .rt.auto{cursor:default;}
     .rt-auto-tag{font-size:.58rem;color:var(--dim2);border:1px solid var(--line2);border-radius:20px;padding:2px 8px;}
-    /* diary card */
-    .diary-card{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#241608,var(--panel));border:1px solid #4a3214;border-radius:12px;padding:16px 18px;text-decoration:none;color:var(--txt);transition:.18s;}
-    .diary-card:hover{border-color:var(--accent);transform:translateY(-2px);}
-    .diary-ic{font-size:1.8rem;}
-    .diary-main{flex:1;}
-    .diary-h{font-size:.95rem;font-weight:bold;color:var(--accent);letter-spacing:1px;}
-    .diary-sub{font-size:.7rem;color:var(--dim);margin-top:4px;line-height:1.6;}
-    .diary-status{font-size:.64rem;border:1px solid var(--line2);border-radius:20px;padding:4px 10px;color:var(--dim2);white-space:nowrap;}
-    .diary-status.done{border-color:#1d5c46;color:var(--good);}
-    .diary-go{color:var(--accent);font-size:1.2rem;}
+    /* 「今日やること」先頭の固定タスクは1行フル幅のまま */
+    .plan-list .rt{padding:11px 14px;gap:12px;}
+    .plan-list .rt .rt-label{font-size:.84rem;}
     /* lesson reps (周回) + lap badge */
     .cell .cellreps{position:absolute;top:1px;left:3px;font-size:.46rem;font-weight:bold;color:var(--dim);line-height:1;}
     .cell.scheduled .cellreps,.cell.mastered .cellreps{color:#bfe9d8;}
@@ -180,25 +175,13 @@
     /* routine link item */
     a.rt{text-decoration:none;color:inherit;cursor:pointer;}
     .rt-go{margin-left:auto;color:var(--accent);font-size:1rem;}
-    /* pin timing */
-    .pin-item .ptiming{font-size:.62rem;white-space:nowrap;margin-left:4px;}
-    .pin-item .ptiming.due{color:var(--warn);}
-    .pin-item .ptiming.sched{color:var(--dim2);}
+    /* pin review bits (plan row + modal) */
     .pin-rev{background:#0a0a14;border:1px solid var(--line2);border-radius:7px;color:var(--good);font-family:inherit;font-size:.66rem;padding:6px 9px;cursor:pointer;white-space:nowrap;}
     .pin-rev:hover{border-color:var(--good);}
     .pin-sched{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.74rem;margin:10px 0 2px;}
     .pin-sched .due{color:var(--warn);} .pin-sched .sched{color:var(--dim);}
     .pin-sched.part{justify-content:flex-start;gap:8px;font-size:.7rem;}
     .pin-sched .ps-l{color:var(--dim);}
-    /* per-part pin overview */
-    .pin-item.part{align-items:flex-start;}
-    .pin-item.part .pp-head{font-size:.82rem;line-height:1.5;}
-    .pin-item.part .pp-head b{color:var(--txt);}
-    .pin-item.part .pp-meta{font-size:.64rem;color:var(--dim2);margin-top:3px;}
-    .pinchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-    .pinchip{background:#0a0a14;border:1px solid #3a2030;border-radius:7px;color:var(--pink);font-family:inherit;font-size:.66rem;padding:5px 8px;cursor:pointer;display:flex;align-items:center;gap:5px;}
-    .pinchip:hover{border-color:var(--pink);}
-    .pinchip .pcq{background:var(--pink);color:#1a0a12;border-radius:10px;padding:0 5px;font-weight:bold;font-size:.6rem;}
     .pin-help{font-size:.62rem;color:var(--dim2);margin-top:7px;line-height:1.6;}
     /* today's plan — grouped by Part (collapsible full-text reviews + visible pin-only review) */
     .plan-part{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:7px 8px;display:flex;flex-direction:column;gap:8px;}
@@ -228,6 +211,11 @@
     .cal-cell.empty{border:none;background:none;}
     .cal-cell.future{opacity:.35;}
     .cal-cell.today{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);}
+    /* 背景の濃さ＝その日の学習量（旧ヒートマップを統合） */
+    .cal-cell.act1{background:#1c150d;}
+    .cal-cell.act2{background:#2a1d0b;}
+    .cal-cell.act3{background:#3d2809;}
+    .cal-cell.act4{background:#553508;}
     .cal-d{font-size:.6rem;color:var(--dim);line-height:1;}
     .cal-dots{display:flex;flex-wrap:wrap;gap:2px;justify-content:center;align-content:center;flex:1;}
     .cal-dot{width:6px;height:6px;border-radius:50%;}
@@ -254,12 +242,6 @@
     .cal-cell.rec{border-color:var(--warn);box-shadow:inset 0 0 0 1px var(--warn);}
     .cal-cell.pick{cursor:pointer;}
     .cal-cell.pick:hover{border-color:var(--accent);}
-    /* heatmap */
-    .heat{display:flex;gap:3px;overflow-x:auto;padding-bottom:6px;}
-    .heat-col{display:flex;flex-direction:column;gap:3px;}
-    .heat-cell{width:11px;height:11px;border-radius:2px;background:#15151f;}
-    .heat-legend{display:flex;align-items:center;gap:6px;justify-content:flex-end;font-size:.6rem;color:var(--dim2);margin-top:8px;}
-    .heat-legend .hc{width:11px;height:11px;border-radius:2px;}
     /* strategy collapsible */
     details.strat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px 18px;margin-bottom:6px;}
     details.strat summary{cursor:pointer;font-size:.78rem;color:var(--accent);padding:12px 0;letter-spacing:1px;list-style:none;}
@@ -313,13 +295,20 @@
     .gate-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
     .gate-actions .btn{text-decoration:none;}
     .hidden{display:none!important;}
+    /* back to top */
+    #totop{position:fixed;right:14px;bottom:18px;z-index:40;width:42px;height:42px;border-radius:50%;background:#1e1e2e;border:1px solid #444;color:var(--accent);font-family:inherit;font-size:1.05rem;cursor:pointer;display:none;box-shadow:0 4px 14px rgba(0,0,0,.5);}
+    #totop.show{display:block;}
     @media(max-width:560px){
       .stats-row{grid-template-columns:repeat(3,1fr);}
       .set-grid{grid-template-columns:1fr;}
       h1{font-size:1.5rem;letter-spacing:4px;}
       .hero-stat .v{font-size:2rem;}
       .hero-nums{gap:18px;}
+      /* 2列ルーティン: 幅が細いので「自動」タグを隠しラベルを優先（チェック状態で判別可） */
+      .routine .rt-auto-tag{display:none;}
+      .routine .rt{gap:8px;padding:10px 10px;}
     }
+    @media(max-width:359px){ .routine{grid-template-columns:1fr;} }
   </style>
   <script src="english-data.js"></script>
   <script src="english-sync.js"></script>
@@ -343,19 +332,6 @@
   <!-- Add-to-home-screen tip (iOS has no install prompt; shown only in-browser) -->
   <div id="a2hs" class="a2hs hidden">📲 <span id="a2hs-txt"></span><button id="a2hs-x" aria-label="close">✕</button></div>
 
-  <!-- ───────── TODAY'S PLAN (hero) ───────── -->
-  <div class="hero">
-    <div class="hero-h" id="t-hero-h">📅 今日のプラン</div>
-    <div class="hero-row">
-      <div class="hero-nums">
-        <div class="hero-stat rev"><div class="v" id="h-rev">0</div><div class="l" id="t-h-rev">復習</div></div>
-        <div class="hero-stat new"><div class="v" id="h-new">0</div><div class="l" id="t-h-new">新規</div></div>
-        <div class="hero-stat"><div class="v" id="h-min">0<small id="t-min">分</small></div><div class="l" id="t-h-min">目安</div></div>
-      </div>
-    </div>
-    <div class="hero-sub" id="hero-sub"></div>
-  </div>
-
   <!-- ───────── RECORD DAY (back-date study up to ~1 week) ───────── -->
   <div class="record-bar" id="record-bar">
     <span class="rd-ico">📅</span>
@@ -365,24 +341,24 @@
     <button class="rd-reset" id="rd-reset">今日に戻す</button>
   </div>
 
-  <div class="sec-title"><span id="t-sec-today">今日やること</span> <span class="hint" id="t-today-hint">— Progrit で学習したらタップして記録</span></div>
+  <!-- ───────── TODAY'S PLAN (hero + task list = one unit) ───────── -->
+  <div class="hero">
+    <div class="hero-h"><span id="t-hero-h">📅 今日のプラン</span> <span class="hint" id="t-today-hint">— Progrit で学習したらタップして記録</span></div>
+    <div class="hero-row">
+      <div class="hero-nums">
+        <div class="hero-stat rev"><div class="v" id="h-rev">0</div><div class="l" id="t-h-rev">復習</div></div>
+        <div class="hero-stat pinstat hidden" id="h-pin-box"><div class="v" id="h-pin">0</div><div class="l" id="t-h-pin">ピン</div></div>
+        <div class="hero-stat new"><div class="v" id="h-new">0</div><div class="l" id="t-h-new">新規</div></div>
+        <div class="hero-stat"><div class="v" id="h-min">0<small id="t-min">分</small></div><div class="l" id="t-h-min">目安</div></div>
+      </div>
+    </div>
+    <div class="hero-sub" id="hero-sub"></div>
+  </div>
   <div class="plan-list" id="plan-list"></div>
 
   <!-- ───────── ROUTINE ───────── -->
   <div class="sec-title"><span id="t-sec-routine">今日のルーティン</span> <span class="hint" id="t-routine-hint">— 口頭英作文以外の習慣</span></div>
   <div class="routine" id="routine"></div>
-
-  <!-- ───────── DIARY ───────── -->
-  <div class="sec-title"><span id="t-sec-diary">✍️ 英語日記</span> <span class="hint" id="t-diary-hint">— 口頭入力・AI添削</span></div>
-  <a class="diary-card" href="english-diary.html">
-    <div class="diary-ic">📓</div>
-    <div class="diary-main">
-      <div class="diary-h" id="t-diary-h">話して書く英語日記</div>
-      <div class="diary-sub" id="diary-sub"></div>
-    </div>
-    <div class="diary-status" id="diary-status"></div>
-    <span class="diary-go">→</span>
-  </a>
 
   <!-- ───────── STATS ───────── -->
   <div class="sec-title" id="t-sec-stats">進捗サマリー</div>
@@ -398,11 +374,12 @@
   <div class="panel">
     <div style="font-size:.7rem;color:var(--dim);letter-spacing:1px;margin-bottom:4px;" id="t-upc">これからの復習予定（直近2週間）</div>
     <div class="upc" id="upc"></div>
+    <div class="upc-leg" id="upc-leg"></div>
     <div class="proj" id="proj"></div>
   </div>
 
-  <!-- ───────── ROUTINE CALENDAR ───────── -->
-  <div class="sec-title"><span id="t-sec-cal">📅 ルーティンの記録</span> <span class="hint" id="t-cal-hint">— カレンダーで可視化</span></div>
+  <!-- ───────── STUDY & ROUTINE CALENDAR (intensity + routine dots) ───────── -->
+  <div class="sec-title"><span id="t-sec-cal">📅 学習とルーティンの記録</span> <span class="hint" id="t-cal-hint">— 濃さ=学習量・ドット=ルーティン</span></div>
   <div class="panel">
     <div class="cal-head">
       <button class="cal-nav" id="cal-prev">◀</button>
@@ -413,34 +390,22 @@
     <div class="cal-legend" id="cal-legend"></div>
   </div>
 
-  <!-- ───────── ACTIVITY ───────── -->
-  <div class="sec-title" id="t-sec-activity">学習の記録</div>
-  <div class="panel">
-    <div class="heat" id="heat"></div>
-    <div class="heat-legend">
-      <span id="t-heat-less">少</span>
-      <span class="hc" style="background:#15151f"></span>
-      <span class="hc" style="background:#3a2a10"></span>
-      <span class="hc" style="background:#7a5414"></span>
-      <span class="hc" style="background:#b9791f"></span>
-      <span class="hc" style="background:#fb923c"></span>
-      <span id="t-heat-more">多</span>
-    </div>
-  </div>
-
-  <!-- ───────── FORGETTING CURVE ───────── -->
+  <!-- ───────── FORGETTING CURVE (educational — collapsed) ───────── -->
   <div class="sec-title" id="t-sec-science">学習の仕組み（忘却曲線）</div>
-  <div class="panel">
-    <div class="fc-flex">
-      <div class="fc-canvas-wrap"><canvas id="fc-canvas" width="520" height="300"></canvas></div>
-      <div class="fc-text" id="fc-text"></div>
+  <details class="strat">
+    <summary id="t-science-sum">忘却曲線と平均定着度の詳細を見る</summary>
+    <div class="strat-body">
+      <div class="fc-flex">
+        <div class="fc-canvas-wrap"><canvas id="fc-canvas" width="520" height="300"></canvas></div>
+        <div class="fc-text" id="fc-text"></div>
+      </div>
+      <div class="gauge-wrap">
+        <span style="font-size:.7rem;color:var(--dim);letter-spacing:1px;" id="t-retention">平均定着度</span>
+        <div class="gauge"><div id="ret-gauge" style="width:0%"></div></div>
+        <span class="gauge-val" id="ret-val">–</span>
+      </div>
     </div>
-    <div class="gauge-wrap">
-      <span style="font-size:.7rem;color:var(--dim);letter-spacing:1px;" id="t-retention">平均定着度</span>
-      <div class="gauge"><div id="ret-gauge" style="width:0%"></div></div>
-      <span class="gauge-val" id="ret-val">–</span>
-    </div>
-  </div>
+  </details>
 
   <!-- ───────── STRATEGY ───────── -->
   <div class="sec-title" id="t-sec-strat">学習戦略メモ</div>
@@ -488,6 +453,8 @@
 
 <!-- ───────── ADMIN GATE (non-admin notice) ───────── -->
 <div class="gate hidden" id="gate"></div>
+
+<button id="totop" aria-label="back to top">↑</button>
 
 <!-- ───────── LESSON MODAL ───────── -->
 <div class="modal-back" id="modal-back">
@@ -805,12 +772,6 @@ function diaryDoneOn(k){
   try{ const o = JSON.parse(localStorage.getItem(diaryRootKey()) || '{}'); return (o.entries||[]).some(e=>e.date===k); }
   catch(_){ return false; }
 }
-function renderDiaryCard(){
-  const done = diaryDoneOn(todayKey());
-  const sub = $('diary-sub'), stt = $('diary-status');
-  if (sub) sub.textContent = T('diarySub');
-  if (stt){ stt.textContent = done ? T('diaryDone') : T('diaryTodo'); stt.classList.toggle('done', done); }
-}
 function streak(){
   const d = logicalToday(); let n = 0;
   if (!isActiveDay(fmtYMD(d))) d.setDate(d.getDate()-1);
@@ -879,20 +840,19 @@ const L = {
     subtitle:'PROGRIT 口頭英作文 ・ 学習マネージャー', home:'← HOME', login:'ログイン', register:'登録',
     gateH:'admin 専用ページです', gateLogin:'admin でログイン',
     gateP:'ENGLISH（口頭英作文マネージャー）は管理者（admin）専用の個人ツールです。admin アカウントでログインすると利用できます。',
-    navDiary:'📓 日記', secDiary:'✍️ 英語日記', diaryHint:'— 口頭入力・AI添削', diaryH:'話して書く英語日記',
-    diarySub:'今日の出来事を英語で話して、表現・構成・構文をAIで添削。', diaryDone:'今日 ✓ 記録済み', diaryTodo:'今日はまだ',
+    navDiary:'📓 日記',
     greetNew:'はじめまして。まずは今日の1レッスンから、軽く再開しましょう。',
     greetStreak:n=>`<b>${n}日連続</b>で学習中。いいリズムです！`,
     greetBack:'おかえりなさい。今日もコツコツいきましょう。',
     guest:'ゲストモードです。記録はこの端末にのみ保存されます。<a href="login.html?next=english.html">ログイン</a>するとアカウントに紐づきます（バックアップのエクスポート推奨）。',
-    heroH:'📅 今日のプラン', hRev:'復習', hNew:'新規', hMin:'目安', min:'分',
+    heroH:'📅 今日のプラン', hRev:'復習', hPin:'ピン', hNew:'新規', hMin:'目安', min:'分',
     heroNone:'今日の必須の復習はありません。新しいレッスンに進むか、軽く流し復習を。',
     heroBoth:(r,n,m)=>`忘却曲線にちょうど乗った復習 <span class="hl">${r}</span> レッスンと、新規 <span class="hl">${n}</span> レッスン（計 約${m}分）がおすすめです。`,
     heroRevOnly:(r,m)=>`今日は復習 <span class="hl">${r}</span> レッスンが最優先（約${m}分）。これを片付けてから新規へ。`,
     heroNewOnly:(n,m)=>`新規 <span class="hl">${n}</span> レッスン（約${m}分）から始めましょう。まずは1周。ピンのみ復習・全文の解き直しは後でまとめて戻ってきます。`,
     heroOver:(r)=>`<span class="pin">復習が ${r} レッスン</span>たまっています。今日は新規をお休みし、復習の消化を優先しましょう。`,
     heroDone:'🎉 今日のおすすめは全て完了！お疲れさまでした。やる気があれば下の進捗から追加で進められます。',
-    secToday:'今日やること', todayHint:'— Progrit で学習したらタップして記録',
+    todayHint:'— Progrit で学習したらタップして記録',
     badgeRev:'復習', badgeOver:'未消化', badgeNew:'新規', badgeMast:'定着',
     prRetention:r=>`定着 ${r}%`, prNew:'まだ学習していません', prPins:n=>`📌${n}`,
     again:'もう一度', hard:'難しい', good:'できた', easy:'簡単',
@@ -904,28 +864,28 @@ const L = {
     heroPinOnly:(n,m)=>`今日は <span class="hl">${n}</span> パートの<b>ピンのみ復習</b>（苦手な例文だけ）がおすすめです（約${m}分）。`,
     heroPinAdd:n=>` 加えて <span class="hl">${n}</span> パートの<b>ピンのみ復習</b>も予定に入っています。`,
     secStats:'進捗サマリー',
-    stTotal:'総レッスン', stStudied:'学習済', stMastered:'定着', stDue:'復習待ち', stPin:'ピン', stStreak:'連続',
-    secScience:'学習の仕組み（忘却曲線）', retention:'平均定着度',
+    stStudied:'学習済', stMastered:'定着', stRet:'平均定着', stPin:'ピン残', stStreak:'連続', stWeek:'直近7日',
+    secScience:'学習の仕組み（忘却曲線）', scienceSum:'忘却曲線と平均定着度の詳細を見る', retention:'平均定着度',
     fcText:`<b>エビングハウスの忘却曲線</b>では、記憶は時間とともに<span class="hl">指数関数的に薄れます</span>（点線）。<br><br>
       しかし<b>忘れかけた絶妙なタイミングで復習</b>すると、記憶はその都度よみがえり<span class="hl">忘れにくく</span>なります（実線）。<br><br>
       このアプリは各レッスンの理解度（できた／難しい等）から<b>次に復習すべき日</b>を自動計算。<b>最小の労力で最大の定着</b>を狙います。`,
-    secPlan:'今後の学習計画', upc:'これからの復習予定（直近2週間）',
+    secPlan:'今後の学習計画', upc:'これからの復習予定（直近2週間）', upcFull:'全文の解き直し', upcPin:'ピンのみ復習',
     projLine:(date,wk,total)=>`現在のペースなら、未学習 <b>${total}</b> レッスンの初回学習は <span class="hl">約${wk}週間</span>後（${date}頃）に完了する見込みです。`,
     projDone:'🎓 全レッスンの初回学習が完了しています。あとは復習で定着を仕上げましょう。',
     today:'今日', overdue:'延滞',
-    secCourses:'コース進捗', coursesHint:'— セルをタップして記録',
-    cProg:(a,b)=>`${a} / ${b} レッスン`, cDue:n=>`復習 ${n}`,
+    secCourses:'コース進捗', coursesHint:'— タップで開閉・セルで記録',
+    cProg:(a,b)=>`${a} / ${b}`, cDue:n=>`復習 ${n}`,
     cLap:(avg,full)=>`周回 ${avg}・全${full}周`, pLap:full=>`${full}周`, repsTitle:n=>`${n}周`,
-    legNew:'未学習', legSched:'復習予定', legDue:'要復習', legOver:'延滞', legMast:'定着🏅', legPin:'ピンあり',
+    legNew:'未学習', legSched:'復習予定', legDue:'要復習', legOver:'延滞', legMast:'定着🏅',
     secRoutine:'今日のルーティン', routineHint:'— 口頭英作文以外の習慣',
-    secCal:'📅 ルーティンの記録', calHint:'— カレンダーで可視化',
+    secCal:'📅 学習とルーティンの記録', calHint:'— 濃さ=学習量・ドット=ルーティン',
+    calActs:n=>`学習 ${n}回`, calInt:'背景=学習量',
     rdLbl:'記録日', rdReset:'今日に戻す', rdToday:'今日', rdYesterday:'昨日', rdDaysAgo:n=>`${n}日前`,
     rdRecordingToday:'今日の学習として記録します。', rdRecordingPast:'過去の日付で記録中（カレンダーの日付クリックでも変更可）。',
     rdClickToRecord:'クリックでこの日に記録', wdShort:['日','月','火','水','木','金','土'],
     a2hs:'<b>ホーム画面に追加</b>すると、この英語ダッシュボードを直接開けます。共有 → 「ホーム画面に追加」。',
     rtComp:'口頭英作文', rtCompNote:'今日のプラン（上）', rtAuto:'自動',
     secStrat:'学習戦略メモ', stratSum:'目標達成までのロードマップを見る',
-    secActivity:'学習の記録', heatLess:'少', heatMore:'多',
     secSet:'設定', setMin:'1日の口頭英作文の目安時間', setMinU:'分／日（復習を優先し、残りで新規を割り当て）',
     setNew:'1日の新規レッスン上限', setNewU:'レッスン／日', setDays:'学習する日数／週', setDaysU:'日／週（完了予測に使用）',
     setOrder:'新規を学ぶコースの順番', setOrderU:'カンマ区切り（adv2 / cv / bp）',
@@ -952,20 +912,19 @@ const L = {
     subtitle:'PROGRIT Oral Composition · Study Manager', home:'← HOME', login:'LOGIN', register:'REGISTER',
     gateH:'Admin only', gateLogin:'Log in as admin',
     gateP:'ENGLISH (the oral-composition manager) is an admin-only personal tool. Log in with the admin account to use it.',
-    navDiary:'📓 Diary', secDiary:'✍️ English diary', diaryHint:'— speak & AI-correct', diaryH:'Speak-and-write diary',
-    diarySub:'Speak your day in English; AI corrects expression, structure & syntax.', diaryDone:'Done today ✓', diaryTodo:'Not yet today',
+    navDiary:'📓 Diary',
     greetNew:'Welcome. Ease back in with just one lesson today.',
     greetStreak:n=>`<b>${n}-day streak</b> — great rhythm!`,
     greetBack:'Welcome back. A little every day.',
     guest:'Guest mode — saved on this device only. <a href="login.html?next=english.html">Log in</a> to tie it to your account (export a backup to be safe).',
-    heroH:"📅 Today's plan", hRev:'Review', hNew:'New', hMin:'≈', min:'min',
+    heroH:"📅 Today's plan", hRev:'Review', hPin:'Pins', hNew:'New', hMin:'≈', min:'min',
     heroNone:'No required reviews today. Move on to new lessons or do a light review.',
     heroBoth:(r,n,m)=>`Recommended: <span class="hl">${r}</span> reviews (right on the forgetting curve) + <span class="hl">${n}</span> new lessons (~${m} min).`,
     heroRevOnly:(r,m)=>`Reviews come first today: <span class="hl">${r}</span> lessons (~${m} min). Clear these, then new.`,
     heroNewOnly:(n,m)=>`Start with <span class="hl">${n}</span> new lessons (~${m} min). Just the first pass — pin-only review and full re-solves come back later.`,
     heroOver:(r)=>`<span class="pin">${r} reviews piled up.</span> Skip new lessons today and clear the backlog first.`,
     heroDone:"🎉 Today's plan is complete — nice work! Add more from the progress grid if you like.",
-    secToday:'Today', todayHint:'— tap to log after studying in Progrit',
+    todayHint:'— tap to log after studying in Progrit',
     badgeRev:'Review', badgeOver:'Backlog', badgeNew:'New', badgeMast:'Mastered',
     prRetention:r=>`Retention ${r}%`, prNew:'Not studied yet', prPins:n=>`📌${n}`,
     again:'Again', hard:'Hard', good:'Good', easy:'Easy',
@@ -976,28 +935,28 @@ const L = {
     pinAfterFirstPass:'starts after a full first pass of this part',
     heroPinOnly:(n,m)=>`Today: <span class="hl">${n}</span> <b>part pin-reviews</b> (just the weak sentences, ~${m} min).`,
     heroPinAdd:n=>` Plus <span class="hl">${n}</span> <b>part pin-reviews</b>.`,
-    secStats:'Progress', stTotal:'Lessons', stStudied:'Studied', stMastered:'Mastered', stDue:'Due', stPin:'Pins', stStreak:'Streak',
-    secScience:'How it works (forgetting curve)', retention:'Avg retention',
+    secStats:'Progress', stStudied:'Studied', stMastered:'Mastered', stRet:'Avg retention', stPin:'Pins left', stStreak:'Streak', stWeek:'Last 7 days',
+    secScience:'How it works (forgetting curve)', scienceSum:'View the forgetting curve & avg retention', retention:'Avg retention',
     fcText:`Per the <b>Ebbinghaus forgetting curve</b>, memory <span class="hl">decays exponentially</span> over time (dotted).<br><br>
       Reviewing <b>right as you start to forget</b> revives it and makes it <span class="hl">decay more slowly</span> each time (solid).<br><br>
       This app computes the <b>next review date</b> per lesson from how well it went — <b>max retention, min effort</b>.`,
-    secPlan:'Study plan ahead', upc:'Upcoming reviews (next 2 weeks)',
+    secPlan:'Study plan ahead', upc:'Upcoming reviews (next 2 weeks)', upcFull:'full re-solve', upcPin:'pin-only review',
     projLine:(date,wk,total)=>`At your current pace, first-pass study of the remaining <b>${total}</b> lessons finishes in <span class="hl">~${wk} weeks</span> (around ${date}).`,
     projDone:'🎓 First pass complete on all lessons. Now consolidate with reviews.',
     today:'Today', overdue:'Late',
-    secCourses:'Course progress', coursesHint:'— tap a cell to log',
-    cProg:(a,b)=>`${a} / ${b} lessons`, cDue:n=>`Due ${n}`,
+    secCourses:'Course progress', coursesHint:'— tap to fold · tap a cell to log',
+    cProg:(a,b)=>`${a} / ${b}`, cDue:n=>`Due ${n}`,
     cLap:(avg,full)=>`laps ${avg} · ${full} full`, pLap:full=>`${full}× full`, repsTitle:n=>`${n} laps`,
-    legNew:'New', legSched:'Scheduled', legDue:'Due', legOver:'Late', legMast:'Mastered🏅', legPin:'Pinned',
+    legNew:'New', legSched:'Scheduled', legDue:'Due', legOver:'Late', legMast:'Mastered🏅',
     secRoutine:"Today's routine", routineHint:'— habits beyond oral composition',
-    secCal:'📅 Routine log', calHint:'— calendar view',
+    secCal:'📅 Study & routine log', calHint:'— shade = study volume · dots = routines',
+    calActs:n=>`${n} studies`, calInt:'shade = study volume',
     rdLbl:'Record day', rdReset:'Back to today', rdToday:'Today', rdYesterday:'Yesterday', rdDaysAgo:n=>`${n}d ago`,
     rdRecordingToday:"Recording as today's study.", rdRecordingPast:'Recording on a past date (or click a calendar day).',
     rdClickToRecord:'click to record on this day', wdShort:['Su','Mo','Tu','We','Th','Fr','Sa'],
     a2hs:'<b>Add to Home Screen</b> to open this dashboard directly — Share → “Add to Home Screen”.',
     rtComp:'Oral composition', rtCompNote:"today's plan (above)", rtAuto:'auto',
     secStrat:'Strategy notes', stratSum:'View the roadmap to your goals',
-    secActivity:'Activity', heatLess:'less', heatMore:'more',
     secSet:'Settings', setMin:'Daily oral-composition budget', setMinU:'min/day (reviews first, rest fills with new)',
     setNew:'Max new lessons/day', setNewU:'lessons/day', setDays:'Study days/week', setDaysU:'days/week (for the estimate)',
     setOrder:'New-lesson course order', setOrderU:'comma separated (adv2 / cv / bp)',
@@ -1038,9 +997,8 @@ function applyChrome(){
   $('lang-btn').textContent = lang==='ja' ? 'EN' : 'JA';
   const set = (id,k)=>{ const e=$(id); if(e) e.textContent = T(k); };
   set('home-btn','home'); set('diary-btn','navDiary'); set('t-subtitle','subtitle');
-  set('t-sec-diary','secDiary'); set('t-diary-hint','diaryHint'); set('t-diary-h','diaryH');
-  set('t-hero-h','heroH'); set('t-h-rev','hRev'); set('t-h-new','hNew'); set('t-h-min','hMin'); set('t-min','min');
-  set('t-sec-today','secToday'); set('t-today-hint','todayHint');
+  set('t-hero-h','heroH'); set('t-h-rev','hRev'); set('t-h-pin','hPin'); set('t-h-new','hNew'); set('t-h-min','hMin'); set('t-min','min');
+  set('t-today-hint','todayHint');
   set('rd-lbl','rdLbl'); set('rd-reset','rdReset');
   { const el=$('a2hs'); if(el){
       const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true;
@@ -1048,14 +1006,13 @@ function applyChrome(){
       if (standalone || dismissed){ el.classList.add('hidden'); }
       else { el.classList.remove('hidden'); $('a2hs-txt').innerHTML = T('a2hs'); }
   } }
-  set('t-sec-stats','secStats'); set('t-sec-science','secScience'); set('t-retention','retention');
+  set('t-sec-stats','secStats'); set('t-sec-science','secScience'); set('t-science-sum','scienceSum'); set('t-retention','retention');
   $('fc-text').innerHTML = T('fcText');
   set('t-sec-plan','secPlan'); set('t-upc','upc');
   set('t-sec-courses','secCourses'); set('t-courses-hint','coursesHint');
   set('t-sec-routine','secRoutine'); set('t-routine-hint','routineHint');
   set('t-sec-cal','secCal'); set('t-cal-hint','calHint');
   set('t-sec-strat','secStrat'); set('t-strat-sum','stratSum');
-  set('t-sec-activity','secActivity'); set('t-heat-less','heatLess'); set('t-heat-more','heatMore');
   set('t-sec-set','secSet');
   set('t-set-min','setMin'); set('t-set-min-u','setMinU'); set('t-set-new','setNew'); set('t-set-new-u','setNewU');
   set('t-set-days','setDays'); set('t-set-days-u','setDaysU'); set('t-set-order','setOrder'); set('t-set-order-u','setOrderU');
@@ -1085,14 +1042,14 @@ function renderAll(){
   renderLegend();
   renderRoutine();
   renderCalendar();
-  renderDiaryCard();
-  renderHeatmap();
 }
 
 function renderHero(){
   const p = buildPlan();
   const pinN = p.pinReviews.length;
   $('h-rev').textContent = p.reviews.length;
+  $('h-pin').textContent = pinN;
+  $('h-pin-box').classList.toggle('hidden', pinN===0);
   $('h-new').textContent = p.news.length;
   $('h-min').innerHTML = p.minutes + `<small>${T('min')}</small>`;
   let msg;
@@ -1233,48 +1190,71 @@ function planRow(id, kind){
   </div>`;
 }
 
+function avgRetention(){
+  let sum=0,n=0; ALL_IDS.forEach(id=>{ const r=retention(id); if(r!=null){ sum+=r; n++; } });
+  return n ? sum/n : null;
+}
+// 進捗サマリー: 変化しない「総レッスン」や、解き直しフェーズまでほぼ0の「復習待ち」ではなく、
+// 日々動く指標（進捗率・定着・ピン残・継続）を並べる。
 function renderStats(){
   const total = ALL_IDS.length;
   const studied = ALL_IDS.filter(isStudied).length;
   const mastered = ALL_IDS.filter(isMastered).length;
-  const due = ALL_IDS.filter(isDue).length;
   const pins = ALL_IDS.reduce((a,id)=>{ const s=st(id); return a + (s&&s.pins?s.pins:0); }, 0);
+  const ret = avgRetention();
+  let wk = 0;
+  for (let i=0;i<7;i++){ const d=logicalToday(); d.setDate(d.getDate()-i); if (isActiveDay(fmtYMD(d))) wk++; }
   const rows = [
-    ['stTotal', total],['stStudied', studied],['stMastered', mastered],
-    ['stDue', due],['stPin', pins],['stStreak', streak()]
+    ['stStudied', `${studied}<small>/${total}</small>`],
+    ['stMastered', mastered],
+    ['stRet', ret!=null ? Math.round(ret*100)+'<small>%</small>' : '–'],
+    ['stPin', pins],
+    ['stStreak', streak()],
+    ['stWeek', `${wk}<small>/7</small>`]
   ];
   $('stats-row').innerHTML = rows.map(([k,v])=>`<div class="stat"><div class="v">${v}</div><div class="l">${T(k)}</div></div>`).join('');
 }
 
 function renderRetentionGauge(){
-  let sum=0,n=0; ALL_IDS.forEach(id=>{ const r=retention(id); if(r!=null){ sum+=r; n++; } });
-  const avg = n ? sum/n : null;
+  const avg = avgRetention();
   $('ret-gauge').style.width = (avg!=null ? Math.round(avg*100):0)+'%';
   $('ret-val').textContent = avg!=null ? Math.round(avg*100)+'%' : '–';
 }
 
 // upcoming reviews: next 14 days bucketed by due date (overdue → today bucket)
+// 全文の解き直し（レッスン数）とパート単位のピンのみ復習（回数）を積み上げて表示。
+// 新ポリシーでは近い将来の負荷の主役はピン復習なので、両方出さないと予定が空に見える。
 function renderUpcoming(){
-  const DAYS = 14, buckets = new Array(DAYS).fill(0);
+  const DAYS = 14, full = new Array(DAYS).fill(0), pin = new Array(DAYS).fill(0);
   const t0 = startOfToday();
   ALL_IDS.forEach(id => { const s = st(id); if(!s||!s.studied) return;
     if (!fullReviewActive(id)) return;             // ピンのみ復習フェーズ中の全文復習は予定に出さない
     let idx = Math.floor((s.due - t0)/DAY);
-    if (idx < 0) idx = 0; if (idx < DAYS) buckets[idx]++;
+    if (idx < 0) idx = 0; if (idx < DAYS) full[idx]++;
   });
-  const max = Math.max(1, ...buckets);
+  PARTS.forEach(p => {
+    if (partPinCount(p.id) <= 0 || !partFirstPassDone(p.id)) return;
+    const dd = partPinDueDays(p.id); if (dd == null) return;
+    const idx = Math.max(0, dd); if (idx < DAYS) pin[idx]++;
+  });
+  const max = Math.max(1, ...full.map((c,i)=>c+pin[i]));
   const wd = lang==='ja' ? ['日','月','火','水','木','金','土'] : ['Su','Mo','Tu','We','Th','Fr','Sa'];
-  $('upc').innerHTML = buckets.map((c,i)=>{
-    const d = new Date(t0 + i*DAY);
-    const h = Math.round(c/max*84);
-    const cls = i===0 ? 'today' : (c===0 ? 'zero' : '');
+  const px = c => c ? Math.max(4, Math.round(c/max*84)) : 0;
+  $('upc').innerHTML = full.map((c,i)=>{
+    const d = new Date(t0 + i*DAY), tot = c + pin[i];
     const lab = i===0 ? T('today') : (d.getMonth()+1)+'/'+d.getDate();
-    return `<div class="upc-col" title="${lab}: ${c}">
-      <div class="upc-n">${c||''}</div>
-      <div class="upc-bar ${cls}" style="height:${c?Math.max(3,h):3}px"></div>
+    const segs = (pin[i]?`<div class="upc-seg pin" style="height:${px(pin[i])}px"></div>`:'')
+               + (c?`<div class="upc-seg full ${i===0?'today':''}" style="height:${px(c)}px"></div>`:'')
+               + (tot?'':'<div class="upc-seg zero" style="height:3px"></div>');
+    return `<div class="upc-col" title="${lab}: ${T('upcFull')} ${c} / ${T('upcPin')} ${pin[i]}">
+      <div class="upc-n">${tot||''}</div>
+      <div class="upc-stack">${segs}</div>
       <div class="upc-d">${i===0?T('today'):(wd[d.getDay()]+' '+(d.getMonth()+1)+'/'+d.getDate())}</div>
     </div>`;
   }).join('');
+  $('upc-leg').innerHTML =
+    `<span><i style="background:var(--accent)"></i>${T('upcFull')}</span>`+
+    `<span><i style="background:var(--pink)"></i>${T('upcPin')}</span>`;
 }
 
 function renderProjection(){
@@ -1302,13 +1282,29 @@ function lapStats(ids){
   const total = ids.length;
   return { total, avg: total? sum/total : 0, full: total? min : 0 };
 }
+// コースの開閉状態（セッション内のみ）。171セルを常時展開すると縦に長くなりすぎるため、
+// 既定では「いま手を付けているコース」1つだけを開く。
+let expandedCourses = {};
+function defaultOpenCourse(){
+  for (const c of COURSES){
+    const hasDue = c.parts.some(p=>{ for(let n=1;n<=p.lessons;n++){ if(isDue(p.id+'-L'+String(n).padStart(2,'0'))) return true; } return false; });
+    if (hasDue) return c.id;
+  }
+  for (const p of PARTS){ if (partPinCount(p.id)>0 && isPartPinDue(p.id)) return p.courseId; }
+  const q = orderedNewQueue();
+  if (q.length) return BY_ID[q[0]].courseId;
+  return COURSES[0].id;
+}
+function isCourseOpen(cid, defOpen){ return expandedCourses[cid]===undefined ? (cid===defOpen) : !!expandedCourses[cid]; }
 function renderCourses(){
   const wrap = $('courses');
+  const defOpen = defaultOpenCourse();
   wrap.innerHTML = COURSES.map(c => {
     const ids = []; c.parts.forEach(p=>{ for(let n=1;n<=p.lessons;n++) ids.push(p.id+'-L'+String(n).padStart(2,'0')); });
     const studied = ids.filter(isStudied).length, due = ids.filter(isDue).length, total = ids.length;
     const pct = Math.round(studied/total*100);
     const cLap = lapStats(ids);
+    const open = isCourseOpen(c.id, defOpen);
     const parts = c.parts.map(p => {
       const pIds = []; let cells = '';
       for(let n=1;n<=p.lessons;n++){
@@ -1327,15 +1323,19 @@ function renderCourses(){
       </div>`;
     }).join('');
     return `<div class="course">
-      <div class="course-head">
+      <button class="course-head" data-cfold="${c.id}">
         <span class="course-icon">${c.icon}</span>
         <span class="course-name" style="color:${c.color}">${c.name}</span>
-        <span class="course-prog">${T('cProg')(studied,total)}${due?' · <span class="due">'+T('cDue')(due)+'</span>':''} · <span class="lap">${T('cLap')(cLap.avg.toFixed(1), cLap.full)}</span></span>
-      </div>
+        <span class="course-prog">${T('cProg')(studied,total)}${due?' · <span class="due">'+T('cDue')(due)+'</span>':''}${cLap.full>=1?' · <span class="lap">'+T('pLap')(cLap.full)+'</span>':''}</span>
+        <span class="ppg-chev ${open?'open':''}">▸</span>
+      </button>
       <div class="course-bar"><div style="width:${pct}%;background:${c.color}"></div></div>
-      ${parts}
+      <div class="course-body${open?'':' hidden'}">${parts}</div>
     </div>`;
   }).join('');
+  wrap.querySelectorAll('[data-cfold]').forEach(b=> b.onclick=()=>{
+    const cid = b.dataset.cfold; expandedCourses[cid] = !isCourseOpen(cid, defOpen); renderCourses();
+  });
   wrap.querySelectorAll('[data-open]').forEach(b=> b.onclick=()=> openLesson(b.dataset.open));
 }
 function renderLegend(){
@@ -1403,14 +1403,18 @@ function renderCalendar(){
     let dots='', doneNames=[];
     ROUTINE.forEach(it=>{ const done = routineDoneOn(ds, it.key); if(done) doneNames.push((it.key==='comp'?T('rtComp'):it.label[lang]));
       dots += `<span class="cal-dot" style="background:${done?it.color:'#1c1c28'}"></span>`; });
-    const title = ds + (doneNames.length?(' : '+doneNames.join(', ')):'') + (selectable?(' — '+T('rdClickToRecord')):'');
-    const cls = (ds===tStr?'today ':'') + (ds===recordDay&&recordDay!==tStr?'rec ':'') + (future?'future ':'') + (selectable?'pick':'');
+    // 背景の濃さ＝その日の口頭英作文の学習量（旧ヒートマップを統合）
+    const n = DB.act[ds]||0;
+    const lvl = future ? 0 : (n>=8?4 : n>=4?3 : n>=2?2 : n>=1?1 : 0);
+    const title = ds + (n?` · ${T('calActs')(n)}`:'') + (doneNames.length?(' : '+doneNames.join(', ')):'') + (selectable?(' — '+T('rdClickToRecord')):'');
+    const cls = (ds===tStr?'today ':'') + (ds===recordDay&&recordDay!==tStr?'rec ':'') + (future?'future ':'') + (lvl?`act${lvl} `:'') + (selectable?'pick':'');
     const attr = selectable ? ` data-pick="${ds}"` : '';
     html += `<div class="cal-cell ${cls}" title="${title}"${attr}><span class="cal-d">${d}</span><div class="cal-dots">${future?'':dots}</div></div>`;
   }
   grid.innerHTML = html;
   grid.querySelectorAll('[data-pick]').forEach(c=> c.onclick=()=>{ recordDay = c.dataset.pick; renderAll(); });
-  $('cal-legend').innerHTML = ROUTINE.map(it=>`<span><i style="background:${it.color}"></i>${it.icon} ${it.key==='comp'?T('rtComp'):it.label[lang]}</span>`).join('');
+  $('cal-legend').innerHTML = ROUTINE.map(it=>`<span><i style="background:${it.color}"></i>${it.icon} ${it.key==='comp'?T('rtComp'):it.label[lang]}</span>`).join('')
+    + `<span><i style="background:#553508;border-radius:2px;"></i>${T('calInt')}</span>`;
   // disable forward nav beyond the current month
   const atCurrent = (y===todayCal.getFullYear() && m===todayCal.getMonth());
   $('cal-next').disabled = atCurrent;
@@ -1433,26 +1437,6 @@ function renderRecordBar(){
   $('record-bar').classList.toggle('past', past);
   $('rd-note').textContent = past ? T('rdRecordingPast') : T('rdRecordingToday');
   $('rd-reset').style.display = past ? '' : 'none';
-}
-
-// ── heatmap ──────────────────────────────────────────────────────────────────
-function renderHeatmap(){
-  const wrap = $('heat'); wrap.innerHTML='';
-  const WEEKS=17, today=logicalToday();
-  const start=new Date(today); start.setDate(start.getDate()-(WEEKS*7-1));
-  const color=n=> n>=8?'#fb923c': n>=4?'#b9791f': n>=2?'#7a5414': n>=1?'#3a2a10':'#15151f';
-  for(let w=0;w<WEEKS;w++){
-    const col=document.createElement('div'); col.className='heat-col';
-    for(let d=0;d<7;d++){
-      const dt=new Date(start); dt.setDate(start.getDate()+w*7+d); dt.setHours(0,0,0,0);
-      const key=fmtYMD(dt);
-      const cell=document.createElement('div'); cell.className='heat-cell';
-      if(dt<=today){ const n=DB.act[key]||0; cell.style.background=color(n); cell.title=key+' : '+n; }
-      else cell.style.visibility='hidden';
-      col.appendChild(cell);
-    }
-    wrap.appendChild(col);
-  }
 }
 
 // ── forgetting-curve illustration ───────────────────────────────────────────
@@ -1665,6 +1649,12 @@ $('set-reset').onclick = ()=>{
 $('record-day').onchange = ()=>{ recordDay = $('record-day').value; renderAll(); };
 $('rd-reset').onclick = ()=>{ recordDay = todayKey(); renderAll(); };
 { const x=$('a2hs-x'); if(x) x.onclick=()=>{ $('a2hs').classList.add('hidden'); try{ localStorage.setItem('eng_a2hs_dismissed','1'); }catch(_){} }; }
+
+// ── back to top（長いページのナビ補助） ─────────────────────────────────────
+{ const tp=$('totop'); if(tp){
+    window.addEventListener('scroll', ()=> tp.classList.toggle('show', window.scrollY>600), {passive:true});
+    tp.onclick = ()=> window.scrollTo({top:0, behavior:'smooth'});
+} }
 
 // ── routine calendar navigation ──────────────────────────────────────────────
 $('cal-prev').onclick = ()=>{ calState.m--; if(calState.m<0){ calState.m=11; calState.y--; } renderCalendar(); };
