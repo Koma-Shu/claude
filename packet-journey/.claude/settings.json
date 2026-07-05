@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh:*)"
+    ],
+    "deny": [
+      "Bash(gh repo delete:*)",
+      "Bash(git push --force:*)"
+    ]
+  }
+}
