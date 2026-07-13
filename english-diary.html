@@ -84,8 +84,7 @@
     .fb strong{color:var(--txt);}
     .fb code{background:#171723;border:1px solid var(--line2);border-radius:5px;padding:1px 6px;font-size:.82em;color:#ffd9b3;}
     .fb-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px;}
-    .elsa-note{margin-top:12px;font-size:.72rem;color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 13px;line-height:1.7;}
-    .elsa-note a{color:var(--blue);}
+    .tip-note{margin-top:12px;font-size:.72rem;color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 13px;line-height:1.7;}
     /* history */
     .hist-list{display:flex;flex-direction:column;gap:9px;}
     .hist-item{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:.13s;}
@@ -175,7 +174,7 @@
     <div class="fb-actions">
       <button class="btn" id="copy-fb" style="font-size:.74rem;padding:9px 14px;">📋 <span id="t-copyfb">結果をコピー</span></button>
     </div>
-    <div class="elsa-note" id="elsa-note"></div>
+    <div class="tip-note" id="readaloud-note"></div>
   </div>
 
   <!-- ── HISTORY ── -->
@@ -422,7 +421,7 @@ const L = {
     run:'🤖 AIで添削する', running:'添削中…', settings:'設定',
     handoff:'APIキーを使わず、契約中のAIに渡す：', copy:'プロンプトをコピー', copied:'コピーしました',
     fb:'添削結果', copyfb:'結果をコピー',
-    elsa:'🗣 仕上げに、上の「添削後」の文を <a href="https://elsaspeak.com/ja/" target="_blank" rel="noopener">ELSA Speak</a> で音読し、発音を矯正しましょう。声に出すとスピーキングに直結します。',
+    readAloud:'🗣 仕上げに、上の「添削後」の文を何度か声に出して音読しましょう。自分の言いたかった内容を正しい英語で口に出すことが、スピーキングに直結します。',
     hist:'これまでの日記', histHint:'— タップで開く', histEmpty:'まだ日記がありません。今日の1本から始めましょう。',
     set:'設定', prov:'添削に使うAI（自分のAPIキーで実行）', provU:'Claude（Anthropic）が既定。モデルは Sonnet（バランス・低コスト）を既定にしています（下で変更可）。',
     model:'モデル', key:'APIキー', keyU:'この端末にのみ保存されます。Claudeのキーは <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--blue)">console.anthropic.com</a> で発行（従量課金）。', stt:'音声入力の言語', profile:'学習者プロフィール（添削の前提）',
@@ -430,7 +429,7 @@ const L = {
     warn:'⚠ APIキーはこの端末（ブラウザ）にのみ保存され、添削時に各社へ直接送信されます。共有端末では使わず、利用上限・権限を絞ったキーの利用を推奨します。キーを使いたくない場合は下の「契約中のAIに渡す」をご利用ください。',
     needText:'日記を入力してください。',
     needKey:'まず設定でAPIキーを入力してください（または「契約中のAIに渡す」をご利用ください）。設定を開きます。',
-    footnote:'添削はあなたのAPIキーで各社AIに直接リクエストします。記録はこの端末に保存されます。ELSAは発音練習用です。',
+    footnote:'添削はあなたのAPIキーで各社AIに直接リクエストします。記録はこの端末に保存されます。',
     modelU:{claude:'例: claude-sonnet-4-6（既定・バランス）/ claude-opus-4-8（最高品質）/ claude-haiku-4-5（低コスト）', openai:'例: gpt-4o-mini / gpt-4o など', gemini:'例: gemini-2.0-flash / gemini-1.5-pro など'},
     openLabel:'で開く'
   },
@@ -446,7 +445,7 @@ const L = {
     run:'🤖 Correct with AI', running:'Correcting…', settings:'Settings',
     handoff:'No API key? Hand it to an AI you already pay for:', copy:'Copy prompt', copied:'Copied',
     fb:'Feedback', copyfb:'Copy result',
-    elsa:'🗣 To finish, read the “corrected” sentences aloud in <a href="https://elsaspeak.com/" target="_blank" rel="noopener">ELSA Speak</a> to fix pronunciation. Speaking aloud feeds straight into fluency.',
+    readAloud:'🗣 To finish, read the “corrected” sentences aloud a few times. Saying what you meant — in correct English — feeds straight into fluency.',
     hist:'Past entries', histHint:'— tap to open', histEmpty:'No entries yet. Start with today’s.',
     set:'Settings', prov:'AI for correction (runs with your API key)', provU:'Claude (Anthropic) is the default provider; the default model is Sonnet (balanced, low-cost). Change below.',
     model:'Model', key:'API key', keyU:'Stored on this device only. Get a Claude key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--blue)">console.anthropic.com</a> (pay-as-you-go).', stt:'Speech input language', profile:'Learner profile (context for feedback)',
@@ -454,7 +453,7 @@ const L = {
     warn:'⚠ API keys are stored only in this browser and sent directly to each provider when correcting. Avoid shared devices; prefer a scoped, usage-limited key. Don’t want to use a key? Use “hand it to an AI” below.',
     needText:'Please write your diary first.',
     needKey:'Add an API key in settings first (or use “hand it to an AI”). Opening settings.',
-    footnote:'Correction calls each provider directly with your key. Entries are stored on this device. ELSA is for pronunciation practice.',
+    footnote:'Correction calls each provider directly with your key. Entries are stored on this device.',
     modelU:{claude:'e.g. claude-sonnet-4-6 (default, balanced) / claude-opus-4-8 (best) / claude-haiku-4-5 (cheap)', openai:'e.g. gpt-4o-mini / gpt-4o', gemini:'e.g. gemini-2.0-flash / gemini-1.5-pro'},
     openLabel:'Open in'
   }
@@ -518,7 +517,7 @@ function applyChrome(){
   $('t-warn').textContent = T('warn');
   $('footnote').textContent = T('footnote');
   $('key-toggle').textContent = $('set-key').type==='password' ? T('show') : T('hide');
-  $('elsa-note').innerHTML = T('elsa');
+  $('readaloud-note').innerHTML = T('readAloud');
   document.querySelectorAll('[data-ext]').forEach(b=>{ /* labels are brand names; keep */ });
   $('topic-lbl').textContent = T('topicLbl');
   $('topic-input').placeholder = T('topicPh');

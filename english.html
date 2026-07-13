@@ -877,7 +877,7 @@ const L = {
     cProg:(a,b)=>`${a} / ${b}`, cDue:n=>`復習 ${n}`,
     cLap:(avg,full)=>`周回 ${avg}・全${full}周`, pLap:full=>`${full}周`, repsTitle:n=>`${n}周`,
     legNew:'未学習', legSched:'復習予定', legDue:'要復習', legOver:'延滞', legMast:'定着🏅',
-    secRoutine:'今日のルーティン', routineHint:'— 口頭英作文以外の習慣',
+    secRoutine:'今日のルーティン', routineHint:'— 口頭英作文以外の習慣', routineProg:(d,t)=>`— 完了 ${d}/${t}`,
     secCal:'📅 学習とルーティンの記録', calHint:'— 濃さ=学習量・ドット=ルーティン',
     calActs:n=>`学習 ${n}回`, calInt:'背景=学習量',
     rdLbl:'記録日', rdReset:'今日に戻す', rdToday:'今日', rdYesterday:'昨日', rdDaysAgo:n=>`${n}日前`,
@@ -948,7 +948,7 @@ const L = {
     cProg:(a,b)=>`${a} / ${b}`, cDue:n=>`Due ${n}`,
     cLap:(avg,full)=>`laps ${avg} · ${full} full`, pLap:full=>`${full}× full`, repsTitle:n=>`${n} laps`,
     legNew:'New', legSched:'Scheduled', legDue:'Due', legOver:'Late', legMast:'Mastered🏅',
-    secRoutine:"Today's routine", routineHint:'— habits beyond oral composition',
+    secRoutine:"Today's routine", routineHint:'— habits beyond oral composition', routineProg:(d,t)=>`— ${d}/${t} done`,
     secCal:'📅 Study & routine log', calHint:'— shade = study volume · dots = routines',
     calActs:n=>`${n} studies`, calInt:'shade = study volume',
     rdLbl:'Record day', rdReset:'Back to today', rdToday:'Today', rdYesterday:'Yesterday', rdDaysAgo:n=>`${n}d ago`,
@@ -1349,7 +1349,6 @@ function renderLegend(){
 // ── routine ──────────────────────────────────────────────────────────────────
 const ROUTINE = [
   { key:'shadow', icon:'🎧', color:'#60a5fa', label:{ja:'シャドーイング',en:'Shadowing'}, note:{ja:'毎日30分・録音して提出',en:'30 min daily · record & submit'} },
-  { key:'elsa',   icon:'🗣', color:'#a78bfa', label:{ja:'ELSA Speak',en:'ELSA Speak'}, note:{ja:'10〜15分・発音矯正',en:'10–15 min · pronunciation'} },
   { key:'comp',   icon:'✍️', color:'#fb923c', label:{ja:'口頭英作文',en:'Oral composition'}, note:{ja:'今日のプラン（上）',en:"today's plan (above)"}, auto:true },
   { key:'diary',  icon:'📓', color:'#fbbf24', label:{ja:'英語日記',en:'English diary'}, note:{ja:'口頭入力・AI添削（タップで開く）',en:'speak & AI-correct (tap to open)'}, auto:true, link:'english-diary.html' },
   { key:'output', icon:'📨', color:'#34d399', label:{ja:'業務アウトプット',en:'Work output'}, note:{ja:'英文メールを自力ドラフト（任意）',en:'Draft an email yourself (optional)'}, opt:true },
@@ -1363,6 +1362,9 @@ function routineDoneOn(day, key){
 }
 function renderRoutine(){
   const k = recordDay;                              // 記録日のルーティンを表示・編集
+  // 見出しに完了数を表示（applyChrome の既定ヒントを上書き）
+  const doneN = ROUTINE.filter(it=>routineDoneOn(k, it.key)).length;
+  const rh = $('t-routine-hint'); if (rh) rh.textContent = T('routineProg')(doneN, ROUTINE.length);
   $('routine').innerHTML = ROUTINE.map(it=>{
     const done = routineDoneOn(k, it.key);
     const label = it.key==='comp' ? T('rtComp') : it.label[lang];
@@ -1572,8 +1574,7 @@ function stratHTML(){
     <b>Shift:</b> from "English for tests" to "English for use".
     <ul>
       <li><b>Speaking core — this app.</b> Oral composition 15–20 min, 4–5 days/week. Cut the lag from meaning → speech. <b>Light review policy:</b> 1st pass through every lesson → once a part's first pass is done, <b>pin-only review</b> (just the weak sentences) for the next few rounds → re-solve full lessons only much later (long interval). Keeps the daily load low.</li>
-      <li><b>🎧 Shadowing, ~30 min/day (daily).</b> Automate sound perception & rhythm — pinned as a fixed task in "Today".</li>
-      <li><b>🗣 ELSA, 10–15 min.</b> Warm-up/cool-down around shadowing to fix individual sounds & intonation.</li>
+      <li><b>🎧 Shadowing, ~30 min/day (daily).</b> Automate sound perception & rhythm — pinned as a fixed task in "Today". Doubles as pronunciation practice: mimic the model audio closely.</li>
       <li><b>📨 Work output.</b> Draft English emails yourself first, then refine with AI/Grammarly; stockpile expressions you couldn't produce.</li>
       <li><b>📖 Input.</b> Mine real webinars / white papers in your field instead of buying a new word book.</li>
     </ul>
@@ -1584,8 +1585,7 @@ function stratHTML(){
     <b>転換:</b>「試験のための英語」から「使うための英語」へ。
     <ul>
       <li><b>スピーキングの核 — このアプリ。</b> 口頭英作文を15〜20分・週4〜5日。意味理解→発話のタイムラグを消す。<b>負荷を抑えた復習方針:</b> まず全レッスンを1周 → そのパートを1周し終えたら<b>ピンのみ復習</b>（苦手な例文だけ）を数回 → 全文の解き直しはしばらく経ってから（長い間隔）。毎日の負担を軽く保つ。</li>
-      <li><b>🎧 シャドーイング（約30分／日・毎日）。</b> 音声知覚とリズムの自動化。「今日やること」に固定タスクとして表示。</li>
-      <li><b>🗣 ELSA（10〜15分）。</b> シャドーイングの前後にウォームアップ／クールダウンとして発音・イントネーションを矯正。</li>
+      <li><b>🎧 シャドーイング（約30分／日・毎日）。</b> 音声知覚とリズムの自動化。「今日やること」に固定タスクとして表示。お手本音声に寄せて発音・イントネーションの矯正も兼ねる。</li>
       <li><b>📨 業務アウトプット。</b> 英文メールは翻訳に頼らず自力ドラフト→AI/Grammarlyで添削。使えなかった表現をストック。</li>
       <li><b>📖 インプット。</b> 新しい単語帳より、実務のウェビナーやホワイトペーパーから生きた専門語彙を拾う。</li>
     </ul>
