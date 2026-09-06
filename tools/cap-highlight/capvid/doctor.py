@@ -94,7 +94,10 @@ def main(args) -> int:
         try:
             from .telop_png import find_font
             path, index = find_font(style)
-            print(f"  [OK]   フォント {path.name}")
+            print(f"  [OK]   フォント {path}"
+                  + (f" (index {index})" if index else ""))
+            print("         別のフォントを使いたい場合は "
+                  "config/style.json の font.file にパスを指定してください。")
         except SystemExit as e:
             print(f"  [NG]   {e}")
             ok = False

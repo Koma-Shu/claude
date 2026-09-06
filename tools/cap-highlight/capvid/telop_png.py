@@ -7,6 +7,7 @@ ffmpeg の配布ビルドによっては freetype / libass を含まず、drawte
 from __future__ import annotations
 
 import pathlib
+import re
 
 from . import telop, util
 
@@ -17,12 +18,23 @@ FONT_DIRS = [
     "/usr/share/fonts", "/usr/local/share/fonts",
     "~/.fonts", "~/.local/share/fonts",
 ]
-# ファイル名に含まれていたら日本語フォントとみなす語（優先度順）
-FONT_HINTS = [
-    "hiragino", "ヒラギノ", "notosanscjk", "notosansjp", "noto sans jp",
+# 日本語フォントの家族（優先度順）。ファイル名に含まれるかで判定する。
+FONT_FAMILIES = [
+    "ヒラギノ角ゴシック", "ヒラギノ角ゴ", "hiraginosans", "hiragino",
+    "notosanscjk", "notosansjp", "noto sans jp", "notosans-jp",
     "sourcehansans", "yugoth", "ipaexg", "ipagp", "osaka", "meiryo",
-    "arialunicode", "notoserifcjk", "notoserifjp",
+    "notoserifcjk", "notoserifjp", "arialunicode",
 ]
+# 中国語・韓国語向けの地域別派生。日本語の字形と違うので後回しにする
+# （macOS の "Hiragino Sans GB" は簡体字用で、日本語の字形にならない）。
+REGION_VARIANTS = re.compile(
+    r"(\bgb\b|\bg1\b|cjk\s*[-_]?\s*(sc|tc|kr|hk)|\b(sc|tc|kr|hk)\b"
+    r"|simplified|traditional|korean|chinese)", re.IGNORECASE)
+# 太さの好み。テロップなので細すぎるものは避ける
+WEIGHT_ORDER = ["w6", "w5", "demibold", "semibold", "bold", "w4", "medium",
+                "w3", "regular", "w7", "w8", "normal"]
+THIN = re.compile(r"(\bw[012]\b|thin|extralight|ultralight|\blight\b)",
+                  re.IGNORECASE)
 PROBE_TEXT = "辻蓋楡回表"        # 描けるか確かめる文字
 
 
@@ -58,6 +70,26 @@ def _renders_japanese(path: pathlib.Path, index: int = 0) -> bool:
     return bool(one.getbbox()) and img.getbbox()[2] > one.getbbox()[2]
 
 
+def score(path: pathlib.Path) -> tuple[int, int, int, str]:
+    """フォントファイルの優先順位。小さいほど優先。
+
+    (家族の順位, 地域別派生かどうか, 太さの順位, 名前) を返す。
+    """
+    low = path.name.lower()
+    family = len(FONT_FAMILIES)
+    for i, name in enumerate(FONT_FAMILIES):
+        if name in low:
+            family = i
+            break
+    region = 1 if REGION_VARIANTS.search(path.name) else 0
+    if THIN.search(path.name):
+        weight = len(WEIGHT_ORDER) + 1          # 細すぎるものは最後に
+    else:
+        weight = next((i for i, w in enumerate(WEIGHT_ORDER) if w in low),
+                      len(WEIGHT_ORDER))
+    return (family, region, weight, path.name)
+
+
 def find_font(style: dict) -> tuple[pathlib.Path, int]:
     """使える日本語フォントのファイルと ttc のインデックスを返す。"""
     explicit = style["font"].get("file")
@@ -73,15 +105,8 @@ def find_font(style: dict) -> tuple[pathlib.Path, int]:
         d = pathlib.Path(fontsdir).expanduser()
         files = [f for ext in ("*.ttc", "*.otf", "*.ttf") for f in d.rglob(ext)] + files
 
-    def rank(f: pathlib.Path) -> int:
-        low = f.name.lower()
-        for i, hint in enumerate(FONT_HINTS):
-            if hint in low:
-                return i
-        return len(FONT_HINTS)
-
-    for f in sorted(files, key=rank):
-        if rank(f) == len(FONT_HINTS):
+    for f in sorted(files, key=score):
+        if score(f)[0] >= len(FONT_FAMILIES):
             break                      # 手掛かりのあるものを使い切った
         for index in (0, 1, 2):
             if _renders_japanese(f, index):
