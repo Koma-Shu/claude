@@ -1,0 +1,86 @@
+{
+  "_comment": "お手本動画(tKnMRW0xT0A)のフレームを reference コマンドで抽出して確認したうえで、ここを実測値に寄せる。下記は暫定値。",
+  "output": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "video_bitrate": "8M",
+    "audio_bitrate": "192k",
+    "target_duration_sec": 300
+  },
+  "timing": {
+    "intro_sec": 8.0,
+    "outro_sec": 7.0,
+    "half_card_sec": 1.6,
+    "cut_min_sec": 12.0,
+    "cut_max_sec": 34.0,
+    "pre_roll_sec": 7.0,
+    "post_roll_sec": 6.0,
+    "audio_fade_sec": 0.25,
+    "snap_window_sec": 12.0
+  },
+  "font": {
+    "_comment": "日本語フォント。macOS なら 'Hiragino Sans'、Noto を入れたなら 'Noto Sans JP'。fontsdir に .ttf/.otf のあるディレクトリを指定するとlibassが確実に拾う。",
+    "name": "Noto Sans JP",
+    "bold_name": "Noto Sans JP",
+    "fontsdir": null
+  },
+  "telop": {
+    "lower_third": {
+      "margin_left": 96,
+      "margin_bottom": 96,
+      "title_size": 58,
+      "subtitle_size": 36,
+      "fade_in_ms": 260,
+      "fade_out_ms": 320,
+      "hold_sec": 4.0,
+      "bg_alpha": "&H30&"
+    },
+    "scorebug": {
+      "enabled": true,
+      "margin_left": 72,
+      "margin_top": 56,
+      "size": 34,
+      "bg_alpha": "&H40&"
+    },
+    "half_card": {
+      "title_size": 96,
+      "subtitle_size": 44
+    }
+  },
+  "colors": {
+    "text": "&H00FFFFFF&",
+    "shadow": "&H00101010&",
+    "away_accent": "&H00D06F1F&",
+    "home_accent": "&H001F45D0&",
+    "_comment": "ASSのカラーは &HAABBGGRR& 形式（BGR順）。away #1f6fd0 -> &H00D06F1F&"
+  },
+  "audio": {
+    "game_audio_gain_db": -2.0,
+    "bgm_path": null,
+    "bgm_gain_db": -18.0,
+    "bgm_fade_in_sec": 1.5,
+    "bgm_fade_out_sec": 3.0,
+    "duck_bgm": true
+  },
+  "selection": {
+    "_comment": "ハイライト選定のスコア重み。plan コマンドで使う。",
+    "base": {
+      "2BH": 70,
+      "1BH": 48,
+      "K": 16,
+      "K'": 30,
+      "BB": 4,
+      "DB": 10
+    },
+    "rbi_bonus": 16,
+    "flag_bonus": {
+      "先制": 30,
+      "三者連続三振": 26,
+      "ゲームセット": 34
+    },
+    "manual_include": [],
+    "manual_exclude": [],
+    "min_per_half": 1
+  }
+}
