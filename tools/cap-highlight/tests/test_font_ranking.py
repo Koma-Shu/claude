@@ -12,28 +12,35 @@ from __future__ import annotations
 
 import pathlib
 import sys
+import unicodedata
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 from capvid.telop_png import score  # noqa: E402
 
-# 実在するファイル名（macOS / Linux）
-MACOS = ["Hiragino Sans GB.ttc", "ヒラギノ角ゴシック W0.ttc",
-         "ヒラギノ角ゴシック W3.ttc", "ヒラギノ角ゴシック W6.ttc",
-         "ヒラギノ明朝 ProN.ttc", "Osaka.ttf", "Helvetica.ttc",
-         "Arial Unicode.ttf"]
+def nfd(name: str) -> str:
+    """macOS がファイル名を保存する形（濁点が分離した NFD）にする。"""
+    return unicodedata.normalize("NFD", name)
+
+
+# 実在するファイル名（macOS / Linux）。macOS 側は実機と同じ NFD で並べる。
+MACOS = [nfd(n) for n in
+         ["Hiragino Sans GB.ttc", "ヒラギノ角ゴシック W0.ttc",
+          "ヒラギノ角ゴシック W3.ttc", "ヒラギノ角ゴシック W6.ttc",
+          "ヒラギノ明朝 ProN.ttc", "Osaka.ttf", "Helvetica.ttc",
+          "Arial Unicode.ttf"]]
 LINUX = ["NotoSansCJK-Regular.ttc", "NotoSansCJKsc-Bold.otf",
          "NotoSansJP-Bold.otf", "DejaVuSans.ttf", "ipaexg.ttf"]
 
 CASES = [
     ("macOS では日本語のヒラギノを選ぶ（GB版ではない）",
-     MACOS, "ヒラギノ角ゴシック W6.ttc"),
+     MACOS, nfd("ヒラギノ角ゴシック W6.ttc")),
     ("GB版しか無ければそれを使う",
-     [n for n in MACOS if "ヒラギノ角ゴシック" not in n], "Hiragino Sans GB.ttc"),
+     [n for n in MACOS if nfd("ヒラギノ角ゴシック") not in n], "Hiragino Sans GB.ttc"),
     ("Linux では地域別派生でない Noto CJK を選ぶ",
      LINUX, "NotoSansCJK-Regular.ttc"),
     ("細いウェイトは選ばない",
-     ["ヒラギノ角ゴシック W0.ttc", "ヒラギノ角ゴシック W3.ttc"],
-     "ヒラギノ角ゴシック W3.ttc"),
+     [nfd("ヒラギノ角ゴシック W0.ttc"), nfd("ヒラギノ角ゴシック W3.ttc")],
+     nfd("ヒラギノ角ゴシック W3.ttc")),
     ("日本語フォントが無ければ手掛かり無しとして最下位に落ちる",
      ["Helvetica.ttc", "DejaVuSans.ttf"], "DejaVuSans.ttf"),
 ]
@@ -44,9 +51,15 @@ def main() -> int:
     for label, names, expected in CASES:
         got = min(names, key=lambda n: score(pathlib.Path(n)))
         mark = "OK" if got == expected else "NG"
-        print(f"  [{mark}] {label}\n         -> {got}")
+        print(f"  [{mark}] {label}\n         -> "
+              f"{unicodedata.normalize('NFC', got)}")
         if got != expected:
             failures.append(f"{label}: {got} を選んだが {expected} のはず")
+
+    # NFC で書かれたファイル名でも同じ結果になること
+    if score(pathlib.Path(nfd("ヒラギノ角ゴシック W6.ttc"))) \
+            != score(pathlib.Path("ヒラギノ角ゴシック W6.ttc")):
+        failures.append("NFD と NFC で順位が変わる（正規化が効いていない）")
 
     # 地域別派生は、同じ家族の日本語版より必ず後ろ
     jp = score(pathlib.Path("NotoSansCJK-Regular.ttc"))

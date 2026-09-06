@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pathlib
 import re
+import unicodedata
 
 from . import telop, util
 
@@ -70,24 +71,36 @@ def _renders_japanese(path: pathlib.Path, index: int = 0) -> bool:
     return bool(one.getbbox()) and img.getbbox()[2] > one.getbbox()[2]
 
 
+def _norm(text: str) -> str:
+    """比較用に正規化する。
+
+    macOS のファイル名は NFD（濁点が分離した形）で保存されるため、
+    「ヒラギノ」は キ+゙ になっていてソースコード中の NFC 表記と一致しない。
+    これを踏まなかったせいで、日本語のヒラギノが素通りして簡体字用の
+    "Hiragino Sans GB" が選ばれていた。
+    """
+    return unicodedata.normalize("NFKC", text).lower()
+
+
 def score(path: pathlib.Path) -> tuple[int, int, int, str]:
     """フォントファイルの優先順位。小さいほど優先。
 
     (家族の順位, 地域別派生かどうか, 太さの順位, 名前) を返す。
     """
-    low = path.name.lower()
+    low = _norm(path.name)
     family = len(FONT_FAMILIES)
     for i, name in enumerate(FONT_FAMILIES):
-        if name in low:
+        if _norm(name) in low:
             family = i
             break
-    region = 1 if REGION_VARIANTS.search(path.name) else 0
-    if THIN.search(path.name):
+    region = 1 if REGION_VARIANTS.search(low) else 0
+    if THIN.search(low):
         weight = len(WEIGHT_ORDER) + 1          # 細すぎるものは最後に
     else:
         weight = next((i for i, w in enumerate(WEIGHT_ORDER) if w in low),
                       len(WEIGHT_ORDER))
-    return (family, region, weight, path.name)
+    # 同点時の並びも正規化した名前で決める（NFD/NFC で結果が変わらないように）
+    return (family, region, weight, unicodedata.normalize("NFC", path.name))
 
 
 def find_font(style: dict) -> tuple[pathlib.Path, int]:

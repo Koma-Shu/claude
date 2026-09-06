@@ -98,6 +98,13 @@ def main(args) -> int:
                   + (f" (index {index})" if index else ""))
             print("         別のフォントを使いたい場合は "
                   "config/style.json の font.file にパスを指定してください。")
+            if getattr(args, "fonts", False):
+                from .telop_png import _font_files, score as font_score
+                print("\n         見つかった日本語フォントの候補（上位10件）:")
+                for f in sorted(_font_files(), key=font_score)[:10]:
+                    fam, region, weight, _ = font_score(f)
+                    tag = " [地域別派生]" if region else ""
+                    print(f"           {f}{tag}")
         except SystemExit as e:
             print(f"  [NG]   {e}")
             ok = False

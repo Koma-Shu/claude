@@ -59,7 +59,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--scene-threshold", type=float, default=0.30)
 
     sub.add_parser("plays", help="打席データを検証して表示する")
-    sub.add_parser("doctor", help="ffmpeg・フィルタ・フォントが揃っているか確認する")
+    p = sub.add_parser("doctor", help="ffmpeg・フィルタ・フォントが揃っているか確認する")
+    p.add_argument("--fonts", action="store_true",
+                   help="見つかった日本語フォントの候補も一覧表示する")
     return ap
 
 
