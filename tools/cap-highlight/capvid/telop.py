@@ -31,6 +31,67 @@ def _escape(text: str) -> str:
 DESIGN_W, DESIGN_H = 1920, 1080
 
 
+# 役割 -> (ASSスタイル名, 描画アンカー, DESIGN空間での座標)
+#   アンカー: "bl"=左下 / "tl"=左上 / "mc"=中央
+def layout(style: dict) -> dict[str, dict]:
+    lt, sb = style["telop"]["lower_third"], style["telop"]["scorebug"]
+    return {
+        "title": {"ass": "Title", "anchor": "bl",
+                  "x": lt["margin_left"],
+                  "y": DESIGN_H - lt["margin_bottom"] - lt["subtitle_size"] - 18,
+                  "size": lt["title_size"], "bold": True},
+        "detail": {"ass": "Detail", "anchor": "bl",
+                   "x": lt["margin_left"], "y": DESIGN_H - lt["margin_bottom"],
+                   "size": lt["subtitle_size"], "bold": False},
+        "scorebug": {"ass": "Scorebug", "anchor": "tl",
+                     "x": sb["margin_left"], "y": sb["margin_top"],
+                     "size": sb["size"], "bold": False},
+        "card_title": {"ass": "CardTitle", "anchor": "mc",
+                       "x": DESIGN_W // 2, "y": int(DESIGN_H * 0.44),
+                       "size": style["telop"]["half_card"]["title_size"], "bold": True},
+        "card_detail": {"ass": "CardDetail", "anchor": "mc",
+                        "x": DESIGN_W // 2, "y": int(DESIGN_H * 0.63),
+                        "size": style["telop"]["half_card"]["subtitle_size"], "bold": False},
+    }
+
+
+def elements(cuts: dict, style: dict) -> list[dict]:
+    """テロップを (所属セグメント, 役割, 文字列, 表示区間, フェード) の列にする。
+
+    ASS でも PNG 合成でも同じものを描くように、配置の決定はここに集約する。
+    """
+    lt = style["telop"]["lower_third"]
+    sb = style["telop"]["scorebug"]
+    fade = (lt["fade_in_ms"], lt["fade_out_ms"])
+    card_fade = (300, 300)
+    out = []
+
+    def add(idx, role, text, t0, t1, fades):
+        if t1 > t0 and text:
+            out.append({"seg": idx, "role": role, "text": str(text),
+                        "t0": round(t0, 3), "t1": round(t1, 3),
+                        "fade_in": fades[0] / 1000.0, "fade_out": fades[1] / 1000.0})
+
+    for i, it in enumerate(cuts["items"]):
+        t0 = it["timeline_start"]
+        t1 = t0 + it["duration"]
+        kind = it["kind"]
+
+        if kind in ("intro", "outro"):
+            add(i, "card_title", it["title"], t0 + 0.2, t1 - 0.2, card_fade)
+            add(i, "card_detail", it.get("detail"), t0 + 0.5, t1 - 0.2, card_fade)
+        elif kind == "half_card":
+            add(i, "card_title", it["title"], t0, t1, card_fade)
+            add(i, "card_detail", it.get("detail"), t0, t1, card_fade)
+        else:
+            hold = min(float(lt["hold_sec"]), max(1.5, it["duration"] - 1.0))
+            add(i, "title", it["title"], t0 + 0.35, t0 + 0.35 + hold, fade)
+            add(i, "detail", it.get("detail"), t0 + 0.45, t0 + 0.45 + hold, fade)
+            if sb.get("enabled", True):
+                add(i, "scorebug", it.get("scorebug"), t0 + 0.2, t1 - 0.2, (200, 250))
+    return out
+
+
 def build(cuts: dict, style: dict) -> str:
     out = style["output"]
     font = style["font"]

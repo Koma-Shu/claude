@@ -34,9 +34,27 @@ pip3 install -r requirements.txt
 python3 run.py doctor
 ```
 
-`ffmpeg` と `ffprobe` の両方、テロップ焼き込みに使う `ass` フィルタ(libass)、
-日本語フォントの有無をまとめて見る。pip の `imageio-ffmpeg` は `ffmpeg` 本体しか
-同梱せず `ffprobe` を含まないため、それだけでは `probe` コマンドが動かない。
+`ffmpeg` と `ffprobe`、必要なフィルタ、日本語フォントの有無をまとめて見る。
+pip の `imageio-ffmpeg` は `ffmpeg` 本体しか同梱せず `ffprobe` を含まないため、
+それだけでは `probe` コマンドが動かない。
+
+### テロップの描画方法
+
+ffmpeg の配布ビルドは構成が一定でなく、freetype や libass を含まないことがある
+（Homebrew 版でしばしば起きる）。そのため描画経路を2つ持っている。
+
+| 条件 | 方法 |
+|---|---|
+| `ass` フィルタがある | ASS 字幕を最終パスで焼き込む |
+| `ass` フィルタが無い | Pillow でテロップを PNG に描き、`overlay` で合成する |
+
+どちらを使うかは `render` が自動で決める。見た目は同じ。後者はフォントを
+ファイルとして直接探すので、`fc-list` も要らない。特定のフォントファイルを
+使いたいときは `config/style.json` に `font.file` でパスを書く
+（`.ttc` なら `font.file_index` も）。
+
+`CAPVID_DISABLE_FILTERS=ass` を付けて実行すると、`ass` があっても
+PNG 経路を試せる。
 
 日本語フォントは `config/style.json` の `font.name` の候補を上から順に探し、
 最初に見つかったものを使う（macOS なら `Hiragino Sans`）。候補に無いフォントを

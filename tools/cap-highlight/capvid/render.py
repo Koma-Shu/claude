@@ -29,7 +29,7 @@ def _enc(style: dict, extra: list[str] | None = None) -> list[str]:
     ] + (extra or []))
 
 
-def build_cut(it: dict, style: dict, dest) -> None:
+def build_cut(it: dict, style: dict, dest, overlays=None) -> None:
     out, timing = style["output"], style["timing"]
     src = util.MEDIA / it["file"]
     dur = it["duration"]
@@ -37,21 +37,40 @@ def build_cut(it: dict, style: dict, dest) -> None:
     gain = style["audio"].get("game_audio_gain_db", 0.0)
     af = (f"aresample=48000,volume={gain}dB,"
           f"afade=t=in:st=0:d={fade:.3f},afade=t=out:st={dur - fade:.3f}:d={fade:.3f}")
-    util.ff([
-        "-ss", f"{it['src_in']:.3f}", "-t", f"{dur:.3f}", "-i", str(src),
-        "-vf", _vf_normalise(out["width"], out["height"], out["fps"]),
-        "-af", af, *_enc(style), str(dest)])
+    base = _vf_normalise(out["width"], out["height"], out["fps"])
+    args = ["-ss", f"{it['src_in']:.3f}", "-t", f"{dur:.3f}", "-i", str(src)]
+
+    if overlays:
+        from .telop_png import filter_complex, inputs_for
+        args += inputs_for(overlays, out["fps"])
+        chain, label = filter_complex(overlays, base, out["fps"])
+        args += ["-filter_complex", chain, "-map", f"[{label}]", "-map", "0:a"]
+    else:
+        args += ["-vf", base]
+    util.ff(args + ["-af", af, *_enc(style), str(dest)])
 
 
-def build_card(it: dict, style: dict, dest) -> None:
-    """イントロ・イニングカード・アウトロ用の無地クリップ（文字は ASS で乗せる）。"""
+def build_card(it: dict, style: dict, dest, overlays=None) -> None:
+    """イントロ・イニングカード・アウトロ用の無地クリップ。
+
+    文字は ASS が使えれば最終パスで焼き、使えなければここで PNG を合成する。
+    """
     out = style["output"]
     dur = it["duration"]
-    util.ff([
+    args = [
         "-f", "lavfi", "-i",
         f"color=c=black:s={out['width']}x{out['height']}:r={out['fps']}:d={dur:.3f}",
-        "-f", "lavfi", "-i", f"anullsrc=r=48000:cl=stereo:d={dur:.3f}",
-        "-shortest", *_enc(style), str(dest)])
+        "-f", "lavfi", "-i", f"anullsrc=r=48000:cl=stereo:d={dur:.3f}"]
+
+    if overlays:
+        from .telop_png import filter_complex, inputs_for
+        # 音声が入力1なので、overlay の入力番号は 2 以降にずらす
+        args += inputs_for(overlays, out["fps"])
+        chain, label = filter_complex(overlays, "null", out["fps"])
+        for i in range(len(overlays), 0, -1):
+            chain = chain.replace(f"[{i}:v]", f"[{i + 1}:v]")
+        args += ["-filter_complex", chain, "-map", f"[{label}]", "-map", "1:a"]
+    util.ff(args + ["-shortest", *_enc(style), str(dest)])
 
 
 def concat(paths, dest, style) -> None:
@@ -63,10 +82,13 @@ def concat(paths, dest, style) -> None:
 
 
 def finish(joined, dest, style, ass_path, total: float) -> None:
-    """テロップ焼き込み + BGM ミックス。"""
+    """テロップ焼き込み（ass が使える場合）+ BGM ミックス。"""
     audio = style["audio"]
     font_dir = style["font"].get("fontsdir")
-    ass_filter = f"ass='{ass_path}'" + (f":fontsdir='{font_dir}'" if font_dir else "")
+    if ass_path is not None:
+        ass_filter = f"ass='{ass_path}'" + (f":fontsdir='{font_dir}'" if font_dir else "")
+    else:
+        ass_filter = "null"      # テロップはセグメント生成時に焼き込み済み
 
     args = ["-i", str(joined)]
     bgm = audio.get("bgm_path")
@@ -96,11 +118,24 @@ def main(args) -> int:
     cuts = util.load("cuts")
     style = util.load("style")
 
-    ass_path = util.WORK / "telop.ass"
-    if not ass_path.exists() or args.rebuild_telop:
-        from .telop import build
-        ass_path.write_text(build(cuts, style), encoding="utf-8")
-        print(f"  テロップを生成: {ass_path}")
+    # ffmpeg が libass を持たないビルドのことがある。その場合は Pillow で
+    # テロップを PNG に描いて overlay する（drawtext も不要）。
+    use_ass = util.has_filter("ass")
+    elems, font_path, font_index = [], None, 0
+    if use_ass:
+        ass_path = util.WORK / "telop.ass"
+        if not ass_path.exists() or args.rebuild_telop:
+            from .telop import build
+            ass_path.write_text(build(cuts, style), encoding="utf-8")
+            print(f"  テロップを生成: {ass_path}")
+    else:
+        from .telop import elements
+        from .telop_png import find_font
+        print("  この ffmpeg には ass フィルタが無いため、"
+              "テロップを画像化して合成します。")
+        elems = elements(cuts, style)
+        font_path, font_index = find_font(style)
+        print(f"  フォント: {font_path.name}")
 
     paths = []
     for i, it in enumerate(cuts["items"]):
@@ -111,21 +146,30 @@ def main(args) -> int:
             print(f"  再利用: {dest.name}")
             continue
         print(f"  生成中: {dest.name} ({it['duration']:.1f}s)")
+        overlays = None
+        if not use_ass:
+            from .telop_png import build_segment_overlays
+            overlays = build_segment_overlays(
+                i, it["timeline_start"], elems, style,
+                (style["output"]["width"], style["output"]["height"]),
+                font_path, font_index, util.WORK / "telop_png")
         if it["kind"] == "cut":
             src = util.MEDIA / it["file"]
             if not src.exists():
                 raise SystemExit(f"元動画がありません: {src}  → `fetch` を実行してください")
-            build_cut(it, style, dest)
+            build_cut(it, style, dest, overlays)
         else:
-            build_card(it, style, dest)
+            build_card(it, style, dest, overlays)
 
     joined = util.WORK / "joined.mp4"
     print("  連結中 ...")
     concat(paths, joined, style)
 
     dest = util.OUT / (args.output or "highlight.mp4")
-    print("  テロップ焼き込み + 仕上げ ...")
-    finish(joined, dest, style, ass_path, cuts["total_duration"])
+    print("  仕上げ ..." if not use_ass else "  テロップ焼き込み + 仕上げ ...")
+    finish(joined, dest, style,
+           util.WORK / "telop.ass" if use_ass else None,
+           cuts["total_duration"])
 
     from .probe import probe_file
     info = probe_file(dest)

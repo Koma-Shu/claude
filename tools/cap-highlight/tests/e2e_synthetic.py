@@ -85,7 +85,7 @@ def main() -> int:
     args = ap.parse_args()
 
     # ffmpeg / ffprobe が揃っているかを最初に確かめる。後段で落ちるより分かりやすい。
-    missing = [n for n in ("ass", "scale", "pad", "afade", "tile")
+    missing = [n for n in ("scale", "pad", "afade", "tile", "overlay")
                if util.has_ffprobe() and not util.has_filter(n)]
     if missing:
         print(f"この ffmpeg には必須フィルタがありません: {', '.join(missing)}")

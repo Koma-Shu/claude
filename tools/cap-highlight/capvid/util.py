@@ -114,6 +114,12 @@ def has_filter(name: str) -> bool:
     Homebrew などの配布ビルドは構成が一定ではなく、drawtext(freetype) や
     ass(libass) を欠くことがある。使う前に確かめられるようにしておく。
     """
+    # 環境変数で「無いことにする」ための逃げ道。libass を欠くビルドを手元で
+    # 再現したり、代替経路を試したりするのに使う。
+    disabled = {n.strip() for n in os.environ.get("CAPVID_DISABLE_FILTERS", "").split(",")
+                if n.strip()}
+    if name in disabled:
+        return False
     if name in _FILTER_CACHE:
         return _FILTER_CACHE[name]
     proc = run([ffmpeg(), "-hide_banner", "-filters"], check=False)

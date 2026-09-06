@@ -11,11 +11,12 @@ from . import util
 
 # (フィルタ名, 用途, 必須か)
 FILTERS = [
-    ("ass", "テロップの焼き込み（libass）", True),
     ("scale", "解像度の正規化", True),
     ("pad", "アスペクト比の調整", True),
     ("afade", "カット端の音声フェード", True),
+    ("overlay", "テロップ画像の合成", True),
     ("tile", "プレビューのコンタクトシート", True),
+    ("ass", "テロップの焼き込み（libass。無ければ画像化して合成）", False),
     ("amix", "BGM のミックス", False),
     ("sidechaincompress", "BGM の自動ダッキング", False),
     ("drawtext", "統合テストの合成動画（本体では未使用）", False),
@@ -58,25 +59,47 @@ def main(args) -> int:
     if missing_required:
         ok = False
         print(f"\n  必須フィルタが不足しています: {', '.join(missing_required)}")
-        if "ass" in missing_required:
-            print("  テロップの焼き込みには libass 付きの ffmpeg が要ります。")
-            print("  macOS: brew reinstall ffmpeg   （それでも駄目なら brew install ffmpeg@7）")
 
     print()
     style = util.load("style")
-    spec = style["font"]["name"]
-    candidates = [spec] if isinstance(spec, str) else list(spec)
-    name, found = util.resolve_font(spec)
-    if found:
-        print(f"  [OK]   フォント {name}")
-    elif util.installed_font_families() is None:
-        print(f"  [--]   フォント {name}（fc-list が無いため未確認）")
-        print("         テロップが出ない場合はここを疑ってください。")
+
+    # テロップの描画方法を決める
+    if util.has_filter("ass"):
+        print("  [OK]   テロップ: ass フィルタで焼き込み")
     else:
-        print(f"  [NG]   日本語フォントが見つかりません")
-        print(f"         探した候補: {', '.join(candidates)}")
-        print("         config/style.json の font.name に実在するものを足してください。")
-        ok = False
+        try:
+            import PIL  # noqa: F401
+            print("  [OK]   テロップ: ass が無いため Pillow で画像化して合成")
+        except ImportError:
+            print("  [NG]   テロップを描く手段がありません")
+            print("         この ffmpeg は libass を含まないので Pillow が要ります:")
+            print("           pip3 install pillow")
+            ok = False
+    if util.has_filter("ass"):
+        spec = style["font"]["name"]
+        candidates = [spec] if isinstance(spec, str) else list(spec)
+        name, found = util.resolve_font(spec)
+        if found:
+            print(f"  [OK]   フォント {name}")
+        elif util.installed_font_families() is None:
+            print(f"  [--]   フォント {name}（fc-list が無いため未確認）")
+            print("         テロップが出ない場合はここを疑ってください。")
+        else:
+            print("  [NG]   日本語フォントが見つかりません")
+            print(f"         探した候補: {', '.join(candidates)}")
+            print("         config/style.json の font.name に実在するものを足してください。")
+            ok = False
+    else:
+        # Pillow 経路はフォント「ファイル」を直接探すので、そちらで確認する
+        try:
+            from .telop_png import find_font
+            path, index = find_font(style)
+            print(f"  [OK]   フォント {path.name}")
+        except SystemExit as e:
+            print(f"  [NG]   {e}")
+            ok = False
+        except ImportError:
+            pass
 
     print("\n" + ("すべて問題ありません。" if ok else "上記を解消してから再実行してください。"))
     return 0 if ok else 1
