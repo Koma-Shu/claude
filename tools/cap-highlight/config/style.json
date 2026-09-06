@@ -20,9 +20,16 @@
     "snap_window_sec": 12.0
   },
   "font": {
-    "_comment": "日本語フォント。macOS なら 'Hiragino Sans'、Noto を入れたなら 'Noto Sans JP'。fontsdir に .ttf/.otf のあるディレクトリを指定するとlibassが確実に拾う。",
-    "name": "Noto Sans JP",
-    "bold_name": "Noto Sans JP",
+    "_comment": "上から順に探して、最初に見つかったものを使う。特定のフォントを強制したいときは name に文字列を1つだけ書く。",
+    "name": [
+      "Hiragino Sans",
+      "Noto Sans CJK JP",
+      "Noto Sans JP",
+      "Yu Gothic",
+      "IPAexGothic",
+      "Hiragino Kaku Gothic ProN"
+    ],
+    "bold_name": null,
     "fontsdir": null
   },
   "telop": {

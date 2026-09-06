@@ -105,6 +105,66 @@ def ff(args: list[str], *, overwrite: bool = True) -> subprocess.CompletedProces
     return run(cmd + args)
 
 
+_FILTER_CACHE: dict[str, bool] = {}
+
+
+def has_filter(name: str) -> bool:
+    """この ffmpeg ビルドに指定のフィルタが含まれているか。
+
+    Homebrew などの配布ビルドは構成が一定ではなく、drawtext(freetype) や
+    ass(libass) を欠くことがある。使う前に確かめられるようにしておく。
+    """
+    if name in _FILTER_CACHE:
+        return _FILTER_CACHE[name]
+    proc = run([ffmpeg(), "-hide_banner", "-filters"], check=False)
+    listing = (proc.stdout or "") + (proc.stderr or "")
+    found = set()
+    for line in listing.splitlines():
+        parts = line.split()
+        # 例: " T.. drawtext           V->V       Draw text on top of video frames."
+        if len(parts) >= 2 and len(parts[0]) <= 4:
+            found.add(parts[1])
+    for key in found:
+        _FILTER_CACHE[key] = True
+    _FILTER_CACHE.setdefault(name, name in found)
+    return _FILTER_CACHE[name]
+
+
+def installed_font_families() -> set[str] | None:
+    """fc-list で取得できるフォントファミリ名。取得できなければ None。"""
+    if not shutil.which("fc-list"):
+        return None
+    proc = subprocess.run(["fc-list", ":", "family"], capture_output=True,
+                          text=True, errors="replace")
+    families = set()
+    for line in (proc.stdout or "").splitlines():
+        # 1行に別名がカンマ区切りで並ぶ
+        for name in line.split(","):
+            name = name.strip()
+            if name:
+                families.add(name.lower())
+    return families or None
+
+
+def resolve_font(spec) -> tuple[str, bool]:
+    """フォント名（文字列 or 候補リスト）から実在するものを選ぶ。
+
+    日本語フォントの登録名は環境ごとに違う（macOS は 'Hiragino Sans'、
+    Linux では 'Noto Sans CJK JP' など）。候補を順に見て最初に見つかったものを返す。
+    戻り値は (フォント名, 実在を確認できたか)。
+    """
+    candidates = [spec] if isinstance(spec, str) else list(spec)
+    if not candidates:
+        raise SystemExit("style.json の font.name が空です")
+    families = installed_font_families()
+    if families is None:
+        return candidates[0], False          # fc-list が無く判定不能
+    for name in candidates:
+        if name.lower() in families:
+            return name, True
+    return candidates[0], False
+
+
 def hhmmss(seconds: float) -> str:
     seconds = max(0.0, float(seconds))
     m, s = divmod(seconds, 60)

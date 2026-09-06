@@ -28,22 +28,27 @@ brew install ffmpeg          # Ubuntu/Debian なら sudo apt install ffmpeg
 pip3 install -r requirements.txt
 ```
 
-`ffmpeg` と `ffprobe` の両方が要る。入ったか確認する:
+揃っているか確認する:
 
 ```bash
-ffmpeg -version && ffprobe -version
+python3 run.py doctor
 ```
 
-pip の `imageio-ffmpeg` は `ffmpeg` 本体しか同梱せず `ffprobe` を含まないため、
-これだけでは `probe` コマンドが動かない。
+`ffmpeg` と `ffprobe` の両方、テロップ焼き込みに使う `ass` フィルタ(libass)、
+日本語フォントの有無をまとめて見る。pip の `imageio-ffmpeg` は `ffmpeg` 本体しか
+同梱せず `ffprobe` を含まないため、それだけでは `probe` コマンドが動かない。
 
-日本語テロップには日本語フォントが要る。`config/style.json` の `font.name` を
-環境に合わせる（macOS なら `Hiragino Sans`、Noto を入れたなら `Noto Sans JP`）。
-フォントを自動で拾えないときは `font.fontsdir` に .ttf/.otf のあるディレクトリを指定する。
+日本語フォントは `config/style.json` の `font.name` の候補を上から順に探し、
+最初に見つかったものを使う（macOS なら `Hiragino Sans`）。候補に無いフォントを
+使いたいときは、その名前を先頭に足す。自動で拾えない場合は `font.fontsdir` に
+.ttf/.otf のあるディレクトリを指定する。
 
 ## 手順
 
 ```bash
+# 0. 環境確認
+python3 run.py doctor
+
 # 1. 動画を取得（約4.2GB）。gdown か rclone を使う
 python3 run.py fetch
 python3 run.py fetch --rclone-remote gdrive
@@ -130,6 +135,10 @@ CAPVID_ROOT=~/cap/2026-09-13 python3 run.py probe
 ```bash
 python3 tests/e2e_synthetic.py
 ```
+
+配布ビルドの ffmpeg は構成が一定でなく、`drawtext`(freetype) を欠くことがある。
+`drawtext` はこのテストが合成動画にタイムコードを焼くためだけに使っており、
+無い場合は自動的に省略して続行する（本体は使っていない）。
 
 ## この試合のハイライト候補
 

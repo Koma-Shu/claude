@@ -39,7 +39,11 @@ def build(cuts: dict, style: dict) -> str:
     lt, sb, hc = tel["lower_third"], tel["scorebug"], tel["half_card"]
 
     text_c, shadow_c = _colour(col["text"]), _colour(col["shadow"])
-    name, bold_name = font["name"], font.get("bold_name") or font["name"]
+    name, found = util.resolve_font(font["name"])
+    if not found:
+        print(f"  注意: フォント {name} の実在を確認できませんでした。"
+              f"テロップが出ない場合は `doctor` で確認してください。")
+    bold_name = font.get("bold_name") or name
 
     def style_line(sname, fname, size, align, ml, mr, mv, bold=1, outline=3, shadow=2):
         return (f"Style: {sname},{fname},{size},{text_c},{text_c},{shadow_c},{shadow_c},"

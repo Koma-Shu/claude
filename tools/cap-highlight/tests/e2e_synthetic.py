@@ -42,6 +42,13 @@ def make_media(root: pathlib.Path, game: dict) -> list[list]:
     media.mkdir(parents=True, exist_ok=True)
     rng = random.Random(11)
     rows = []
+    # drawtext は freetype 付きの ffmpeg にしか無い（Homebrew の配布ビルドでは
+    # 欠けていることがある）。合成動画にタイムコードを焼くための飾りなので、
+    # 無ければ省略してテスト自体は続行する。
+    stamp = util.has_filter("drawtext")
+    if not stamp:
+        print("  注意: この ffmpeg には drawtext が無いため、"
+              "合成動画のタイムコード表示は省略します（テストには影響しません）。")
     for seg in game["segments"]:
         f = seg["file"]
         dur, hot = SPEC[f]
@@ -54,14 +61,18 @@ def make_media(root: pathlib.Path, game: dict) -> list[list]:
         expr = "0.02*random(0)"
         for b in bursts:
             expr += f"+0.55*random(0)*between(t\\,{b:.2f}\\,{b + 2.2:.2f})"
-        subprocess.run([
+        cmd = [
             util.ffmpeg(), "-hide_banner", "-loglevel", "error", "-y",
             "-f", "lavfi", "-i", f"testsrc2=s=640x360:r=15:d={dur}",
             "-f", "lavfi", "-i", f"aevalsrc={expr}:s=44100:d={dur}",
-            "-vf", f"drawtext=text='{f} %{{pts\\:hms}}':fontsize=26:fontcolor=white"
-                   f":x=20:y=20:box=1:boxcolor=black@0.6",
-            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "32", "-pix_fmt", "yuv420p",
-            "-c:a", "aac", "-b:a", "64k", "-shortest", str(media / f)], check=True)
+        ]
+        if stamp:
+            cmd += ["-vf", f"drawtext=text='{f} %{{pts\\:hms}}':fontsize=26"
+                           f":fontcolor=white:x=20:y=20:box=1:boxcolor=black@0.6"]
+        cmd += ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "32",
+                "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "64k",
+                "-shortest", str(media / f)]
+        subprocess.run(cmd, check=True)
         rows.append([f, seg["half"], seg["order"], seg["pa_range"][0], seg["pa_range"][1],
                      f"{start:.2f}", f"{end:.2f}", seg.get("note", "")])
         print(f"  合成: {f} {dur}s (歓声 {len(bursts)} 箇所)")
@@ -74,6 +85,13 @@ def main() -> int:
     args = ap.parse_args()
 
     # ffmpeg / ffprobe が揃っているかを最初に確かめる。後段で落ちるより分かりやすい。
+    missing = [n for n in ("ass", "scale", "pad", "afade", "tile")
+               if util.has_ffprobe() and not util.has_filter(n)]
+    if missing:
+        print(f"この ffmpeg には必須フィルタがありません: {', '.join(missing)}")
+        print("`python3 run.py doctor` で詳細を確認してください。")
+        return 1
+
     if not util.has_ffprobe():
         print("ffprobe が見つかりません。ffmpeg 一式をインストールしてください:")
         print("  macOS: brew install ffmpeg")

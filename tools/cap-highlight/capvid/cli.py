@@ -12,6 +12,7 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""\
 標準的な流れ:
+  0. doctor     ffmpeg・フィルタ・フォントが揃っているか確認
   1. fetch      Google Drive から試合動画を取得
   2. probe      動画の長さ・解像度・fps を計測
   3. anchors init / (anchors.csv を記入) / anchors check
@@ -58,6 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--scene-threshold", type=float, default=0.30)
 
     sub.add_parser("plays", help="打席データを検証して表示する")
+    sub.add_parser("doctor", help="ffmpeg・フィルタ・フォントが揃っているか確認する")
     return ap
 
 
@@ -92,6 +94,9 @@ def main(argv=None) -> int:
     if cmd == "reference":
         from . import reference
         return reference.main(args)
+    if cmd == "doctor":
+        from . import doctor
+        return doctor.main(args)
     if cmd == "plays":
         from . import util
         data = util.load("plays")["plays"]
