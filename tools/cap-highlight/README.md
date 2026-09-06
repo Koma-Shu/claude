@@ -24,9 +24,18 @@
 ## 準備
 
 ```bash
-pip install -r requirements.txt
-# ffmpeg / ffprobe が必要（macOS: brew install ffmpeg / Ubuntu: apt install ffmpeg）
+brew install ffmpeg          # Ubuntu/Debian なら sudo apt install ffmpeg
+pip3 install -r requirements.txt
 ```
+
+`ffmpeg` と `ffprobe` の両方が要る。入ったか確認する:
+
+```bash
+ffmpeg -version && ffprobe -version
+```
+
+pip の `imageio-ffmpeg` は `ffmpeg` 本体しか同梱せず `ffprobe` を含まないため、
+これだけでは `probe` コマンドが動かない。
 
 日本語テロップには日本語フォントが要る。`config/style.json` の `font.name` を
 環境に合わせる（macOS なら `Hiragino Sans`、Noto を入れたなら `Noto Sans JP`）。
@@ -36,9 +45,9 @@ pip install -r requirements.txt
 
 ```bash
 # 1. 動画を取得（約4.2GB）。gdown か rclone を使う
-python3 run.py fetch                          # gdown
-python3 run.py fetch --rclone-remote gdrive   # rclone
-python3 run.py fetch --list                   # 取得せずURL一覧だけ表示
+python3 run.py fetch
+python3 run.py fetch --rclone-remote gdrive
+python3 run.py fetch --list
 
 # 2. 動画の長さ・解像度・fps を計測
 python3 run.py probe

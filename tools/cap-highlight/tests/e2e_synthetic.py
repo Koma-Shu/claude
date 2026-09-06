@@ -20,6 +20,9 @@ import sys
 import tempfile
 
 TOOL = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(TOOL))
+
+from capvid import util  # noqa: E402
 
 # ファイル -> (尺, 歓声を置く打席のインデックス)
 SPEC = {
@@ -52,7 +55,7 @@ def make_media(root: pathlib.Path, game: dict) -> list[list]:
         for b in bursts:
             expr += f"+0.55*random(0)*between(t\\,{b:.2f}\\,{b + 2.2:.2f})"
         subprocess.run([
-            "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+            util.ffmpeg(), "-hide_banner", "-loglevel", "error", "-y",
             "-f", "lavfi", "-i", f"testsrc2=s=640x360:r=15:d={dur}",
             "-f", "lavfi", "-i", f"aevalsrc={expr}:s=44100:d={dur}",
             "-vf", f"drawtext=text='{f} %{{pts\\:hms}}':fontsize=26:fontcolor=white"
@@ -69,6 +72,14 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--keep", action="store_true", help="作業ディレクトリを残す")
     args = ap.parse_args()
+
+    # ffmpeg / ffprobe が揃っているかを最初に確かめる。後段で落ちるより分かりやすい。
+    if not util.has_ffprobe():
+        print("ffprobe が見つかりません。ffmpeg 一式をインストールしてください:")
+        print("  macOS: brew install ffmpeg")
+        print("  Ubuntu/Debian: sudo apt install ffmpeg")
+        print("（pip の imageio-ffmpeg は ffmpeg 本体のみで ffprobe を含みません）")
+        return 1
 
     root = pathlib.Path(tempfile.mkdtemp(prefix="capvid-e2e-"))
     print(f"作業ディレクトリ: {root}\n")
