@@ -76,6 +76,9 @@ python3 run.py fetch --list
 python3 run.py probe
 
 # 3. イニングと動画内タイムコードの対応づけ（唯一の手作業）
+python3 run.py scan              # 動画全体を時刻つきサムネイル一覧にする
+#   → work/scan/*.png を見て「最初の投球」「最後の打席が終わった瞬間」を探す。
+#      画像をそのまま Claude Code に読ませて時刻を読み取らせてもよい。
 python3 run.py anchors init      # work/anchors.csv を生成
 #   → 各行に start_tc / end_tc を記入する
 #      start_tc = その半イニング先頭打者への最初の投球

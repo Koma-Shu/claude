@@ -5,16 +5,36 @@
 """
 from __future__ import annotations
 
+import pathlib
+
 from . import util
 
 
 def contact_sheet(src, t_in: float, t_out: float, dest, *, tiles: int = 6, width: int = 480):
-    """区間を等間隔にサンプリングした1枚の横並び画像を作る。"""
+    """区間を等間隔にサンプリングした1枚の横並び画像を作る。
+
+    fps フィルタは各区間の中点を拾うため、区間の先頭と末尾が写らない。
+    カット位置がずれていないかを見るための画像なので、時刻を指定して抜く。
+    """
+    from PIL import Image
+
     dur = max(0.1, t_out - t_in)
-    fps = tiles / dur
-    util.ff(["-ss", f"{t_in:.3f}", "-t", f"{dur:.3f}", "-i", str(src),
-             "-vf", f"fps={fps:.6f},scale={width}:-2,tile={tiles}x1",
-             "-frames:v", "1", str(dest)])
+    times = [t_in + dur * i / (tiles - 1) for i in range(tiles)] if tiles > 1 else [t_in]
+    tmp = pathlib.Path(dest).with_suffix("")
+    frames = util.extract_frames(src, times, tmp, width=width, prefix="t")
+    if not frames:
+        raise SystemExit(f"フレームを抽出できません: {src}")
+
+    with Image.open(frames[0]) as probe:
+        h = probe.height
+    canvas = Image.new("RGB", (width * len(frames), h))
+    for i, f in enumerate(frames):
+        with Image.open(f) as im:
+            canvas.paste(im, (i * width, 0))
+    canvas.save(dest)
+    for f in frames:
+        f.unlink()
+    tmp.rmdir()
 
 
 def proxy(src, t_in: float, t_out: float, dest, *, height: int = 360):

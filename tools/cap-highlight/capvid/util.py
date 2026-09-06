@@ -171,6 +171,27 @@ def resolve_font(spec) -> tuple[str, bool]:
     return candidates[0], False
 
 
+def extract_frames(src, times: list[float], dest_dir, *, width: int,
+                   prefix: str = "f", quality: int = 4) -> list[pathlib.Path]:
+    """指定した時刻ちょうどのフレームを1枚ずつ抜き出す。
+
+    `fps=1/N` は各区間の「中点」を拾うため（15秒間隔なら 7.5, 22.5, ...）、
+    抜いた画像の時刻がラベルと N/2 秒ずれる。アンカーの読み取りにも
+    カット位置の確認にも使うので、時刻指定で1枚ずつ取り出して合わせる。
+    """
+    dest_dir = pathlib.Path(dest_dir)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    out = []
+    for i, t in enumerate(times):
+        dest = dest_dir / f"{prefix}_{i:05d}.jpg"
+        ff(["-ss", f"{max(0.0, t):.3f}", "-i", str(src),
+            "-vf", f"scale={width}:-2", "-frames:v", "1",
+            "-q:v", str(quality), str(dest)])
+        if dest.exists():
+            out.append(dest)
+    return out
+
+
 def hhmmss(seconds: float) -> str:
     seconds = max(0.0, float(seconds))
     m, s = divmod(seconds, 60)

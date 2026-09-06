@@ -15,7 +15,8 @@ def build_parser() -> argparse.ArgumentParser:
   0. doctor     ffmpeg・フィルタ・フォントが揃っているか確認
   1. fetch      Google Drive から試合動画を取得
   2. probe      動画の長さ・解像度・fps を計測
-  3. anchors init / (anchors.csv を記入) / anchors check
+  3. scan       動画を時刻つきサムネイル一覧にする（記入の下調べ）
+     anchors init / (anchors.csv を記入) / anchors check
   4. peaks      歓声・打球音のピークを検出
   5. plan       ハイライトを選定してカット割りを作る
   6. preview    カット位置をサムネイルで確認 → ズレたら pa_anchors.csv で補正
@@ -32,6 +33,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("anchors", help="イニングと動画内タイムコードの対応づけ")
     p.add_argument("action", choices=["init", "check"])
+
+    p = sub.add_parser("scan", help="動画全体を時刻つきサムネイル一覧にする")
+    p.add_argument("--file", nargs="*", help="対象の動画（既定は全部）")
+    p.add_argument("--interval", type=float, default=15.0, help="抽出間隔(秒)")
+    p.add_argument("--cols", type=int, default=5)
+    p.add_argument("--rows", type=int, default=4)
+    p.add_argument("--width", type=int, default=480, help="1コマの幅(px)")
 
     p = sub.add_parser("peaks", help="歓声・打球音のピークを検出する")
     p.add_argument("--threshold", type=float, default=2.0, help="検出のZスコア閾値")
@@ -78,6 +86,9 @@ def main(argv=None) -> int:
     if cmd == "anchors":
         from . import anchors
         return anchors.main(args)
+    if cmd == "scan":
+        from . import scan
+        return scan.main(args)
     if cmd == "peaks":
         from . import peaks
         return peaks.main(args)
