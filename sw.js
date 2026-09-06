@@ -1,64 +1,79 @@
-const CACHE = 'arcade-v3.40';
+const CACHE = 'arcade-v3.41';
 
 // Base path of the SW (e.g. '/claude/' on GitHub Pages, '/' on root)
 const BASE = self.location.pathname.replace(/sw\.js$/, '');
 
+// アプリごとにディレクトリ分割（ARCADES/{ARCADE,STUDY,ENGLISH}, Network/）。
+// ルートにはポータル・認証・共有ライブラリ・PWA アセットのみが残る。
 const GAME_FILES = [
+  // --- root: portal / auth / shared libs / PWA ---
   '',
   'index.html',
-  'arcade.html',
+  'login.html',
+  'register.html',
+  'profile.html',
   'sound.js',
   'cards.js',
   'netplay.js',
   'track.js',
   'nav.js',
-  'snake.html',
-  'symbiont.html',
-  'reversi.html',
-  'gomoku.html',
-  'chess.html',
-  'shogi.html',
-  'capbaseball.html',
-  'keshibato.html',
-  'bikerun.html',
-  'tennis.html',
-  'mahjong.html',
-  'connect4.html',
-  'mancala.html',
-  'blackjack.html',
-  'poker.html',
-  'daifugo.html',
-  'sevens.html',
-  'memory.html',
-  'oldmaid.html',
-  'yacht.html',
-  'study.html',
-  'english.html',
-  'english-diary.html',
-  'english-data.js',
-  'english-sync.js',
-  'english.webmanifest',
-  'icon-eng-180.png',
-  'icon-eng-192.png',
-  'icon-eng-512.png',
-  'srs.js',
-  'study-data.js',
-  'study-data-spinum.js',
-  'study-data-verbal.js',
-  'study-data-calc.js',
-  'study-data-open.js',
-  'study-data-ext-spi.js',
-  'study-data-ext-tama-num.js',
-  'study-data-ext-tama-verb.js',
-  'study-data-ext-tama-eng.js',
-  'study-data-ext-tgweb-num.js',
-  'study-data-ext-tgweb-verb.js',
-  'study-data-ext-tgweb-eng.js',
-  'study-data-ext-tgweb-num2.js',
-  'study-data-ext-tama-num2.js',
   'manifest.json',
   'icon-192.png',
   'icon-512.png',
+
+  // --- ARCADES/ARCADE ---
+  'ARCADES/ARCADE/arcade.html',
+  'ARCADES/ARCADE/snake.html',
+  'ARCADES/ARCADE/symbiont.html',
+  'ARCADES/ARCADE/reversi.html',
+  'ARCADES/ARCADE/gomoku.html',
+  'ARCADES/ARCADE/chess.html',
+  'ARCADES/ARCADE/shogi.html',
+  'ARCADES/ARCADE/capbaseball.html',
+  'ARCADES/ARCADE/keshibato.html',
+  'ARCADES/ARCADE/bikerun.html',
+  'ARCADES/ARCADE/tennis.html',
+  'ARCADES/ARCADE/mahjong.html',
+  'ARCADES/ARCADE/connect4.html',
+  'ARCADES/ARCADE/mancala.html',
+  'ARCADES/ARCADE/blackjack.html',
+  'ARCADES/ARCADE/poker.html',
+  'ARCADES/ARCADE/daifugo.html',
+  'ARCADES/ARCADE/sevens.html',
+  'ARCADES/ARCADE/memory.html',
+  'ARCADES/ARCADE/oldmaid.html',
+  'ARCADES/ARCADE/yacht.html',
+
+  // --- ARCADES/STUDY ---
+  'ARCADES/STUDY/study.html',
+  'ARCADES/STUDY/srs.js',
+  'ARCADES/STUDY/study-data.js',
+  'ARCADES/STUDY/study-data-spinum.js',
+  'ARCADES/STUDY/study-data-verbal.js',
+  'ARCADES/STUDY/study-data-calc.js',
+  'ARCADES/STUDY/study-data-open.js',
+  'ARCADES/STUDY/study-data-ext-spi.js',
+  'ARCADES/STUDY/study-data-ext-tama-num.js',
+  'ARCADES/STUDY/study-data-ext-tama-verb.js',
+  'ARCADES/STUDY/study-data-ext-tama-eng.js',
+  'ARCADES/STUDY/study-data-ext-tgweb-num.js',
+  'ARCADES/STUDY/study-data-ext-tgweb-verb.js',
+  'ARCADES/STUDY/study-data-ext-tgweb-eng.js',
+  'ARCADES/STUDY/study-data-ext-tgweb-num2.js',
+  'ARCADES/STUDY/study-data-ext-tama-num2.js',
+
+  // --- ARCADES/ENGLISH ---
+  'ARCADES/ENGLISH/english.html',
+  'ARCADES/ENGLISH/english-diary.html',
+  'ARCADES/ENGLISH/english-data.js',
+  'ARCADES/ENGLISH/english-sync.js',
+  'ARCADES/ENGLISH/english.webmanifest',
+  'ARCADES/ENGLISH/icon-eng-180.png',
+  'ARCADES/ENGLISH/icon-eng-192.png',
+  'ARCADES/ENGLISH/icon-eng-512.png',
+
+  // --- Network ---
+  'Network/packet-journey/index.html',
 ].map(f => BASE + f);
 
 self.addEventListener('install', e => {
@@ -104,7 +119,8 @@ self.addEventListener('fetch', e => {
       }
       return res;
     }).catch(() =>
-      caches.match(e.request).then(r => r || caches.match(BASE + 'arcade.html'))
+      // オフライン時の最終フォールバックはポータル（ルートに残る唯一の入口）
+      caches.match(e.request).then(r => r || caches.match(BASE + 'index.html'))
     )
   );
 });

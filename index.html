@@ -39,6 +39,9 @@
     .app-card.english:hover{border-color:#fb923c;}
     .app-card.english .app-title{color:#fb923c;}
     .app-card.english .app-go{background:linear-gradient(135deg,#fb923c,#ea580c);color:#1a0f00;}
+    .app-card.network:hover{border-color:#60a5fa;}
+    .app-card.network .app-title{color:#60a5fa;}
+    .app-card.network .app-go{background:linear-gradient(135deg,#60a5fa,#2563eb);color:#00122e;}
     .app-card.admin:hover{border-color:#fb923c;}
     .app-card.admin .app-title{color:#fb923c;}
     .app-card.admin .app-go{background:linear-gradient(135deg,#fb923c,#b45309);color:#1a0f00;}
@@ -55,7 +58,7 @@
 <p class="lead" id="lead">遊びと学び、2つのアプリ。アカウントは共通です。</p>
 
 <div class="menu">
-  <a href="arcade.html" class="app-card arcade">
+  <a href="ARCADES/ARCADE/arcade.html" class="app-card arcade">
     <div class="app-icon">🎮</div>
     <div class="app-title">ARCADE</div>
     <div class="app-tags">
@@ -67,7 +70,7 @@
     <div class="app-go" id="go-arcade">遊ぶ →</div>
   </a>
 
-  <a href="study.html" class="app-card study">
+  <a href="ARCADES/STUDY/study.html" class="app-card study" id="study-card" style="display:none">
     <div class="app-icon">🎓</div>
     <div class="app-title">STUDY</div>
     <div class="app-tags">
@@ -79,7 +82,7 @@
     <div class="app-go" id="go-study">学ぶ →</div>
   </a>
 
-  <a href="english.html" class="app-card english" id="english-card" style="display:none">
+  <a href="ARCADES/ENGLISH/english.html" class="app-card english" id="english-card" style="display:none">
     <div class="app-icon">🗣️</div>
     <div class="app-title">ENGLISH</div>
     <div class="app-tags">
@@ -89,6 +92,17 @@
     </div>
     <div class="app-desc" id="desc-english">PROGRIT 口頭英作文の学習マネージャー。学習範囲の記録と、忘却曲線に基づく「今日の復習・新規」提案、ピン留め復習。</div>
     <div class="app-go" id="go-english">学ぶ →</div>
+  </a>
+
+  <a href="Network/packet-journey/index.html" class="app-card network">
+    <div class="app-icon">🌐</div>
+    <div class="app-title">NETWORK</div>
+    <div class="app-tags">
+      <span class="app-tag" id="tag-n1">パケットの旅</span>
+      <span class="app-tag" id="tag-n2">通信の仕組み</span>
+    </div>
+    <div class="app-desc" id="desc-network">ネットワーク通信の流れを解剖する教育サイト。パケットが宛先に届くまでを一歩ずつ可視化。</div>
+    <div class="app-go" id="go-network">見る →</div>
   </a>
 
   <a href="admin.html" class="app-card admin" id="admin-card" style="display:none">
@@ -113,6 +127,8 @@ const T_ = {
     descStudy:'就活対策トレーニング。SPI・玉手箱・TG-WEB・ケース面接・フェルミ推定。忘却曲線に基づく間隔反復で記憶を定着。', goStudy:'学ぶ →',
     tagE1:'口頭英作文', tagE2:'忘却曲線', tagE3:'復習管理',
     descEnglish:'PROGRIT 口頭英作文の学習マネージャー。学習範囲の記録と、忘却曲線に基づく「今日の復習・新規」提案、ピン留め復習。', goEnglish:'学ぶ →',
+    tagN1:'パケットの旅', tagN2:'通信の仕組み',
+    descNetwork:'ネットワーク通信の流れを解剖する教育サイト。パケットが宛先に届くまでを一歩ずつ可視化。', goNetwork:'見る →',
     tagD1:'管理者', descAdmin:'管理者ダッシュボード。ユーザー・利用状況・STUDY の学習データを可視化。', goAdmin:'開く →',
     login:'ログイン', register:'登録', footnote:'PWA 対応 — ホーム画面に追加できます。' },
   en:{ subtitle:'SELECT AN APP', lead:'Play and study. One shared account.',
@@ -122,6 +138,8 @@ const T_ = {
     descStudy:'Aptitude-test & case-interview trainer: SPI, Tamatebako, TG-WEB, case & Fermi. Spaced repetition for lasting memory.', goStudy:'LEARN →',
     tagE1:'Oral comp.', tagE2:'Forgetting curve', tagE3:'Review mgmt',
     descEnglish:"PROGRIT oral-composition study manager: track your coverage, get today's reviews & new lessons on the forgetting curve, pinned-question review.", goEnglish:'LEARN →',
+    tagN1:'Packet journey', tagN2:'How networks work',
+    descNetwork:'An educational site dissecting how network traffic flows — following a packet step by step until it reaches its destination.', goNetwork:'VIEW →',
     tagD1:'Admin', descAdmin:'Admin dashboard — users, usage and STUDY learning analytics.', goAdmin:'OPEN →',
     login:'LOGIN', register:'REGISTER', footnote:'PWA ready — add to your home screen.' }
 };
@@ -139,6 +157,8 @@ function applyLang(){
   set('desc-study','descStudy'); set('go-study','goStudy');
   set('tag-e1','tagE1'); set('tag-e2','tagE2'); set('tag-e3','tagE3');
   set('desc-english','descEnglish'); set('go-english','goEnglish');
+  set('tag-n1','tagN1'); set('tag-n2','tagN2');
+  set('desc-network','descNetwork'); set('go-network','goNetwork');
   set('tag-d1','tagD1'); set('desc-admin','descAdmin'); set('go-admin','goAdmin');
 }
 function renderAuth(){
@@ -147,14 +167,13 @@ function renderAuth(){
   area.innerHTML = u
     ? `<a href="profile.html" class="auth-btn primary">@${u.username}</a>`
     : `<a href="login.html" class="auth-btn">${T('login')}</a><a href="register.html" class="auth-btn primary">${T('register')}</a>`;
-  // The admin dashboard card AND the ENGLISH study manager are only shown to
-  // the user named "admin" (ENGLISH is a personal tool, kept off the public
-  // portal). Both stay reachable by direct URL.
+  // ADMIN / ENGLISH / STUDY のカードは "admin" ユーザーにのみ表示する（個人ツールなので
+  // 公開ポータルには出さない）。いずれも直リンク・ブックマークからは引き続き到達可能。
   const adminOnly = (u && u.username === 'admin');
-  const ac = document.getElementById('admin-card');
-  if (ac) ac.style.display = adminOnly ? 'flex' : 'none';
-  const ec = document.getElementById('english-card');
-  if (ec) ec.style.display = adminOnly ? 'flex' : 'none';
+  for (const id of ['admin-card', 'english-card', 'study-card']) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = adminOnly ? 'flex' : 'none';
+  }
 }
 document.getElementById('lang-btn').addEventListener('click', ()=>{
   lang = lang==='ja' ? 'en' : 'ja';

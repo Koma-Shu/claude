@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ポーカー</title>
-<script src="sound.js"></script>
-<script src="track.js"></script>
-<script src="cards.js"></script>
+<script src="../../sound.js"></script>
+<script src="../../track.js"></script>
+<script src="../../cards.js"></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{background:radial-gradient(circle at 50% 25%,#1a3a5c,#0a1a30);min-height:100vh;
@@ -395,6 +395,6 @@ DIFFS.forEach(([d,lab])=>{
 document.body.appendChild(pokerDiffRow);
 if(typeof SND!=='undefined'){SND.createBtn(document.body);SND.startBGM('game');}
 </script>
-<script src="nav.js"></script>
+<script src="../../nav.js"></script>
 </body>
 </html>

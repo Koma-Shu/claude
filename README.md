@@ -1,31 +1,52 @@
-# claude
-repository for claude
+# Claude
 
-GitHub Pages で配信される PWA。入口（ポータル）で **ARCADE（ゲーム）**・
-**STUDY（就活対策）**・**ENGLISH（英語学習）** に分かれています。
+GitHub Pages で配信される PWA。公開URL: **https://koma-shu.github.io/claude/**
 
-- 入口ポータル: `index.html`（ARCADE / STUDY / ENGLISH を選ぶメニュー）
-- ARCADE（ゲーム一覧）: `arcade.html`
-- STUDY（就活対策）: `study.html`
-- ENGLISH（PROGRIT 口頭英作文の学習マネージャー）: `english.html`
-- 管理者画面: `admin.html`（登録ユーザ・利用回数・利用時間・評価などを表示）
+入口（ポータル）から **ARCADES**（ARCADE / STUDY / ENGLISH）と **Network**（パケットの旅）に分かれます。
+
+## ディレクトリ構成
+
+```
+/                        ポータル・認証・共有ライブラリ・PWA アセット
+├── index.html           入口ポータル（アプリを選ぶメニュー）
+├── login/register/profile/friends/chat.html
+├── admin.html           管理者画面（登録ユーザ・利用回数・利用時間など）
+├── sw.js manifest.json icon-192/512.png
+├── sound.js track.js nav.js cards.js netplay.js   ← アプリ横断の共有ライブラリ
+│
+├── ARCADES/
+│   ├── ARCADE/          arcade.html＋ゲーム20本
+│   ├── STUDY/           study.html＋srs.js＋問題バンク（study-data*.js）
+│   └── ENGLISH/         english.html / english-diary.html＋データ・専用PWAアセット
+│
+└── Network/
+    └── packet-journey/  パケットの旅（ネットワーク通信の教育サイト・単一HTML）
+```
 
 各アプリはユーザー視点で独立していますが、ログインアカウント
 （`users` テーブル / `arcade_user`）は共通です。
 
+**ポータルに出すもの / 出さないもの**: 公開ポータルに常時表示するのは **ARCADE** と **NETWORK** のみ。
+**STUDY・ENGLISH・ADMIN は個人用のため admin ログイン時だけカードを表示**します（未掲載だが
+直リンク・ブックマークからは到達可能な「アンリスト」方式）。
+
+**旧URLの互換**: ディレクトリ分割前の `english.html` / `english-diary.html` / `arcade.html` /
+`study.html` はルートに**リダイレクト用の小さなHTML**を残してあり、既存のブックマークや
+ホーム画面に追加した PWA から開いても新しい場所へ自動転送されます。
+
 ## ARCADE
 
-`arcade.html` はブラウザゲーム集（リバーシ・将棋・麻雀・カードゲーム等）。各ゲームの
+`ARCADES/ARCADE/arcade.html` はブラウザゲーム集（リバーシ・将棋・麻雀・カードゲーム等）。各ゲームの
 「← ARCADE」はこのゲーム一覧へ戻ります。
 
 ## STUDY — 就活対策トレーニング
 
-`study.html` は、就職活動の適性検査・面接対策を行う学習アプリです。ポータル（`index.html`）
-の「STUDY」、または直接 `study.html` から入れます。
+`ARCADES/STUDY/study.html` は、就職活動の適性検査・面接対策を行う学習アプリです。ポータル（`index.html`）の「STUDY」カード（admin ログイン時のみ表示）、
+または直接 `ARCADES/STUDY/study.html` から入れます。
 
 - **対応分野**: SPI（言語・非言語）／玉手箱／TG-WEB／ケース面接／フェルミ推定
-- **問題バンク**: `study-data.js`（多数の問題＋充実した解説。選択式・数値入力・自己採点式）
-- **エビングハウスの忘却曲線に基づく間隔反復学習**: `srs.js` が **SM-2 アルゴリズム**で
+- **問題バンク**: `ARCADES/STUDY/study-data.js`（多数の問題＋充実した解説。選択式・数値入力・自己採点式）
+- **エビングハウスの忘却曲線に基づく間隔反復学習**: `ARCADES/STUDY/srs.js` が **SM-2 アルゴリズム**で
   一問ごとに最適な復習日を計算。忘れかけたタイミングで自動的に出題し、最小の労力で
   記憶の定着を最大化します。ダッシュボードに忘却曲線の図解・定着度・学習ヒートマップを表示。
 - **ログイン連携**: ARCADE と同じアカウント（`users` テーブル）でログインすると、学習進捗が
@@ -33,7 +54,7 @@ GitHub Pages で配信される PWA。入口（ポータル）で **ARCADE（ゲ
 
 ### 問題の追加方法
 
-`study-data.js` の `window.STUDY_DATA` 配列に問題オブジェクトを追加するだけです
+`ARCADES/STUDY/study-data.js` の `window.STUDY_DATA` 配列に問題オブジェクトを追加するだけです
 （スキーマはファイル冒頭のコメント参照）。`id` は一度公開したら変更しないこと
 （間隔反復のキーになるため）。
 
@@ -62,11 +83,11 @@ GitHub Pages で配信される PWA。入口（ポータル）で **ARCADE（ゲ
 
 ## ENGLISH — 口頭英作文 学習マネージャー
 
-`english.html` は、PROGRIT の **口頭英作文** の学習を管理するアプリです。問題演習は
+`ARCADES/ENGLISH/english.html` は、PROGRIT の **口頭英作文** の学習を管理するアプリです。問題演習は
 PROGRIT のアプリで行い、こちらでは「**どこまで学習したか／今日は何を復習・新規学習すべきか
 ／今後の計画**」を、**エビングハウスの忘却曲線**に基づいて提案・記録します。
 
-- **コース構成**: `english-data.js` にコース→パート→レッスンを定義（1レッスン=10問）。
+- **コース構成**: `ARCADES/ENGLISH/english-data.js` にコース→パート→レッスンを定義（1レッスン=10問）。
   - Advanced 2（Part1:17 / Part2:14 / Part3:15 = 46 Lessons）
   - Common Verb（Part1:22 / Part2:24 / Part3:24 = 70 Lessons）
   - Business Phrases（16トピック = 55 Lessons）
@@ -113,22 +134,22 @@ PROGRIT のアプリで行い、こちらでは「**どこまで学習したか�
   忘却曲線の解説と学習戦略メモは折りたたみ、英語日記へはルーティン行と上部ボタンから（重複カードは廃止）。
   長いページ用に「↑トップへ」ボタンつき。
 - **保存・クラウド同期**: 進捗は端末内（localStorage, `eng_v1_<user>`）に保存しつつ、**ログイン中はユーザごとに
-  Supabase（`english_progress`）へ自動同期**し、端末・ブラウザをまたいで引き継げます（`english-sync.js`）。
+  Supabase（`english_progress`）へ自動同期**し、端末・ブラウザをまたいで引き継げます（`ARCADES/ENGLISH/english-sync.js`）。
   STUDY と同じく local-first＋楽観的書き込み。複数端末でも壊れないよう、取得時に**レッスン＝更新時刻が新しい方／
   活動＝日ごとの最大／ルーティン＝日ごとの OR／設定＝更新時刻が新しい方**でフィールド単位マージ（データ消失なし）。
   未ログイン時は端末内のみ。日記の API キーは同期せず端末内に保持。設定からJSONのエクスポート/インポートも可能。
   ※同期には `supabase_migrate_v6.sql` の実行が必要。
-- **アクセス**: 個人ツールのため公開ポータル（ARCADE/STUDY メニュー）には**カードを出さない**（admin のみ）。
+- **アクセス**: 個人ツールのため公開ポータルには**カードを出さない**（admin ログイン時のみ表示。STUDY も同様）。
   ただしページ本体は**ゲートなし＝直リンク／ブックマークでいつでもアクセス可能**（未掲載だが到達可能な
   「アンリスト」方式）。データ・APIキーは端末ごとの localStorage に保存。
-- **ホーム画面アプリ（PWA）**: `english.html` 専用マニフェスト `english.webmanifest`（`start_url=english.html`,
+- **ホーム画面アプリ（PWA）**: `ARCADES/ENGLISH/english.html` 専用マニフェスト `english.webmanifest`（`start_url=english.html`,
   `display:standalone`, 専用アイコン `icon-eng-*.png`）＋ iOS 用メタ（`apple-mobile-web-app-*`）を備え、
   iPhone の「ホーム画面に追加」で**英語ダッシュボードを直接・全画面で起動**できる。iOS は自動プロンプトが
   無いため、ブラウザ表示時のみ追加方法を案内するヒントを表示（一度閉じると非表示）。
 
-### 英語日記 添削（`english-diary.html`）
+### 英語日記 添削（`ARCADES/ENGLISH/english-diary.html`）
 
-`english.html` の上部「📓 日記」、ダッシュボードのカード、または「今日のルーティン」の英語日記項目から
+`ARCADES/ENGLISH/english.html` の上部「📓 日記」ボタン、または「今日のルーティン」の英語日記項目から
 開く、**口頭入力の英語日記＋AI添削**ツール。`english.html` 同様ゲートなし＝直リンク／ブックマークで
 いつでもアクセス可能（公開ポータルには未掲載）。
 
@@ -145,5 +166,15 @@ PROGRIT のアプリで行い、こちらでは「**どこまで学習したか�
 - **外部AI連携（キー不要）**: 「プロンプトをコピー」＋ Claude / ChatGPT / Gemini を開くボタンで、
   契約中の AI に貼り付けて添削。
 - **音読の促し**: 添削後の文を声に出して音読するよう促す表示（言いたかった内容を正しい英語で口に出すことがスピーキングに直結）。
-- **記録**: 日記と添削結果を端末内（`engdiary_v1_<user>`）に保存。`english.html` 側はこれを read-only で参照し、
+- **記録**: 日記と添削結果を端末内（`engdiary_v1_<user>`）に保存。`ARCADES/ENGLISH/english.html` 側はこれを read-only で参照し、
   カードに「今日の記録状況」を表示、日記を書いた日も連続学習（ストリーク）に算入。
+
+## Network — パケットの旅
+
+`Network/packet-journey/index.html` は、**ネットワーク通信（パケットの旅）を解説する教育用サイト**です。
+CSS/JS を含めてすべて単一 HTML に収める方針で、外部ファイルには分割しません（運用ルールは
+`Network/packet-journey/CLAUDE.md` を参照）。ポータルの **NETWORK** カードから開けます。
+
+> このディレクトリは、独立していた `Koma-Shu/packet-journey` リポジトリ（旧公開URL:
+> `https://koma-shu.github.io/packet-journey/`）をこのリポジトリへ移設したものです。
+> 現在の公開URLは **https://koma-shu.github.io/claude/Network/packet-journey/** です。
