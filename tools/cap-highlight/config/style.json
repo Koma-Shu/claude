@@ -12,12 +12,15 @@
     "intro_sec": 8.0,
     "outro_sec": 7.0,
     "half_card_sec": 1.6,
-    "cut_min_sec": 12.0,
-    "cut_max_sec": 34.0,
+    "cut_min_sec": 14.0,
+    "cut_max_sec": 32.0,
     "pre_roll_sec": 7.0,
     "post_roll_sec": 6.0,
     "audio_fade_sec": 0.25,
-    "snap_window_sec": 12.0
+    "snap_window_sec": 12.0,
+    "cut_target_sec": 22.0,
+    "snap_min_z": 2.5,
+    "_comment": "cut_target_sec からカット本数を決める。予算を cut_min_sec で割ると本数が増えて1本が短くなり、投球から結果までが見えない。"
   },
   "font": {
     "_comment": "上から順に探して、最初に見つかったものを使う。特定のフォントを強制したいときは name に文字列を1つだけ書く。",
@@ -73,12 +76,12 @@
   "selection": {
     "_comment": "ハイライト選定のスコア重み。run_bonus はその打席で入った得点にかかる（打点だけでなく暴投・パスボールでの生還も含む）。",
     "base": {
-      "2BH": 70,
-      "1BH": 48,
-      "K": 16,
-      "K'": 30,
-      "BB": 4,
-      "DB": 10
+      "2BH": 90,
+      "1BH": 62,
+      "K'": 34,
+      "K": 18,
+      "DB": 10,
+      "BB": 6
     },
     "flag_bonus": {
       "先制": 30,
@@ -88,6 +91,6 @@
     "manual_include": [],
     "manual_exclude": [],
     "min_per_half": 1,
-    "run_bonus": 16
+    "run_bonus": 14
   }
 }

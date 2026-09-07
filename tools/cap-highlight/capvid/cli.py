@@ -58,6 +58,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--duration", type=float, help="目標尺(秒)。既定は style.json の値")
     p.add_argument("--include", nargs="*", metavar="PA_ID", help="必ず入れる打席ID")
     p.add_argument("--exclude", nargs="*", metavar="PA_ID", help="除外する打席ID")
+    p.add_argument("--cuts", type=int, help="カット本数を明示指定する")
 
     p = sub.add_parser("preview", help="カット位置を確認する画像を作る")
     p.add_argument("--only", nargs="*", metavar="PA_ID", help="対象を絞る")

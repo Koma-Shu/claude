@@ -25,12 +25,23 @@ def contact_sheet(src, t_in: float, t_out: float, dest, *, tiles: int = 6, width
     if not frames:
         raise SystemExit(f"フレームを抽出できません: {src}")
 
+    # 各コマに元動画での時刻を焼く。ずれているカットを報告するとき、
+    # 「この時刻が正しい」と指せるようにするため。
+    from PIL import ImageDraw
+
+    from .scan import _label_font
+
     with Image.open(frames[0]) as probe:
         h = probe.height
-    canvas = Image.new("RGB", (width * len(frames), h))
+    label_h = max(20, width // 16)
+    canvas = Image.new("RGB", (width * len(frames), h + label_h), (18, 18, 18))
+    draw = ImageDraw.Draw(canvas)
+    font = _label_font(int(label_h * 0.78))
     for i, f in enumerate(frames):
         with Image.open(f) as im:
             canvas.paste(im, (i * width, 0))
+        draw.text((i * width + 6, h + 2), util.hhmmss(times[i])[:-2],
+                  font=font, fill=(255, 235, 120))
     canvas.save(dest)
     for f in frames:
         f.unlink()

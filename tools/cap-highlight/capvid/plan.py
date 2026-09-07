@@ -100,9 +100,14 @@ def estimate_times(plays, game, anchors, peaks, media, style) -> dict[str, dict]
             # 候補が複数あるときは「補間位置に最も近い」ものを採る。
             # 歓声の大きさ(z)の差には打席を識別する意味がないので、順位付けに使うと
             # 隣の打席のピークを掴みうる。z は足切りにだけ使う。
+            # 弱いピークに寄せると、かえってプレーから外れる。実素材の歓声は
+            # z=2 前後しか出ないことがあるので、確信の持てるものだけ採る。
+            min_z = float(style["timing"].get("snap_min_z", 2.5))
             best_i, best_d = None, float("inf")
             for i, peak in enumerate(peaks.get(f, [])):
-                if i in used_peaks or not (lower <= peak["onset"] <= upper):
+                if i in used_peaks or peak["z"] < min_z:
+                    continue
+                if not (lower <= peak["onset"] <= upper):
                     continue
                 d = abs(peak["onset"] - center)
                 if d < best_d:
@@ -155,13 +160,18 @@ def main(args) -> int:
     if budget <= 0:
         raise SystemExit(f"目標尺 {target}s がイントロ等のオーバーヘッド {overhead:.1f}s を下回っています。")
 
+    # カット数は「1本あたりの目標尺」から決める。予算を最短尺で割ると
+    # 本数ばかり増えて1本が短くなり、投球から結果までが見えなくなる。
+    target_len = float(timing.get("cut_target_sec", timing["cut_min_sec"]))
+    max_cuts = max(1, int(budget // target_len))
+    if args.cuts:
+        max_cuts = args.cuts
+
     chosen: list[dict] = []
     used = set()
 
     def take(p):
-        if p["pa_id"] in used:
-            return False
-        if (len(chosen) + 1) * timing["cut_min_sec"] > budget:
+        if p["pa_id"] in used or len(chosen) >= max_cuts:
             return False
         chosen.append(p)
         used.add(p["pa_id"])
@@ -183,17 +193,18 @@ def main(args) -> int:
 
     # --- 尺を配分する -------------------------------------------------------
     lo, hi = timing["cut_min_sec"], timing["cut_max_sec"]
+    base = min(hi, max(lo, budget / len(chosen)))
+    lengths = {p["pa_id"]: base for p in chosen}
+    # 余りはスコアの高いカットに寄せる（上限まで）
+    leftover = budget - base * len(chosen)
     total_score = sum(p["score"] for p in chosen) or 1.0
-    lengths = {}
-    for p in chosen:
-        lengths[p["pa_id"]] = lo
-    leftover = budget - lo * len(chosen)
     for p in sorted(chosen, key=lambda p: -p["score"]):
-        if leftover <= 0:
+        if leftover <= 0.05:
             break
-        add = min(hi - lo, leftover, budget * p["score"] / total_score)
-        lengths[p["pa_id"]] += add
-        leftover -= add
+        add = min(hi - lengths[p["pa_id"]], leftover,
+                  budget * p["score"] / total_score)
+        lengths[p["pa_id"]] += max(0.0, add)
+        leftover -= max(0.0, add)
 
     # --- タイムラインを組む -------------------------------------------------
     items, t = [], 0.0

@@ -104,9 +104,10 @@ python3 run.py peaks
 # 5. ハイライトを選定してカット割りを作る
 python3 run.py plan
 python3 run.py plan --duration 300 --include T-03 B-19 --exclude T-11
+python3 run.py plan --cuts 10    # 本数を明示（既定は目標尺から自動）
 
 # 6. カット位置を確認（重要）
-python3 run.py preview           # work/preview/*.png
+python3 run.py preview           # work/preview/*.png（各コマに元動画の時刻を焼く）
 python3 run.py preview --video   # 低解像度の動画も出す
 #   → ズレていたら work/pa_anchors.csv にその打席の実測タイムコードを書き、
 #      anchors check → plan をやり直す
