@@ -2,7 +2,7 @@
 
 GitHub Pages で配信される PWA。公開URL: **https://koma-shu.github.io/claude/**
 
-入口（ポータル）から **ARCADES**（ARCADE / STUDY / ENGLISH）と **Network**（パケットの旅）に分かれます。
+入口（ポータル）から **ARCADES**（ARCADE / ENGLISH）と **Network**（パケットの旅）に分かれます。
 
 ## ディレクトリ構成
 
@@ -16,7 +16,6 @@ GitHub Pages で配信される PWA。公開URL: **https://koma-shu.github.io/cl
 │
 ├── ARCADES/
 │   ├── ARCADE/          arcade.html＋ゲーム20本
-│   ├── STUDY/           study.html＋srs.js＋問題バンク（study-data*.js）
 │   └── ENGLISH/         english.html / english-diary.html＋データ・専用PWAアセット
 │
 └── Network/
@@ -27,11 +26,23 @@ GitHub Pages で配信される PWA。公開URL: **https://koma-shu.github.io/cl
 （`users` テーブル / `arcade_user`）は共通です。
 
 **ポータルに出すもの / 出さないもの**: 公開ポータルに常時表示するのは **ARCADE** と **NETWORK** のみ。
-**STUDY・ENGLISH・ADMIN は個人用のため admin ログイン時だけカードを表示**します（未掲載だが
+**ENGLISH・ADMIN は個人用のため admin ログイン時だけカードを表示**します（未掲載だが
 直リンク・ブックマークからは到達可能な「アンリスト」方式）。
 
-**旧URLの互換**: ディレクトリ分割前の `english.html` / `english-diary.html` / `arcade.html` /
-`study.html` はルートに**リダイレクト用の小さなHTML**を残してあり、既存のブックマークや
+**検索避け（noindex）**: 個人用ページ（`admin.html` / `profile.html` / `friends.html` / `chat.html` /
+`ARCADES/ENGLISH/*.html` とルートのリダイレクト用HTML）には
+`<meta name="robots" content="noindex,nofollow,noarchive">` を入れてあり、検索エンジンの
+インデックス対象から外れます。ポータル・ARCADE・NETWORK は通常どおりインデックス可。
+※ `robots.txt` はオリジン直下（`https://koma-shu.github.io/robots.txt`）にしか効かず、
+プロジェクトページのサブディレクトリに置いても読まれないため、ページ単位の `meta` で対応しています。
+
+**リポジトリの公開範囲について**: このリポジトリは Public です。GitHub にはファイル単位の
+公開/非公開設定は無く、Pages で配信している以上、ここに置いたファイルはすべて公開されます。
+本当に他人に見せたくない内容はこのリポジトリに置かず、別の Private リポジトリで管理してください
+（Private リポジトリからの Pages 配信は有料プランが必要で、しかも**配信されるサイト自体は公開**されます）。
+
+**旧URLの互換**: ディレクトリ分割前の `english.html` / `english-diary.html` / `arcade.html`
+はルートに**リダイレクト用の小さなHTML**を残してあり、既存のブックマークや
 ホーム画面に追加した PWA から開いても新しい場所へ自動転送されます。
 
 ## ARCADE
@@ -39,26 +50,7 @@ GitHub Pages で配信される PWA。公開URL: **https://koma-shu.github.io/cl
 `ARCADES/ARCADE/arcade.html` はブラウザゲーム集（リバーシ・将棋・麻雀・カードゲーム等）。各ゲームの
 「← ARCADE」はこのゲーム一覧へ戻ります。
 
-## STUDY — 就活対策トレーニング
-
-`ARCADES/STUDY/study.html` は、就職活動の適性検査・面接対策を行う学習アプリです。ポータル（`index.html`）の「STUDY」カード（admin ログイン時のみ表示）、
-または直接 `ARCADES/STUDY/study.html` から入れます。
-
-- **対応分野**: SPI（言語・非言語）／玉手箱／TG-WEB／ケース面接／フェルミ推定
-- **問題バンク**: `ARCADES/STUDY/study-data.js`（多数の問題＋充実した解説。選択式・数値入力・自己採点式）
-- **エビングハウスの忘却曲線に基づく間隔反復学習**: `ARCADES/STUDY/srs.js` が **SM-2 アルゴリズム**で
-  一問ごとに最適な復習日を計算。忘れかけたタイミングで自動的に出題し、最小の労力で
-  記憶の定着を最大化します。ダッシュボードに忘却曲線の図解・定着度・学習ヒートマップを表示。
-- **ログイン連携**: ARCADE と同じアカウント（`users` テーブル）でログインすると、学習進捗が
-  Supabase に保存され、どの端末でも引き継がれます。未ログイン時は端末内（localStorage）に保存。
-
-### 問題の追加方法
-
-`ARCADES/STUDY/study-data.js` の `window.STUDY_DATA` 配列に問題オブジェクトを追加するだけです
-（スキーマはファイル冒頭のコメント参照）。`id` は一度公開したら変更しないこと
-（間隔反復のキーになるため）。
-
-### Supabase セットアップ
+## Supabase セットアップ
 
 新規構築時は `supabase_setup.sql` を Supabase SQL Editor で実行。
 
@@ -66,14 +58,12 @@ GitHub Pages で配信される PWA。公開URL: **https://koma-shu.github.io/cl
 
 1. `supabase_migrate.sql` — フレンド / グループチャット関連
 2. `supabase_migrate_v2.sql` — **play_sessions テーブル（利用回数・利用時間の記録に必須）**
-3. `supabase_migrate_v3.sql` — **study_progress テーブル（STUDY の学習進捗・復習スケジュールの保存に必須）**
+3. `supabase_migrate_v3.sql` — **study_progress テーブル（学習進捗・復習スケジュールの保存に必須）**
 4. `supabase_migrate_v4.sql` — **rooms テーブル（オンライン対戦に必須）**
 5. `supabase_migrate_v5.sql` — **room_messages テーブル（消しバトのオンライン対戦に必須）**
 6. `supabase_migrate_v6.sql` — **english_progress テーブル（ENGLISH の学習データをユーザごとにクラウド同期するのに必須）**
 
 `supabase_migrate_v2.sql` を実行しないと、各ゲームの `track.js` によるプレイ時間記録が保存されず、管理者画面の「利用回数」「利用時間」が空のままになります。
-
-`supabase_migrate_v3.sql` を実行しないと、ログイン時の学習進捗が Supabase に保存されず、端末をまたいだ同期ができません（未ログイン同様、端末内保存のみになります）。
 
 `supabase_migrate_v4.sql` を実行しないと、各ゲームの**オンライン対戦が機能しません**（ルーム作成・参加時に「rooms テーブルが未作成」エラーになります）。ログインは動くがオンライン対戦だけできない場合、まずこの SQL を実行してください。
 
@@ -135,11 +125,11 @@ PROGRIT のアプリで行い、こちらでは「**どこまで学習したか�
   長いページ用に「↑トップへ」ボタンつき。
 - **保存・クラウド同期**: 進捗は端末内（localStorage, `eng_v1_<user>`）に保存しつつ、**ログイン中はユーザごとに
   Supabase（`english_progress`）へ自動同期**し、端末・ブラウザをまたいで引き継げます（`ARCADES/ENGLISH/english-sync.js`）。
-  STUDY と同じく local-first＋楽観的書き込み。複数端末でも壊れないよう、取得時に**レッスン＝更新時刻が新しい方／
+  local-first＋楽観的書き込み方式。複数端末でも壊れないよう、取得時に**レッスン＝更新時刻が新しい方／
   活動＝日ごとの最大／ルーティン＝日ごとの OR／設定＝更新時刻が新しい方**でフィールド単位マージ（データ消失なし）。
   未ログイン時は端末内のみ。日記の API キーは同期せず端末内に保持。設定からJSONのエクスポート/インポートも可能。
   ※同期には `supabase_migrate_v6.sql` の実行が必要。
-- **アクセス**: 個人ツールのため公開ポータルには**カードを出さない**（admin ログイン時のみ表示。STUDY も同様）。
+- **アクセス**: 個人ツールのため公開ポータルには**カードを出さない**（admin ログイン時のみ表示）。
   ただしページ本体は**ゲートなし＝直リンク／ブックマークでいつでもアクセス可能**（未掲載だが到達可能な
   「アンリスト」方式）。データ・APIキーは端末ごとの localStorage に保存。
 - **ホーム画面アプリ（PWA）**: `ARCADES/ENGLISH/english.html` 専用マニフェスト `english.webmanifest`（`start_url=english.html`,
