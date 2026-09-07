@@ -70,7 +70,9 @@ def main() -> int:
                 failures.append(f"{label}: 区間を判定できなかった")
                 print(f"  [NG] {label}: 判定できず")
                 continue
-            got_start, got_end = span
+            got_start, got_end, determined = span
+            if not determined:
+                failures.append(f"{label}: 切り分けられなかった判定になっている")
             ds, de = abs(got_start - start), abs(got_end - min(end, total))
             ok = ds <= TOLERANCE and de <= TOLERANCE
             mark = "OK" if ok else "NG"

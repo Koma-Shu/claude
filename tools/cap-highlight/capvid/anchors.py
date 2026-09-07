@@ -110,6 +110,16 @@ def cmd_check(game: dict) -> int:
         if dur and end > dur + 0.5:
             errs.append(f"  {f}: end_tc {end:.1f}s が動画長 {dur:.1f}s を超えています")
             continue
+        # CSV の pa_from/pa_to は生成時点の控え。game.json を直したあとで
+        # 古い CSV を使うと打席の対応がずれるので気付けるようにする。
+        want = known[f]["pa_range"]
+        try:
+            got = [int(r["pa_from"]), int(r["pa_to"])]
+        except (TypeError, ValueError):
+            got = want
+        if got != want:
+            print(f"    注意: {f} の打席範囲が CSV({got[0]}-{got[1]}) と "
+                  f"game.json({want[0]}-{want[1]}) で違います。game.json を使います。")
         anchors[f] = {"half": known[f]["half"], "order": known[f]["order"],
                       "pa_from": known[f]["pa_range"][0], "pa_to": known[f]["pa_range"][1],
                       "start": start, "end": end}
@@ -138,7 +148,7 @@ def cmd_check(game: dict) -> int:
 
 
 def suggest_span(path, *, sustain: float, k: float,
-                 gap: float = 25.0) -> tuple[float, float] | None:
+                 gap: float = 25.0) -> tuple[float, float, bool] | None:
     """音声から「プレーしている区間」の始まりと終わりを推定する。
 
     体育館の暗騒音の上に、投球・打球・声・歓声が乗る。前後の待機時間は
@@ -160,8 +170,10 @@ def suggest_span(path, *, sustain: float, k: float,
 
     floor = float(np.percentile(smooth, 10))    # 待機中の暗騒音
     top = float(np.percentile(smooth, 90))      # プレー中の賑やかさ
-    if top - floor < 1.5:                       # 差が無い＝全編通して同じ
-        return 0.0, len(smooth) * frame_sec
+    if top - floor < 1.5:
+        # 静かな時間と賑やかな時間の差が無い。全編を対象にするしかないが、
+        # それは「推定できた」ではないので、呼び出し側に伝える。
+        return 0.0, len(smooth) * frame_sec, False
     active = smooth > floor + k * (top - floor)
 
     # 隙間を埋める（投球の合間の静寂でぶつ切りにしない）
@@ -186,14 +198,18 @@ def suggest_span(path, *, sustain: float, k: float,
         spans.append((run_start, len(active)))
     if not spans:
         return None
-    return spans[0][0] * frame_sec, spans[-1][1] * frame_sec
+    start, end = spans[0][0] * frame_sec, spans[-1][1] * frame_sec
+    total = len(smooth) * frame_sec
+    # ほぼ全編が「賑やか」なら、実質的に切り分けられていない
+    determined = (end - start) < total * 0.97
+    return start, end, determined
 
 
 def cmd_suggest(game: dict, args) -> int:
     """音声から推定した値で anchors.csv を埋める。"""
     media = util.load("media")
     path = CSV_PATH()
-    rows, notes = [], []
+    rows, notes, undetermined = [], [], []
 
     for s in sorted(game["segments"], key=lambda s: (s["half"], s["order"])):
         src = util.MEDIA / s["file"]
@@ -213,7 +229,9 @@ def cmd_suggest(game: dict, args) -> int:
                          s["pa_range"][1], "", "", s.get("note", "")])
             continue
 
-        start, end = span
+        start, end, determined = span
+        if not determined:
+            undetermined.append(s["file"])
         start = max(0.0, start - args.margin)
         if dur:
             end = min(dur, end + args.margin)
@@ -222,7 +240,8 @@ def cmd_suggest(game: dict, args) -> int:
                      s.get("note", "")])
         per = (end - start) / n_pa
         print(f" {util.hhmmss(start)} → {util.hhmmss(end)}"
-              f"  ({end - start:6.1f}s / {n_pa}打席 = {per:5.1f}s per 打席)")
+              f"  ({end - start:6.1f}s / {n_pa}打席 = {per:5.1f}s per 打席)"
+              f"{'' if determined else '  ← 切り分けられず、全編を対象にしました'}")
 
     if path.exists() and not args.force:
         raise SystemExit(f"{path} が既にあります。上書きするなら --force を付けてください。")
@@ -236,6 +255,13 @@ def cmd_suggest(game: dict, args) -> int:
             csv.writer(fh).writerow(["pa_id", "file", "tc", "note"])
 
     print("\n".join(notes))
+    if undetermined:
+        print(f"\n注意: {len(undetermined)} 本は静かな時間と賑やかな時間を切り分けられず、")
+        print("      クリップ全体をそのまま区間としました（推定できていません）:")
+        print(f"        {', '.join(undetermined)}")
+        print("      録画が半イニングにぴったり合っていれば、これで問題ありません。")
+        print("      1打席あたりの秒数が本によって大きく違うなら、前後に")
+        print("      プレー外の時間が入っています。`preview` で確認してください。")
     print(f"\n推定値を書き込みました: {path}")
     print("これは音量からの推定なので、必ず確認してください。1打席あたりの秒数が")
     print("極端な行は疑わしいです。直したら `anchors check` を実行してください。")
