@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- 個人用ページ: 検索エンジンにインデックスさせない（未掲載＝アンリスト運用） -->
+<meta name="robots" content="noindex,nofollow,noarchive">
 <title>管理者ダッシュボード | ARCADE</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -329,6 +331,10 @@ td.mono{font-family:'Courier New',monospace;}
 
     <!-- ── Tab: Study ── -->
     <div class="tab-panel" id="tab-study">
+      <!-- 公開ポータル(index.html)にはカードを出さないため、アプリ本体への入口はここに置く -->
+      <div style="margin-bottom:14px">
+        <a href="ARCADES/STUDY/study.html" class="refresh-btn" style="text-decoration:none;display:inline-block;padding:8px 14px;">🎓 STUDY を開く →</a>
+      </div>
       <div class="kpi-grid" id="study-kpis"><div class="loading">読み込み中…</div></div>
       <div class="two-col">
         <div class="section">
