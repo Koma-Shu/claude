@@ -19,7 +19,9 @@ def half_label(half: str) -> str:
 
 def score_play(play: dict, sel: dict) -> float:
     s = float(sel["base"].get(play["result"], 0))
-    s += play["rbi"] * sel["rbi_bonus"]
+    # 打点ではなく実際に入った得点で評価する。この試合は暴投・パスボールでの
+    # 生還が13点中6点、9点中8点を占めるので、打点だけ見ると見せ場を取り逃がす。
+    s += play["runs"] * sel["run_bonus"]
     for flag in play["flags"]:
         s += sel["flag_bonus"].get(flag, 0)
     return s
@@ -30,8 +32,8 @@ def describe(play: dict, game: dict) -> dict:
     team = game["teams"][play["team"]]["name"]
     title = f"{play['batter']}　{play['result_ja']}"
     bits = [half_label(play["half"]), team]
-    if play["rbi"]:
-        bits.append(f"{play['rbi']}打点")
+    if play["runs"]:
+        bits.append(f"{play['runs']}点")
     detail = " · ".join(bits)
     if "先制" in play["flags"]:
         detail += " — 先制"
@@ -227,7 +229,8 @@ def main(args) -> int:
         text = describe(p, game)
         items.append({
             "kind": "cut", "pa_id": p["pa_id"], "half": p["half"],
-            "batter": p["batter"], "result": p["result"], "rbi": p["rbi"],
+            "batter": p["batter"], "result": p["result"],
+            "rbi": p["rbi"], "runs": p["runs"], "pitcher": p.get("pitcher"),
             "flags": p["flags"], "score": round(p["score"], 1),
             "file": est["file"], "src_in": round(src_in, 3),
             "src_out": round(src_in + dur, 3),

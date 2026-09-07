@@ -71,7 +71,7 @@
     "duck_bgm": true
   },
   "selection": {
-    "_comment": "ハイライト選定のスコア重み。plan コマンドで使う。",
+    "_comment": "ハイライト選定のスコア重み。run_bonus はその打席で入った得点にかかる（打点だけでなく暴投・パスボールでの生還も含む）。",
     "base": {
       "2BH": 70,
       "1BH": 48,
@@ -80,7 +80,6 @@
       "BB": 4,
       "DB": 10
     },
-    "rbi_bonus": 16,
     "flag_bonus": {
       "先制": 30,
       "三者連続三振": 26,
@@ -88,6 +87,7 @@
     },
     "manual_include": [],
     "manual_exclude": [],
-    "min_per_half": 1
+    "min_per_half": 1,
+    "run_bonus": 16
   }
 }

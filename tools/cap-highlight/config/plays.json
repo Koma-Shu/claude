@@ -11,11 +11,14 @@
       "order_in_half": 1,
       "batter": "松永(直)",
       "batter_pa": 1,
+      "pitcher": "神山",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -27,11 +30,14 @@
       "order_in_half": 2,
       "batter": "猿屋",
       "batter_pa": 1,
+      "pitcher": "神山",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -43,11 +49,14 @@
       "order_in_half": 3,
       "batter": "辻",
       "batter_pa": 1,
+      "pitcher": "神山",
       "result": "2BH",
       "result_ja": "ツーベース",
       "rbi": 1,
+      "runs": 1,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": [
         "先制"
       ]
@@ -61,13 +70,16 @@
       "order_in_half": 4,
       "batter": "小松川",
       "batter_pa": 1,
+      "pitcher": "神山",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 1,
       "extras": [
         "W1"
       ],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -79,13 +91,16 @@
       "order_in_half": 5,
       "batter": "中島",
       "batter_pa": 1,
+      "pitcher": "神山",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 1,
       "extras": [
         "W1"
       ],
       "is_strikeout": true,
+      "is_out": true,
       "flags": []
     },
     {
@@ -97,11 +112,14 @@
       "order_in_half": 6,
       "batter": "松永(直)",
       "batter_pa": 2,
+      "pitcher": "神山",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -113,11 +131,14 @@
       "order_in_half": 7,
       "batter": "猿屋",
       "batter_pa": 2,
+      "pitcher": "神山",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -129,13 +150,16 @@
       "order_in_half": 8,
       "batter": "辻",
       "batter_pa": 2,
+      "pitcher": "白葉",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 1,
       "extras": [
         "W1"
       ],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -147,11 +171,14 @@
       "order_in_half": 9,
       "batter": "小松川",
       "batter_pa": 2,
+      "pitcher": "白葉",
       "result": "2BH",
       "result_ja": "ツーベース",
       "rbi": 2,
+      "runs": 2,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -163,11 +190,14 @@
       "order_in_half": 10,
       "batter": "中島",
       "batter_pa": 2,
+      "pitcher": "白葉",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": true,
+      "is_out": true,
       "flags": []
     },
     {
@@ -179,13 +209,16 @@
       "order_in_half": 11,
       "batter": "松永(直)",
       "batter_pa": 3,
+      "pitcher": "白葉",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 1,
       "extras": [
         "W1"
       ],
       "is_strikeout": true,
+      "is_out": true,
       "flags": []
     },
     {
@@ -197,11 +230,14 @@
       "order_in_half": 1,
       "batter": "猿屋",
       "batter_pa": 3,
+      "pitcher": "白葉",
       "result": "DB",
       "result_ja": "死球",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -213,11 +249,14 @@
       "order_in_half": 2,
       "batter": "辻",
       "batter_pa": 3,
+      "pitcher": "白葉",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -229,14 +268,17 @@
       "order_in_half": 3,
       "batter": "小松川",
       "batter_pa": 3,
+      "pitcher": "白葉",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 1,
       "extras": [
-        "PO",
+        "P0",
         "W1"
       ],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -248,11 +290,14 @@
       "order_in_half": 4,
       "batter": "中島",
       "batter_pa": 3,
+      "pitcher": "岡田(凌)",
       "result": "2BH",
       "result_ja": "ツーベース",
       "rbi": 1,
+      "runs": 1,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -264,11 +309,14 @@
       "order_in_half": 5,
       "batter": "松永(直)",
       "batter_pa": 4,
+      "pitcher": "岡田(凌)",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": true,
+      "is_out": true,
       "flags": []
     },
     {
@@ -280,11 +328,14 @@
       "order_in_half": 6,
       "batter": "猿屋",
       "batter_pa": 4,
+      "pitcher": "岡田(凌)",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -296,11 +347,14 @@
       "order_in_half": 7,
       "batter": "辻",
       "batter_pa": 4,
+      "pitcher": "岡田(凌)",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": true,
+      "is_out": true,
       "flags": []
     },
     {
@@ -312,11 +366,14 @@
       "order_in_half": 8,
       "batter": "小松川",
       "batter_pa": 4,
+      "pitcher": "岡田(凌)",
       "result": "2BH",
       "result_ja": "ツーベース",
       "rbi": 2,
+      "runs": 2,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -328,11 +385,14 @@
       "order_in_half": 9,
       "batter": "中島",
       "batter_pa": 4,
+      "pitcher": "岡田(凌)",
       "result": "1BH",
       "result_ja": "ヒット",
       "rbi": 1,
+      "runs": 1,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -344,13 +404,16 @@
       "order_in_half": 10,
       "batter": "松永(直)",
       "batter_pa": 5,
+      "pitcher": "岡田(凌)",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 1,
       "extras": [
         "W1"
       ],
       "is_strikeout": true,
+      "is_out": true,
       "flags": []
     },
     {
@@ -362,11 +425,14 @@
       "order_in_half": 1,
       "batter": "猿屋",
       "batter_pa": 5,
+      "pitcher": "近藤(啓)",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -378,11 +444,14 @@
       "order_in_half": 2,
       "batter": "辻",
       "batter_pa": 5,
+      "pitcher": "黒田",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -394,11 +463,14 @@
       "order_in_half": 3,
       "batter": "小松川",
       "batter_pa": 5,
+      "pitcher": "黒田",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": true,
+      "is_out": true,
       "flags": []
     },
     {
@@ -410,11 +482,14 @@
       "order_in_half": 4,
       "batter": "中島",
       "batter_pa": 5,
+      "pitcher": "黒田",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": true,
+      "is_out": true,
       "flags": []
     },
     {
@@ -426,13 +501,16 @@
       "order_in_half": 5,
       "batter": "松永(直)",
       "batter_pa": 6,
+      "pitcher": "黒田",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 0,
       "extras": [
-        "PO"
+        "P0"
       ],
       "is_strikeout": true,
+      "is_out": true,
       "flags": []
     },
     {
@@ -444,11 +522,14 @@
       "order_in_half": 1,
       "batter": "白葉",
       "batter_pa": 1,
+      "pitcher": "猿屋",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": true,
+      "is_out": true,
       "flags": [
         "三者連続三振"
       ]
@@ -462,11 +543,14 @@
       "order_in_half": 2,
       "batter": "黒田",
       "batter_pa": 1,
+      "pitcher": "猿屋",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": true,
+      "is_out": true,
       "flags": [
         "三者連続三振"
       ]
@@ -480,11 +564,14 @@
       "order_in_half": 3,
       "batter": "神山",
       "batter_pa": 1,
+      "pitcher": "猿屋",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": true,
+      "is_out": true,
       "flags": [
         "三者連続三振"
       ]
@@ -498,11 +585,14 @@
       "order_in_half": 1,
       "batter": "若林",
       "batter_pa": 1,
+      "pitcher": "辻",
       "result": "2BH",
       "result_ja": "ツーベース",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -514,14 +604,17 @@
       "order_in_half": 2,
       "batter": "花田",
       "batter_pa": 1,
+      "pitcher": "辻",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 1,
       "extras": [
-        "PO",
+        "P0",
         "W1"
       ],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -533,13 +626,16 @@
       "order_in_half": 3,
       "batter": "岡田(凌)",
       "batter_pa": 1,
+      "pitcher": "辻",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 1,
       "extras": [
         "W1"
       ],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -551,13 +647,16 @@
       "order_in_half": 4,
       "batter": "近藤(啓)",
       "batter_pa": 1,
+      "pitcher": "辻",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 0,
       "extras": [
         "W0"
       ],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -569,13 +668,16 @@
       "order_in_half": 5,
       "batter": "白葉",
       "batter_pa": 2,
+      "pitcher": "辻",
       "result": "K'",
       "result_ja": "振り逃げ",
       "rbi": 0,
+      "runs": 1,
       "extras": [
         "W1"
       ],
       "is_strikeout": true,
+      "is_out": false,
       "flags": []
     },
     {
@@ -587,13 +689,16 @@
       "order_in_half": 6,
       "batter": "黒田",
       "batter_pa": 2,
+      "pitcher": "辻",
       "result": "2BH",
       "result_ja": "ツーベース",
       "rbi": 1,
+      "runs": 2,
       "extras": [
         "W1"
       ],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -605,13 +710,16 @@
       "order_in_half": 7,
       "batter": "神山",
       "batter_pa": 2,
+      "pitcher": "辻",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 0,
       "extras": [
         "W0"
       ],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -623,13 +731,16 @@
       "order_in_half": 8,
       "batter": "若林",
       "batter_pa": 2,
+      "pitcher": "辻",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 1,
       "extras": [
         "W1"
       ],
       "is_strikeout": true,
+      "is_out": true,
       "flags": []
     },
     {
@@ -641,13 +752,16 @@
       "order_in_half": 9,
       "batter": "花田",
       "batter_pa": 2,
+      "pitcher": "辻",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 1,
       "extras": [
         "W1"
       ],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -659,13 +773,16 @@
       "order_in_half": 10,
       "batter": "岡田(凌)",
       "batter_pa": 2,
+      "pitcher": "辻",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 0,
       "extras": [
-        "PO"
+        "P0"
       ],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -677,29 +794,35 @@
       "order_in_half": 11,
       "batter": "近藤(啓)",
       "batter_pa": 2,
+      "pitcher": "辻",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": true,
+      "is_out": true,
       "flags": []
     },
     {
       "pa_id": "B-15",
       "team": "home",
-      "half": "3bot",
-      "inning": 3,
+      "half": "2bot",
+      "inning": 2,
       "pa_no": 15,
-      "order_in_half": 1,
+      "order_in_half": 12,
       "batter": "白葉",
       "batter_pa": 3,
+      "pitcher": "辻",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 1,
       "extras": [
         "W1"
       ],
       "is_strikeout": true,
+      "is_out": true,
       "flags": []
     },
     {
@@ -708,14 +831,17 @@
       "half": "3bot",
       "inning": 3,
       "pa_no": 16,
-      "order_in_half": 2,
+      "order_in_half": 1,
       "batter": "黒田",
       "batter_pa": 3,
+      "pitcher": "辻",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -724,16 +850,19 @@
       "half": "3bot",
       "inning": 3,
       "pa_no": 17,
-      "order_in_half": 3,
+      "order_in_half": 2,
       "batter": "神山",
       "batter_pa": 3,
+      "pitcher": "辻",
       "result": "BB",
       "result_ja": "四球",
       "rbi": 0,
+      "runs": 1,
       "extras": [
         "W1"
       ],
       "is_strikeout": false,
+      "is_out": false,
       "flags": []
     },
     {
@@ -742,16 +871,19 @@
       "half": "3bot",
       "inning": 3,
       "pa_no": 18,
-      "order_in_half": 4,
+      "order_in_half": 3,
       "batter": "若林",
       "batter_pa": 3,
+      "pitcher": "辻",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 0,
       "extras": [
         "W0"
       ],
       "is_strikeout": true,
+      "is_out": true,
       "flags": []
     },
     {
@@ -760,14 +892,17 @@
       "half": "3bot",
       "inning": 3,
       "pa_no": 19,
-      "order_in_half": 5,
+      "order_in_half": 4,
       "batter": "花田",
       "batter_pa": 3,
+      "pitcher": "辻",
       "result": "K",
       "result_ja": "三振",
       "rbi": 0,
+      "runs": 0,
       "extras": [],
       "is_strikeout": true,
+      "is_out": true,
       "flags": [
         "ゲームセット"
       ]
