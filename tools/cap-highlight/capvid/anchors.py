@@ -137,8 +137,115 @@ def cmd_check(game: dict) -> int:
     return 0
 
 
+def suggest_span(path, *, sustain: float, k: float,
+                 gap: float = 25.0) -> tuple[float, float] | None:
+    """音声から「プレーしている区間」の始まりと終わりを推定する。
+
+    体育館の暗騒音の上に、投球・打球・声・歓声が乗る。前後の待機時間は
+    それらが無いので静かになる。
+
+    中央値からの外れ具合では判定できない。プレーが尺の大半を占めると
+    中央値そのものがプレー中の音量になってしまうため。静かな床と賑やかな
+    本編の2つの水準があるとみなし、その間に閾値を置く。
+    投球と投球の間の短い静寂で区間が切れないよう、隙間は埋める。
+    """
+    import numpy as np
+
+    from .peaks import _smooth, envelope, load_audio
+
+    db, frame_sec = envelope(load_audio(path))
+    if len(db) == 0:
+        return None
+    smooth = _smooth(db, max(1, int(2.0 / frame_sec)))
+
+    floor = float(np.percentile(smooth, 10))    # 待機中の暗騒音
+    top = float(np.percentile(smooth, 90))      # プレー中の賑やかさ
+    if top - floor < 1.5:                       # 差が無い＝全編通して同じ
+        return 0.0, len(smooth) * frame_sec
+    active = smooth > floor + k * (top - floor)
+
+    # 隙間を埋める（投球の合間の静寂でぶつ切りにしない）
+    gap_frames = max(1, int(gap / frame_sec))
+    idx = np.flatnonzero(active)
+    if idx.size == 0:
+        return None
+    for a, b in zip(idx, idx[1:]):
+        if b - a <= gap_frames:
+            active[a:b] = True
+
+    need = max(1, int(sustain / frame_sec))
+    spans, run_start = [], None
+    for i, a in enumerate(active):
+        if a and run_start is None:
+            run_start = i
+        elif not a and run_start is not None:
+            if i - run_start >= need:
+                spans.append((run_start, i))
+            run_start = None
+    if run_start is not None and len(active) - run_start >= need:
+        spans.append((run_start, len(active)))
+    if not spans:
+        return None
+    return spans[0][0] * frame_sec, spans[-1][1] * frame_sec
+
+
+def cmd_suggest(game: dict, args) -> int:
+    """音声から推定した値で anchors.csv を埋める。"""
+    media = util.load("media")
+    path = CSV_PATH()
+    rows, notes = [], []
+
+    for s in sorted(game["segments"], key=lambda s: (s["half"], s["order"])):
+        src = util.MEDIA / s["file"]
+        n_pa = s["pa_range"][1] - s["pa_range"][0] + 1
+        if not src.exists():
+            notes.append(f"  {s['file']}: 未取得のため空欄")
+            rows.append([s["file"], s["half"], s["order"], s["pa_range"][0],
+                         s["pa_range"][1], "", "", s.get("note", "")])
+            continue
+
+        print(f"  解析中: {s['file']} ...", end="", flush=True)
+        span = suggest_span(src, sustain=args.sustain, k=args.threshold)
+        dur = media.get(s["file"], {}).get("duration")
+        if span is None:
+            print(" 判定できず")
+            rows.append([s["file"], s["half"], s["order"], s["pa_range"][0],
+                         s["pa_range"][1], "", "", s.get("note", "")])
+            continue
+
+        start, end = span
+        start = max(0.0, start - args.margin)
+        if dur:
+            end = min(dur, end + args.margin)
+        rows.append([s["file"], s["half"], s["order"], s["pa_range"][0],
+                     s["pa_range"][1], f"{start:.1f}", f"{end:.1f}",
+                     s.get("note", "")])
+        per = (end - start) / n_pa
+        print(f" {util.hhmmss(start)} → {util.hhmmss(end)}"
+              f"  ({end - start:6.1f}s / {n_pa}打席 = {per:5.1f}s per 打席)")
+
+    if path.exists() and not args.force:
+        raise SystemExit(f"{path} が既にあります。上書きするなら --force を付けてください。")
+    util.ensure_dirs()
+    with path.open("w", encoding="utf-8", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(HEADER)
+        w.writerows(rows)
+    if not PA_CSV_PATH().exists():
+        with PA_CSV_PATH().open("w", encoding="utf-8", newline="") as fh:
+            csv.writer(fh).writerow(["pa_id", "file", "tc", "note"])
+
+    print("\n".join(notes))
+    print(f"\n推定値を書き込みました: {path}")
+    print("これは音量からの推定なので、必ず確認してください。1打席あたりの秒数が")
+    print("極端な行は疑わしいです。直したら `anchors check` を実行してください。")
+    return 0
+
+
 def main(args) -> int:
     game = util.load("game")
     if args.action == "init":
         return cmd_init(game)
+    if args.action == "suggest":
+        return cmd_suggest(game, args)
     return cmd_check(game)

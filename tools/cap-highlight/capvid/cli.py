@@ -16,6 +16,7 @@ def build_parser() -> argparse.ArgumentParser:
   1. fetch      Google Drive から試合動画を取得
   2. probe      動画の長さ・解像度・fps を計測
   3. scan       動画を時刻つきサムネイル一覧にする（記入の下調べ）
+     anchors suggest  音声からアンカーを推定して anchors.csv を埋める
      anchors init / (anchors.csv を記入) / anchors check
   4. peaks      歓声・打球音のピークを検出
   5. plan       ハイライトを選定してカット割りを作る
@@ -32,7 +33,15 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("probe", help="動画の長さ・解像度・fps を計測する")
 
     p = sub.add_parser("anchors", help="イニングと動画内タイムコードの対応づけ")
-    p.add_argument("action", choices=["init", "check"])
+    p.add_argument("action", choices=["init", "suggest", "check"])
+    p.add_argument("--sustain", type=float, default=6.0,
+                   help="suggest: この秒数以上続く賑やかさをプレー中とみなす")
+    p.add_argument("--threshold", type=float, default=0.35,
+                   help="suggest: 静かな床と本編の間のどこを境にするか(0-1)")
+    p.add_argument("--margin", type=float, default=3.0,
+                   help="suggest: 推定した区間の前後に足す余裕(秒)")
+    p.add_argument("--force", action="store_true",
+                   help="suggest: 既存の anchors.csv を上書きする")
 
     p = sub.add_parser("scan", help="動画全体を時刻つきサムネイル一覧にする")
     p.add_argument("--file", nargs="*", help="対象の動画（既定は全部）")

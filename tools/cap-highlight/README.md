@@ -48,6 +48,16 @@ ffmpeg の配布ビルドは構成が一定でなく、freetype や libass を�
 | `ass` フィルタがある | ASS 字幕を最終パスで焼き込む |
 | `ass` フィルタが無い | Pillow でテロップを PNG に描き、`overlay` で合成する |
 
+### アンカーの決め方
+
+`anchors suggest` は音量からプレー区間を推定する。静かな暗騒音と賑やかな
+本編を2つの水準とみなして境を引き、投球の合間の短い静寂は隙間として埋める。
+中央値からの外れ具合では判定できない（プレーが尺の大半を占めると中央値
+そのものがプレー中の音量になるため）。
+
+推定なので必ず確認すること。`scan` の一覧か、`preview` のサムネイルで
+打席位置が合っているかを見て、ずれていれば `anchors.csv` を直す。
+
 どちらを使うかは `render` が自動で決める。見た目は同じ。後者はフォントを
 ファイルとして直接探すので、`fc-list` も要らない。特定のフォントファイルを
 使いたいときは `config/style.json` に `font.file` でパスを書く
@@ -76,10 +86,11 @@ python3 run.py fetch --list
 python3 run.py probe
 
 # 3. イニングと動画内タイムコードの対応づけ（唯一の手作業）
-python3 run.py scan              # 動画全体を時刻つきサムネイル一覧にする
-#   → work/scan/*.png を見て「最初の投球」「最後の打席が終わった瞬間」を探す。
-#      画像をそのまま Claude Code に読ませて時刻を読み取らせてもよい。
-python3 run.py anchors init      # work/anchors.csv を生成
+python3 run.py anchors suggest   # 音声から推定して work/anchors.csv を埋める
+#   → 待機中は静か、プレー中は投球音・声・歓声で賑やかになるのを利用する。
+#      推定値なので必ず確認する。1打席あたりの秒数が極端な行は疑わしい。
+python3 run.py scan              # 確認用に時刻つきサムネイル一覧を出す
+python3 run.py anchors init      # 手で入れるなら空のテンプレートから
 #   → 各行に start_tc / end_tc を記入する
 #      start_tc = その半イニング先頭打者への最初の投球
 #      end_tc   = そのセグメント最後の打席が終わった瞬間
