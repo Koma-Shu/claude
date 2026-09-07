@@ -111,7 +111,7 @@ def main() -> int:
         style["output"].update(width=640, height=360, fps=15,
                                video_bitrate="800k", target_duration_sec=75)
         style["timing"].update(intro_sec=3.0, outro_sec=2.5, half_card_sec=1.0,
-                               cut_min_sec=5.0, cut_max_sec=12.0,
+                               cut_min_sec=5.0, cut_max_sec=12.0, cut_target_sec=6.0,
                                pre_roll_sec=4.0, post_roll_sec=3.0)
         (root / "config/style.json").write_text(
             json.dumps(style, ensure_ascii=False, indent=2), encoding="utf-8")

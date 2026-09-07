@@ -172,8 +172,11 @@ CAPVID_ROOT=~/cap/2026-09-13 python3 run.py probe
 打席位置の重複・順序の逆転・尺のズレを自動でチェックする。
 
 ```bash
-python3 tests/e2e_synthetic.py     # 全工程を合成動画で通す
-python3 tests/test_font_ranking.py # 日本語フォントの選び方
+./run_tests.sh                      # 全部まとめて
+python3 tests/e2e_synthetic.py      # 全工程を合成動画で通す
+python3 tests/test_font_ranking.py  # 日本語フォントの選び方
+python3 tests/test_anchor_suggest.py # 音声からのアンカー推定
+python3 config/_build_plays.py --check # 打席データと公式記録の照合
 ```
 
 配布ビルドの ffmpeg は構成が一定でなく、`drawtext`(freetype) を欠くことがある。

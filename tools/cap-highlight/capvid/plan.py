@@ -162,8 +162,14 @@ def main(args) -> int:
 
     # カット数は「1本あたりの目標尺」から決める。予算を最短尺で割ると
     # 本数ばかり増えて1本が短くなり、投球から結果までが見えなくなる。
+    import math
+
     target_len = float(timing.get("cut_target_sec", timing["cut_min_sec"]))
-    max_cuts = max(1, int(budget // target_len))
+    target_len = min(max(target_len, timing["cut_min_sec"]), timing["cut_max_sec"])
+    # 1本の上限があるので、本数が少なすぎると予算を使い切れず尺が足りなくなる。
+    # 目標尺から出した本数と、上限で予算を埋めるのに要る本数の多い方を採る。
+    max_cuts = max(1, int(budget // target_len),
+                   math.ceil(budget / timing["cut_max_sec"]))
     if args.cuts:
         max_cuts = args.cuts
 
