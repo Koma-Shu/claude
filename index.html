@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>HTML Viewer</title>
+<link rel="manifest" href="viewer.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HTML Viewer">
+<meta name="theme-color" content="#0f172a">
+<style>
+  :root{
+    --bg:#f1f5f9; --panel:#ffffff; --panel2:#e2e8f0; --text:#0f172a; --muted:#64748b;
+    --line:#cbd5e1; --accent:#0284c7; --accent-text:#ffffff; --danger:#dc2626; --star:#f59e0b;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f172a; --panel:#1e293b; --panel2:#334155; --text:#e2e8f0; --muted:#94a3b8;
+      --line:#334155; --accent:#38bdf8; --accent-text:#0f172a; --danger:#f87171; --star:#fbbf24;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#334155; --text:#e2e8f0; --muted:#94a3b8;
+    --line:#334155; --accent:#38bdf8; --accent-text:#0f172a; --danger:#f87171; --star:#fbbf24;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    font-size:16px;-webkit-text-size-adjust:100%;}
+  button,input,select,textarea{font:inherit;color:inherit;}
+  button{cursor:pointer;}
+
+  /* ---------- library ---------- */
+  header{position:sticky;top:0;z-index:5;background:var(--bg);
+    padding:calc(env(safe-area-inset-top) + 10px) 16px 8px;border-bottom:1px solid var(--line);}
+  .top{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .top h1{font-size:1.25rem;flex:1;letter-spacing:.5px;}
+  .icon-btn{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:40px;height:40px;
+    padding:0 10px;display:inline-flex;align-items:center;justify-content:center;font-size:1rem;}
+  .icon-btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text);font-weight:600;}
+  #search{width:100%;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--panel);padding:0 12px;}
+  .filters{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none;}
+  .filters::-webkit-scrollbar{display:none;}
+  .chip{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 12px;font-size:.82rem;color:var(--muted);}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-text);}
+  .sortrow{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;color:var(--muted);padding-top:6px;}
+  .sortrow select{background:transparent;border:none;color:var(--accent);font-size:.8rem;}
+
+  main{padding:12px 16px calc(env(safe-area-inset-bottom) + 90px);max-width:820px;margin:0 auto;}
+  .item{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:12px;margin-bottom:10px;}
+  .thumb{flex:none;width:46px;height:46px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:1.15rem;color:#fff;}
+  .meta{flex:1;min-width:0;}
+  .meta .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .meta .s{font-size:.76rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+  .meta .tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;}
+  .meta .tags span{font-size:.68rem;background:var(--panel2);border-radius:6px;padding:1px 7px;color:var(--muted);}
+  .star{color:var(--star);}
+  .more{flex:none;background:none;border:none;font-size:1.3rem;color:var(--muted);width:36px;height:36px;}
+  .empty{text-align:center;color:var(--muted);padding:48px 12px;line-height:1.9;font-size:.9rem;}
+  .empty b{color:var(--text);}
+
+  .fab{position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom) + 18px);z-index:6;width:58px;height:58px;border-radius:50%;
+    background:var(--accent);color:var(--accent-text);border:none;font-size:1.9rem;box-shadow:0 6px 20px rgba(0,0,0,.3);}
+
+  /* ---------- sheets / dialogs ---------- */
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:none;}
+  .backdrop.show{display:block;}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--panel);border-radius:18px 18px 0 0;
+    padding:14px 16px calc(env(safe-area-inset-bottom) + 16px);max-height:88vh;overflow:auto;
+    transform:translateY(105%);transition:transform .22s ease;max-width:820px;margin:0 auto;}
+  .sheet.show{transform:none;}
+  .sheet h2{font-size:1rem;margin:4px 0 12px;text-align:center;}
+  .sheet .grab{width:38px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 8px;}
+  .menu-btn{display:block;width:100%;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:12px;
+    padding:13px 14px;margin-bottom:8px;}
+  .menu-btn small{display:block;color:var(--muted);font-size:.74rem;margin-top:2px;}
+  .menu-btn.danger{color:var(--danger);}
+  label.f{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 4px;}
+  .inp{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;}
+  textarea.inp{min-height:180px;font-family:ui-monospace,Menlo,monospace;font-size:.8rem;}
+  .row{display:flex;gap:8px;margin-top:14px;}
+  .row > *{flex:1;}
+  .btn{height:44px;border-radius:12px;border:1px solid var(--line);background:var(--bg);}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text);font-weight:600;}
+  .note{font-size:.74rem;color:var(--muted);line-height:1.7;margin-top:10px;}
+
+  /* ---------- viewer ---------- */
+  #viewer{position:fixed;inset:0;z-index:10;background:#fff;display:none;}
+  #viewer.show{display:block;}
+  #frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;}
+  #vbar{position:fixed;z-index:11;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);display:flex;gap:6px;
+    background:rgba(15,23,42,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:999px;padding:5px;
+    transition:opacity .2s;touch-action:none;}
+  #vbar button{width:40px;height:40px;border-radius:50%;border:none;background:transparent;color:#fff;font-size:1.05rem;}
+  #vbar.dim{opacity:.35;}
+  #vbar.top{bottom:auto;top:calc(env(safe-area-inset-top) + 10px);}
+
+  #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 92px);transform:translateX(-50%);z-index:40;
+    background:var(--text);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:.84rem;opacity:0;pointer-events:none;
+    transition:opacity .2s;max-width:90vw;text-align:center;}
+  #toast.show{opacity:1;}
+  #drop{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;background:rgba(2,132,199,.25);
+    border:3px dashed var(--accent);font-size:1.2rem;font-weight:700;}
+  #drop.show{display:flex;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <h1>HTML Viewer</h1>
+    <button class="icon-btn" id="btnSettings" aria-label="設定">⚙︎</button>
+  </div>
+  <input id="search" type="search" placeholder="検索（名前・タイトル・本文・タグ）" autocomplete="off">
+  <div class="filters" id="filters"></div>
+  <div class="sortrow">
+    <span id="count"></span>
+    <select id="sort" aria-label="並び順">
+      <option value="opened">最近開いた順</option>
+      <option value="added">追加日順</option>
+      <option value="name">名前順</option>
+      <option value="size">サイズ順</option>
+    </select>
+  </div>
+</header>
+
+<main id="list"></main>
+
+<button class="fab" id="btnAdd" aria-label="追加">＋</button>
+<input type="file" id="filePick" accept=".html,.htm,text/html" multiple hidden>
+<input type="file" id="backupPick" accept=".json,application/json" hidden>
+
+<div class="backdrop" id="backdrop"></div>
+<div class="sheet" id="sheet"></div>
+
+<div id="viewer">
+  <iframe id="frame" title="content"
+    sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"
+    allow="fullscreen; clipboard-write; autoplay"></iframe>
+  <div id="vbar">
+    <button id="vBack" aria-label="戻る">‹</button>
+    <button id="vReload" aria-label="再読み込み">↻</button>
+    <button id="vMenu" aria-label="メニュー">⋯</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="drop">ここにドロップして追加</div>
+
+<script>
+'use strict';
+/* =========================================================================
+ * HTML Viewer — Claude が作った HTML を iPhone で管理・閲覧する PWA
+ * ファイルはすべてこの端末の IndexedDB に保存され、サーバーには送られない。
+ * ========================================================================= */
+
+// ---------- IndexedDB ----------
+const DB_NAME = 'html-viewer', STORE = 'files';
+let dbp = null;
+function db(){
+  if (!dbp) dbp = new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(STORE, { keyPath: 'id' });
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  return dbp;
+}
+async function tx(mode, fn){
+  const d = await db();
+  return new Promise((res, rej) => {
+    const t = d.transaction(STORE, mode), s = t.objectStore(STORE);
+    const out = fn(s);
+    t.oncomplete = () => res(out && 'result' in out ? out.result : undefined);
+    t.onerror = () => rej(t.error);
+  });
+}
+const dbAll = () => tx('readonly', s => s.getAll());
+const dbPut = rec => tx('readwrite', s => s.put(rec));
+const dbDel = id  => tx('readwrite', s => s.delete(id));
+
+// ---------- state ----------
+let files = [];
+let filter = 'all';        // all | fav | tag:<name>
+let query = '';
+let sortKey = lsGet('hv.sort') || 'opened';
+let current = null;        // file being viewed
+let token = '';            // per-open token to verify postMessage from the iframe
+
+function lsGet(k){ try { return localStorage.getItem(k); } catch { return null; } }
+function lsSet(k, v){ try { localStorage.setItem(k, v); } catch {} }
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function fmtSize(n){ return n < 1024 ? n + ' B' : n < 1048576 ? (n/1024).toFixed(1) + ' KB' : (n/1048576).toFixed(1) + ' MB'; }
+function fmtDate(t){
+  if (!t) return '未表示';
+  const d = new Date(t), now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  return sameDay ? d.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'})
+                 : d.toLocaleDateString('ja-JP', {year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric', month:'numeric', day:'numeric'});
+}
+function hue(s){ let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
+
+// ---------- parsing ----------
+function analyze(html){
+  let title = '', text = '';
+  try {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    title = (doc.title || '').trim();
+    doc.querySelectorAll('script,style,noscript,template').forEach(n => n.remove());
+    text = (doc.body ? doc.body.textContent : '').replace(/\s+/g, ' ').trim().slice(0, 4000);
+  } catch {}
+  return { title, text };
+}
+
+// ---------- add / import ----------
+async function addHtml(name, html, opts = {}){
+  name = (name || '').trim() || 'untitled.html';
+  const { title, text } = analyze(html);
+  const existing = files.find(f => f.name === name);
+  if (existing && !opts.forceNew){
+    if (confirm(`「${name}」は既にあります。上書きしますか？\n（キャンセルで別ファイルとして追加）`)){
+      Object.assign(existing, { html, title, text, size: new Blob([html]).size, updatedAt: Date.now() });
+      await dbPut(existing);
+      return existing;
+    }
+  }
+  const rec = {
+    id: uid(), name, title, text, html, size: new Blob([html]).size,
+    addedAt: Date.now(), updatedAt: Date.now(), openedAt: 0,
+    tags: opts.tags || [], fav: false, kv: {}
+  };
+  await dbPut(rec);
+  files.push(rec);
+  return rec;
+}
+
+async function importFiles(list){
+  let n = 0;
+  for (const f of list){
+    if (/\.json$/i.test(f.name)) { await restoreBackup(f); continue; }
+    if (!/\.html?$/i.test(f.name) && f.type !== 'text/html') { toast(`${f.name} はHTMLではありません`); continue; }
+    await addHtml(f.name, await f.text());
+    n++;
+  }
+  if (n) toast(`${n} 件追加しました`);
+  render();
+}
+
+// ---------- rendering the library ----------
+function allTags(){
+  const m = new Map();
+  files.forEach(f => f.tags.forEach(t => m.set(t, (m.get(t) || 0) + 1)));
+  return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], 'ja'));
+}
+
+function visible(){
+  const q = query.toLowerCase();
+  let v = files.filter(f => {
+    if (filter === 'fav' && !f.fav) return false;
+    if (filter.startsWith('tag:') && !f.tags.includes(filter.slice(4))) return false;
+    if (!q) return true;
+    return (f.name + '\n' + f.title + '\n' + f.tags.join(' ') + '\n' + f.text).toLowerCase().includes(q);
+  });
+  const cmp = {
+    opened: (a, b) => (b.openedAt || b.addedAt) - (a.openedAt || a.addedAt),
+    added:  (a, b) => b.addedAt - a.addedAt,
+    name:   (a, b) => (a.title || a.name).localeCompare(b.title || b.name, 'ja'),
+    size:   (a, b) => b.size - a.size,
+  }[sortKey];
+  return v.sort(cmp);
+}
+
+function render(){
+  // filters
+  const tags = allTags();
+  if (filter.startsWith('tag:') && !tags.some(([t]) => 'tag:' + t === filter)) filter = 'all';
+  const chips = [['all', `すべて ${files.length}`], ['fav', `★ お気に入り`], ...tags.map(([t, n]) => ['tag:' + t, `#${t} ${n}`])];
+  $('filters').innerHTML = chips.map(([k, l]) => `<button class="chip${filter === k ? ' on' : ''}" data-f="${esc(k)}">${esc(l)}</button>`).join('');
+
+  const v = visible();
+  $('count').textContent = `${v.length} 件`;
+  $('sort').value = sortKey;
+
+  if (!files.length){
+    $('list').innerHTML = `<div class="empty">
+      まだファイルがありません。<br><b>右下の ＋</b> から追加してください。<br><br>
+      <b>おすすめの流れ</b><br>
+      Claude アプリで HTML を「ファイルに保存」<br>→ ＋ →「ファイルから追加」で選択<br>
+      または コードをコピー → ＋ →「貼り付けて追加」</div>`;
+    return;
+  }
+  if (!v.length){ $('list').innerHTML = `<div class="empty">該当するファイルがありません</div>`; return; }
+
+  $('list').innerHTML = v.map(f => {
+    const label = f.title || f.name.replace(/\.html?$/i, '');
+    const initial = [...label][0] || '?';
+    return `<div class="item" data-id="${f.id}">
+      <div class="thumb" style="background:hsl(${hue(f.name)} 55% 45%)">${esc(initial)}</div>
+      <div class="meta">
+        <div class="t">${f.fav ? '<span class="star">★</span> ' : ''}${esc(label)}</div>
+        <div class="s">${esc(f.name)} · ${fmtSize(f.size)} · ${fmtDate(f.openedAt)}</div>
+        ${f.tags.length ? `<div class="tags">${f.tags.map(t => `<span>#${esc(t)}</span>`).join('')}</div>` : ''}
+      </div>
+      <button class="more" data-more="${f.id}" aria-label="操作">⋯</button>
+    </div>`;
+  }).join('');
+}
+
+// ---------- sheets ----------
+function openSheet(html){
+  $('sheet').innerHTML = '<div class="grab"></div>' + html;
+  $('backdrop').classList.add('show');
+  requestAnimationFrame(() => $('sheet').classList.add('show'));
+}
+function closeSheet(){
+  $('sheet').classList.remove('show');
+  $('backdrop').classList.remove('show');
+}
+$('backdrop').onclick = closeSheet;
+
+function sheetAdd(){
+  openSheet(`<h2>追加</h2>
+    <button class="menu-btn" data-act="pick">📁 ファイルから追加<small>「ファイル」アプリ・iCloud Drive から .html を選択（複数可）</small></button>
+    <button class="menu-btn" data-act="paste">📋 貼り付けて追加<small>Claude が出力した HTML コードを貼り付け</small></button>`);
+}
+
+function sheetPaste(){
+  openSheet(`<h2>貼り付けて追加</h2>
+    <label class="f">ファイル名</label>
+    <input class="inp" id="pName" placeholder="例: todo-app.html">
+    <label class="f">HTML コード</label>
+    <textarea class="inp" id="pCode" placeholder="<!DOCTYPE html> ..."></textarea>
+    <div class="row">
+      <button class="btn" id="pClip">クリップボードから</button>
+      <button class="btn primary" id="pSave">保存</button>
+    </div>`);
+  $('pClip').onclick = async () => {
+    try { $('pCode').value = await navigator.clipboard.readText(); autoName(); }
+    catch { toast('貼り付けできませんでした。入力欄を長押しして「ペースト」してください'); }
+  };
+  const autoName = () => {
+    if ($('pName').value) return;
+    const t = analyze($('pCode').value).title;
+    if (t) $('pName').value = t.replace(/[\\/:*?"<>|]/g, '').slice(0, 60) + '.html';
+  };
+  $('pCode').addEventListener('input', autoName);
+  $('pSave').onclick = async () => {
+    const code = $('pCode').value;
+    if (!code.trim()) return toast('HTML を入力してください');
+    let name = $('pName').value.trim() || 'pasted-' + new Date().toISOString().slice(0, 10) + '.html';
+    if (!/\.html?$/i.test(name)) name += '.html';
+    await addHtml(name, code);
+    closeSheet(); render(); toast('追加しました');
+  };
+}
+
+function sheetItem(id){
+  const f = files.find(x => x.id === id); if (!f) return;
+  openSheet(`<h2>${esc(f.title || f.name)}</h2>
+    <button class="menu-btn" data-act="open" data-id="${id}">▶︎ 開く</button>
+    <button class="menu-btn" data-act="fav" data-id="${id}">${f.fav ? '☆ お気に入りから外す' : '★ お気に入りに追加'}</button>
+    <button class="menu-btn" data-act="edit" data-id="${id}">✎ 名前・タグを編集</button>
+    <button class="menu-btn" data-act="share" data-id="${id}">⇪ 共有 / 書き出し<small>AirDrop・メール・「ファイル」に保存など</small></button>
+    <button class="menu-btn" data-act="resetkv" data-id="${id}">⟲ 保存データをリセット<small>このページが保存した設定・進捗（${Object.keys(f.kv || {}).length} 項目）を消去</small></button>
+    <button class="menu-btn danger" data-act="del" data-id="${id}">🗑 削除</button>
+    <p class="note">追加: ${new Date(f.addedAt).toLocaleString('ja-JP')}<br>サイズ: ${fmtSize(f.size)}</p>`);
+}
+
+function sheetEdit(id){
+  const f = files.find(x => x.id === id); if (!f) return;
+  const known = allTags().map(([t]) => t);
+  openSheet(`<h2>編集</h2>
+    <label class="f">ファイル名</label><input class="inp" id="eName" value="${esc(f.name)}">
+    <label class="f">表示タイトル（空欄で &lt;title&gt; を使用）</label><input class="inp" id="eTitle" value="${esc(f.title)}">
+    <label class="f">タグ（スペース区切り）</label><input class="inp" id="eTags" value="${esc(f.tags.join(' '))}" placeholder="例: 仕事 ツール">
+    ${known.length ? `<div class="filters">${known.map(t => `<button class="chip" data-addtag="${esc(t)}">#${esc(t)}</button>`).join('')}</div>` : ''}
+    <div class="row"><button class="btn" id="eCancel">キャンセル</button><button class="btn primary" id="eSave">保存</button></div>`);
+  $('sheet').querySelectorAll('[data-addtag]').forEach(b => b.onclick = () => {
+    const cur = $('eTags').value.split(/\s+/).filter(Boolean);
+    if (!cur.includes(b.dataset.addtag)) $('eTags').value = [...cur, b.dataset.addtag].join(' ');
+  });
+  $('eCancel').onclick = closeSheet;
+  $('eSave').onclick = async () => {
+    f.name = $('eName').value.trim() || f.name;
+    f.title = $('eTitle').value.trim() || analyze(f.html).title;
+    f.tags = [...new Set($('eTags').value.split(/[\s,、#]+/).filter(Boolean))];
+    await dbPut(f); closeSheet(); render(); toast('保存しました');
+  };
+}
+
+function sheetSettings(){
+  const theme = lsGet('hv.theme') || 'auto';
+  const total = files.reduce((s, f) => s + f.size, 0);
+  openSheet(`<h2>設定</h2>
+    <label class="f">テーマ</label>
+    <select class="inp" id="sTheme">
+      <option value="auto">端末に合わせる</option><option value="light">ライト</option><option value="dark">ダーク</option>
+    </select>
+    <label class="f">表示中のボタン位置</label>
+    <select class="inp" id="sBar">
+      <option value="bottom">右下</option><option value="top">右上</option>
+    </select>
+    <label class="f">バックアップ</label>
+    <button class="menu-btn" data-act="backup">⬇︎ すべてをバックアップ<small>${files.length} 件 / ${fmtSize(total)} を1つの JSON に書き出し</small></button>
+    <button class="menu-btn" data-act="restore">⬆︎ バックアップから復元<small>同じ ID のファイルは上書き、それ以外は追加</small></button>
+    <button class="menu-btn danger" data-act="wipe">すべて削除</button>
+    <p class="note" id="sQuota"></p>
+    <p class="note">ファイルはこの端末内（IndexedDB）にのみ保存され、どこにも送信されません。
+      Safari の「Webサイトデータを削除」やアプリの削除で消えるため、定期的なバックアップをおすすめします。</p>`);
+  $('sTheme').value = theme;
+  $('sTheme').onchange = e => { lsSet('hv.theme', e.target.value); applyTheme(); };
+  $('sBar').value = lsGet('hv.bar') || 'bottom';
+  $('sBar').onchange = e => { lsSet('hv.bar', e.target.value); applyBar(); };
+  if (navigator.storage && navigator.storage.estimate){
+    navigator.storage.estimate().then(({usage, quota}) => {
+      const el = $('sQuota'); if (el) el.textContent = `使用量: ${fmtSize(usage || 0)} / 上限目安 ${fmtSize(quota || 0)}`;
+    });
+  }
+}
+
+// ---------- actions ----------
+async function act(a, id){
+  const f = id && files.find(x => x.id === id);
+  switch (a){
+    case 'pick': closeSheet(); $('filePick').click(); break;
+    case 'paste': sheetPaste(); break;
+    case 'open': closeSheet(); openViewer(id); break;
+    case 'fav': f.fav = !f.fav; await dbPut(f); closeSheet(); render(); break;
+    case 'edit': sheetEdit(id); break;
+    case 'share': await shareFile(f); break;
+    case 'resetkv':
+      if (confirm('このページの保存データ（localStorage）を消去しますか？')){ f.kv = {}; await dbPut(f); closeSheet(); toast('リセットしました'); }
+      break;
+    case 'del':
+      if (confirm(`「${f.title || f.name}」を削除しますか？`)){
+        await dbDel(id); files = files.filter(x => x.id !== id); closeSheet(); render(); toast('削除しました');
+      }
+      break;
+    case 'backup': await backup(); break;
+    case 'restore': closeSheet(); $('backupPick').click(); break;
+    case 'wipe':
+      if (confirm('すべてのファイルを削除します。元に戻せません。よろしいですか？')){
+        await tx('readwrite', s => s.clear()); files = []; closeSheet(); render();
+      }
+      break;
+  }
+}
+
+async function shareOrDownload(name, data, type){
+  const file = new File([data], name, { type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })){
+    try { await navigator.share({ files: [file] }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(file); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+const shareFile = f => shareOrDownload(f.name, f.html, 'text/html');
+
+async function backup(){
+  const data = JSON.stringify({ app: 'html-viewer', version: 1, exportedAt: Date.now(), files });
+  await shareOrDownload(`html-viewer-backup-${new Date().toISOString().slice(0, 10)}.json`, data, 'application/json');
+}
+async function restoreBackup(file){
+  try {
+    const j = JSON.parse(await file.text());
+    if (j.app !== 'html-viewer' || !Array.isArray(j.files)) throw new Error('format');
+    for (const r of j.files){
+      if (!r.id || typeof r.html !== 'string') continue;
+      const rec = { tags: [], fav: false, kv: {}, openedAt: 0, ...r };
+      await dbPut(rec);
+      const i = files.findIndex(x => x.id === rec.id);
+      i >= 0 ? (files[i] = rec) : files.push(rec);
+    }
+    toast(`${j.files.length} 件復元しました`); render();
+  } catch { toast('バックアップファイルを読み込めませんでした'); }
+}
+
+// ---------- viewer ----------
+// サンドボックス iframe（allow-same-origin なし）で表示するため、表示する HTML は
+// ビューア本体のデータに触れない。その代わり localStorage が使えなくなるので、
+// ファイルごとの保存領域を持つ互換シムを先頭に差し込み、変更を postMessage で受け取って保存する。
+function shimFor(f){
+  const init = JSON.stringify(f.kv || {}).replace(/</g, '\\u003c');
+  return `<script>(function(){
+var T=${JSON.stringify(token)},D=${init},M={};
+function mk(store,persist){
+  var api={
+    getItem:function(k){k=String(k);return Object.prototype.hasOwnProperty.call(store,k)?store[k]:null;},
+    setItem:function(k,v){store[String(k)]=String(v);persist&&sync();},
+    removeItem:function(k){delete store[String(k)];persist&&sync();},
+    clear:function(){for(var k in store)delete store[k];persist&&sync();},
+    key:function(i){var ks=Object.keys(store);return i<ks.length?ks[i]:null;}
+  };
+  return new Proxy(api,{
+    get:function(t,p){if(p==='length')return Object.keys(store).length;if(p in t)return t[p];return typeof p==='string'?api.getItem(p):undefined;},
+    set:function(t,p,v){api.setItem(p,v);return true;},
+    deleteProperty:function(t,p){api.removeItem(p);return true;},
+    has:function(t,p){return Object.prototype.hasOwnProperty.call(store,p);},
+    ownKeys:function(){return Object.keys(store);},
+    getOwnPropertyDescriptor:function(t,p){if(Object.prototype.hasOwnProperty.call(store,p))return{value:store[p],enumerable:true,configurable:true,writable:true};}
+  });
+}
+var q=null;function sync(){clearTimeout(q);q=setTimeout(function(){parent.postMessage({hv:T,kv:D},'*');},150);}
+function blocked(n){try{window[n].getItem('_');return false;}catch(e){return true;}}
+try{if(blocked('localStorage'))Object.defineProperty(window,'localStorage',{value:mk(D,true),configurable:true});}catch(e){}
+try{if(blocked('sessionStorage'))Object.defineProperty(window,'sessionStorage',{value:mk(M,false),configurable:true});}catch(e){}
+})();<\/script>`;
+}
+function withShim(html, shim){
+  const head = html.match(/<head(\s[^>]*)?>/i);
+  if (head) return html.slice(0, head.index + head[0].length) + shim + html.slice(head.index + head[0].length);
+  const doctype = html.match(/^\s*<!doctype[^>]*>/i);   // doctype より前に入れると quirks モードになる
+  if (doctype) return doctype[0] + shim + html.slice(doctype[0].length);
+  return shim + html;
+}
+
+async function openViewer(id, fromHistory){
+  const f = files.find(x => x.id === id); if (!f) return;
+  current = f;
+  token = uid() + uid();
+  $('frame').srcdoc = withShim(f.html, shimFor(f));
+  $('viewer').classList.add('show');
+  document.title = f.title || f.name;
+  f.openedAt = Date.now(); dbPut(f);
+  if (!fromHistory) history.pushState({ view: id }, '', '#view=' + id);
+  dimSoon();
+}
+function closeViewer(){
+  if (!current) return;
+  $('viewer').classList.remove('show');
+  $('frame').srcdoc = '';
+  current = null; token = '';
+  document.title = 'HTML Viewer';
+  render();
+}
+
+window.addEventListener('message', e => {
+  if (!current || e.source !== $('frame').contentWindow) return;
+  const d = e.data;
+  if (!d || d.hv !== token || typeof d.kv !== 'object') return;
+  current.kv = d.kv; dbPut(current);
+});
+
+window.addEventListener('popstate', () => {
+  const m = location.hash.match(/^#view=(.+)$/);
+  if (m) openViewer(m[1], true); else closeViewer();
+});
+
+$('vBack').onclick = () => { if (history.state && history.state.view) history.back(); else { history.replaceState(null, '', location.pathname); closeViewer(); } };
+$('vReload').onclick = () => { if (current) openViewer(current.id, true); toast('再読み込みしました'); };
+$('vMenu').onclick = () => current && sheetItem(current.id);
+
+// ボタンは数秒で半透明になり、触ると戻る
+function dimSoon(){ const b = $('vbar'); b.classList.remove('dim'); clearTimeout(dimSoon._t); dimSoon._t = setTimeout(() => b.classList.add('dim'), 2500); }
+$('vbar').addEventListener('pointerdown', dimSoon);
+
+// ---------- theme / prefs ----------
+function applyTheme(){
+  const t = lsGet('hv.theme');
+  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  else delete document.documentElement.dataset.theme;
+}
+function applyBar(){ $('vbar').classList.toggle('top', lsGet('hv.bar') === 'top'); }
+
+// ---------- events ----------
+$('btnAdd').onclick = sheetAdd;
+$('btnSettings').onclick = sheetSettings;
+$('search').addEventListener('input', e => { query = e.target.value.trim(); render(); });
+$('sort').onchange = e => { sortKey = e.target.value; lsSet('hv.sort', sortKey); render(); };
+$('filePick').onchange = e => { importFiles([...e.target.files]); e.target.value = ''; };
+$('backupPick').onchange = e => { if (e.target.files[0]) restoreBackup(e.target.files[0]); e.target.value = ''; };
+
+$('filters').addEventListener('click', e => {
+  const b = e.target.closest('[data-f]'); if (!b) return;
+  filter = b.dataset.f; render();
+});
+$('list').addEventListener('click', e => {
+  const more = e.target.closest('[data-more]');
+  if (more) return sheetItem(more.dataset.more);
+  const item = e.target.closest('.item');
+  if (item) openViewer(item.dataset.id);
+});
+$('sheet').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (b) act(b.dataset.act, b.dataset.id);
+});
+
+// デスクトップ用: ドラッグ&ドロップで追加
+let dragDepth = 0;
+addEventListener('dragenter', e => { if (e.dataTransfer.types.includes('Files')){ dragDepth++; $('drop').classList.add('show'); } });
+addEventListener('dragleave', () => { if (--dragDepth <= 0){ dragDepth = 0; $('drop').classList.remove('show'); } });
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', e => {
+  e.preventDefault(); dragDepth = 0; $('drop').classList.remove('show');
+  if (e.dataTransfer.files.length) importFiles([...e.dataTransfer.files]);
+});
+
+// ---------- boot ----------
+(async () => {
+  applyTheme(); applyBar();
+  try {
+    files = (await dbAll()).map(f => ({ tags: [], fav: false, kv: {}, openedAt: 0, ...f }));
+  } catch {
+    $('list').innerHTML = '<div class="empty">この環境ではデータを保存できません（プライベートブラウズでは使えない場合があります）。</div>';
+    return;
+  }
+  render();
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  const m = location.hash.match(/^#view=(.+)$/);
+  if (m && files.some(f => f.id === m[1])) openViewer(m[1], true);
+  else if (m) history.replaceState(null, '', location.pathname);
+})();
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
