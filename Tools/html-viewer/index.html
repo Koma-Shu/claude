@@ -1396,6 +1396,7 @@ function sheetAccount(){
 // サンドボックス iframe（allow-same-origin なし）で表示するため、表示する HTML は
 // ビューア本体のデータに触れない。その代わり localStorage が使えなくなるので、
 // ファイルごとの保存領域を持つ互換シムを先頭に差し込み、変更を postMessage で受け取って保存する。
+// また srcdoc 内の「#見出し」リンクは親ページの URL に解決されてページごと置き換わるため、その場でスクロールさせる。
 function shimFor(f){
   const init = JSON.stringify(f.kv || {}).replace(/</g, '\\u003c');
   return `<script>(function(){
@@ -1421,6 +1422,7 @@ var q=null;function sync(){clearTimeout(q);q=setTimeout(function(){parent.postMe
 function blocked(n){try{window[n].getItem('_');return false;}catch(e){return true;}}
 try{if(blocked('localStorage'))Object.defineProperty(window,'localStorage',{value:mk(D,true),configurable:true});}catch(e){}
 try{if(blocked('sessionStorage'))Object.defineProperty(window,'sessionStorage',{value:mk(M,false),configurable:true});}catch(e){}
+document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[href^="#"]');if(!a||e.defaultPrevented)return;var id=decodeURIComponent(a.getAttribute('href').slice(1)),t=id?document.getElementById(id)||document.getElementsByName(id)[0]:document.body;if(!t)return;e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});});
 })();<\/script>`;
 }
 function withShim(html, shim){
