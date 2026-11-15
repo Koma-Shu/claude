@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>HTML Viewer</title>
+<link rel="manifest" href="viewer.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HTML Viewer">
+<meta name="theme-color" content="#0f172a">
+<style>
+  :root{
+    --bg:#f1f5f9; --panel:#ffffff; --panel2:#e2e8f0; --text:#0f172a; --muted:#64748b;
+    --line:#cbd5e1; --accent:#0284c7; --accent-text:#ffffff; --danger:#dc2626; --star:#f59e0b;
+    --ok:#16a34a; --warn:#d97706; --lock:#7c3aed;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f172a; --panel:#1e293b; --panel2:#334155; --text:#e2e8f0; --muted:#94a3b8;
+      --line:#334155; --accent:#38bdf8; --accent-text:#0f172a; --danger:#f87171; --star:#fbbf24;
+      --ok:#4ade80; --warn:#fbbf24; --lock:#a78bfa;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#334155; --text:#e2e8f0; --muted:#94a3b8;
+    --line:#334155; --accent:#38bdf8; --accent-text:#0f172a; --danger:#f87171; --star:#fbbf24;
+    --ok:#4ade80; --warn:#fbbf24; --lock:#a78bfa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  [hidden]{display:none !important;}
+  html,body{height:100%;}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    font-size:16px;-webkit-text-size-adjust:100%;}
+  button,input,select,textarea{font:inherit;color:inherit;}
+  button{cursor:pointer;}
+
+  /* ---------- library ---------- */
+  header{position:sticky;top:0;z-index:5;background:var(--bg);
+    padding:calc(env(safe-area-inset-top) + 10px) 16px 8px;border-bottom:1px solid var(--line);}
+  .top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .top h1{font-size:1.25rem;flex:1;letter-spacing:.5px;white-space:nowrap;}
+  .icon-btn{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:40px;height:40px;
+    padding:0 10px;display:inline-flex;align-items:center;justify-content:center;font-size:1rem;}
+  .sync{border:1px solid var(--line);background:var(--panel);border-radius:999px;height:30px;padding:0 10px;font-size:.74rem;
+    color:var(--muted);display:inline-flex;align-items:center;gap:5px;max-width:46vw;white-space:nowrap;overflow:hidden;}
+  .sync i{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none;}
+  .sync.ok i{background:var(--ok);} .sync.busy i{background:var(--accent);animation:pulse 1s infinite;}
+  .sync.warn i{background:var(--warn);} .sync.err i{background:var(--danger);}
+  @keyframes pulse{50%{opacity:.3;}}
+  .lockbtn{color:var(--lock);}
+  .crumbs{display:flex;align-items:center;gap:2px;overflow-x:auto;white-space:nowrap;font-size:.86rem;margin-bottom:8px;scrollbar-width:none;}
+  .crumbs::-webkit-scrollbar{display:none;}
+  .crumbs button{background:none;border:none;color:var(--accent);padding:3px 4px;border-radius:6px;}
+  .crumbs button.cur{color:var(--text);font-weight:600;}
+  .crumbs span{color:var(--muted);}
+  #search{width:100%;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--panel);padding:0 12px;}
+  .filters{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none;}
+  .filters::-webkit-scrollbar{display:none;}
+  .chip{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 12px;font-size:.82rem;color:var(--muted);}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-text);}
+  .sortrow{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;color:var(--muted);padding-top:6px;}
+  .sortrow select{background:transparent;border:none;color:var(--accent);font-size:.8rem;}
+
+  main{padding:12px 16px calc(env(safe-area-inset-bottom) + 90px);max-width:820px;margin:0 auto;}
+  .item{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:12px;margin-bottom:10px;}
+  .item{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+  .item.drop-ok{outline:2px solid var(--accent);outline-offset:-2px;background:color-mix(in srgb, var(--accent) 12%, var(--panel));}
+  .item.dragging{opacity:.35;}
+  .crumbs button.drop-ok{background:var(--accent);color:var(--accent-text);}
+  #ghost{position:fixed;z-index:50;pointer-events:none;background:var(--panel);border:1px solid var(--accent);border-radius:12px;
+    padding:8px 12px;font-size:.86rem;box-shadow:0 8px 24px rgba(0,0,0,.3);max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    transform:translate(-50%,-130%);display:none;}
+  main{transition:transform .2s ease;}
+  main.swiping{transition:none;}
+  .thumb{flex:none;width:46px;height:46px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:1.15rem;color:#fff;}
+  .thumb.fold{background:var(--panel2);font-size:1.5rem;}
+  .thumb.fold.hid{background:color-mix(in srgb, var(--lock) 22%, var(--panel));}
+  .meta{flex:1;min-width:0;}
+  .meta .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .meta .s{font-size:.76rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+  .meta .tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;}
+  .meta .tags span{font-size:.68rem;background:var(--panel2);border-radius:6px;padding:1px 7px;color:var(--muted);}
+  .star{color:var(--star);}
+  .badge{font-size:.66rem;border-radius:6px;padding:0 6px;margin-left:4px;vertical-align:1px;}
+  .badge.hid{background:var(--lock);color:#fff;}
+  .badge.pend{background:var(--warn);color:#fff;}
+  .more{flex:none;background:none;border:none;font-size:1.3rem;color:var(--muted);width:36px;height:36px;}
+  .empty{text-align:center;color:var(--muted);padding:48px 12px;line-height:1.9;font-size:.9rem;}
+  .empty b{color:var(--text);}
+  .sect{font-size:.74rem;color:var(--muted);margin:4px 2px 8px;letter-spacing:.5px;}
+
+  .fab{position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom) + 18px);z-index:6;width:58px;height:58px;border-radius:50%;
+    background:var(--accent);color:var(--accent-text);border:none;font-size:1.9rem;box-shadow:0 6px 20px rgba(0,0,0,.3);}
+
+  /* ---------- sheets ---------- */
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:none;}
+  .backdrop.show{display:block;}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--panel);border-radius:18px 18px 0 0;
+    padding:14px 16px calc(env(safe-area-inset-bottom) + 16px);max-height:88vh;overflow:auto;
+    transform:translateY(105%);transition:transform .22s ease;max-width:820px;margin:0 auto;}
+  .sheet.show{transform:none;}
+  .sheet h2{font-size:1rem;margin:4px 0 12px;text-align:center;}
+  .sheet h3{font-size:.86rem;color:var(--muted);margin:18px 0 6px;}
+  .sheet .grab{width:38px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 8px;}
+  .menu-btn{display:block;width:100%;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:12px;
+    padding:13px 14px;margin-bottom:8px;}
+  .menu-btn small{display:block;color:var(--muted);font-size:.74rem;margin-top:2px;}
+  .menu-btn.danger{color:var(--danger);}
+  .menu-btn.sel{border-color:var(--accent);}
+  .menu-btn:disabled{opacity:.45;}
+  label.f{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 4px;}
+  .inp{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;}
+  textarea.inp{min-height:180px;font-family:ui-monospace,Menlo,monospace;font-size:.8rem;}
+  .row{display:flex;gap:8px;margin-top:14px;}
+  .row > *{flex:1;}
+  .btn{height:44px;border-radius:12px;border:1px solid var(--line);background:var(--bg);}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text);font-weight:600;}
+  .note{font-size:.74rem;color:var(--muted);line-height:1.7;margin-top:10px;}
+  .card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:.86rem;line-height:1.7;}
+  .pin{letter-spacing:.6em;text-align:center;font-size:1.4rem;}
+
+  /* ---------- viewer ---------- */
+  #viewer{position:fixed;inset:0;z-index:10;background:#fff;display:none;}
+  #viewer.show{display:block;}
+  #frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;}
+  #vbar{position:fixed;z-index:11;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);display:flex;gap:6px;
+    background:rgba(15,23,42,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:999px;padding:5px;
+    transition:opacity .2s;touch-action:none;}
+  #vbar button{width:40px;height:40px;border-radius:50%;border:none;background:transparent;color:#fff;font-size:1.05rem;}
+  #vbar.dim{opacity:.35;}
+  #vbar.top{bottom:auto;top:calc(env(safe-area-inset-top) + 10px);}
+
+  #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 92px);transform:translateX(-50%);z-index:40;
+    background:var(--text);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:.84rem;opacity:0;pointer-events:none;
+    transition:opacity .2s;max-width:90vw;text-align:center;}
+  #toast.show{opacity:1;}
+  #drop{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;background:rgba(2,132,199,.25);
+    border:3px dashed var(--accent);font-size:1.2rem;font-weight:700;}
+  #drop.show{display:flex;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <h1>HTML Viewer</h1>
+    <button class="sync" id="syncPill" aria-label="同期の状態"><i></i><span id="syncText">ローカルのみ</span></button>
+    <button class="icon-btn lockbtn" id="btnLock" aria-label="隠しフォルダ" hidden>🔒</button>
+    <button class="icon-btn" id="btnSettings" aria-label="設定">⚙︎</button>
+  </div>
+  <nav class="crumbs" id="crumbs"></nav>
+  <input id="search" type="search" placeholder="すべてのフォルダから検索" autocomplete="off">
+  <div class="filters" id="filters"></div>
+  <div class="sortrow">
+    <span id="count"></span>
+    <select id="sort" aria-label="並び順">
+      <option value="opened">最近開いた順</option>
+      <option value="added">追加日順</option>
+      <option value="name">名前順</option>
+      <option value="size">サイズ順</option>
+    </select>
+  </div>
+</header>
+
+<main id="list"></main>
+
+<button class="fab" id="btnAdd" aria-label="追加">＋</button>
+<input type="file" id="filePick" accept=".html,.htm,text/html" multiple hidden>
+<input type="file" id="backupPick" accept=".json,application/json" hidden>
+
+<div class="backdrop" id="backdrop"></div>
+<div class="sheet" id="sheet"></div>
+
+<div id="viewer">
+  <iframe id="frame" title="content"
+    sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"
+    allow="fullscreen; clipboard-write; autoplay"></iframe>
+  <div id="vbar">
+    <button id="vBack" aria-label="戻る">‹</button>
+    <button id="vReload" aria-label="再読み込み">↻</button>
+    <button id="vMenu" aria-label="メニュー">⋯</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="drop">ここにドロップして追加</div>
+<div id="ghost"></div>
+
+<script src="config.js"></script>
+<script>
+'use strict';
+/* =========================================================================
+ * HTML Viewer — Claude が作った HTML を iPhone / iPad で管理・閲覧する PWA
+ * 端末内（IndexedDB）を正とし、ログイン中は Supabase と差分同期する。
+ * オフラインでも閲覧・編集でき、未送信の変更はつながった時点で送る。
+ * ========================================================================= */
+
+// ---------- IndexedDB ----------
+const DB_NAME = 'html-viewer';
+let dbp = null;
+function db(){
+  if (!dbp) dbp = new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 2);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      if (!d.objectStoreNames.contains('files')) d.createObjectStore('files', { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('folders')) d.createObjectStore('folders', { keyPath: 'id' });
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  return dbp;
+}
+async function tx(store, mode, fn){
+  const d = await db();
+  return new Promise((res, rej) => {
+    const tr = d.transaction(store, mode), s = tr.objectStore(store);
+    const out = fn(s);
+    tr.oncomplete = () => res(out && 'result' in out ? out.result : undefined);
+    tr.onerror = () => rej(tr.error);
+  });
+}
+const store = name => ({
+  all: () => tx(name, 'readonly', s => s.getAll()),
+  put: rec => tx(name, 'readwrite', s => s.put(rec)),
+  del: id => tx(name, 'readwrite', s => s.delete(id)),
+  clear: () => tx(name, 'readwrite', s => s.clear()),
+});
+const FS = store('files'), DS = store('folders');
+
+// ---------- state ----------
+let files = [];            // tombstones (deleted:true) stay until pushed
+let folders = [];
+let cwd = null;            // current folder id (null = home)
+let filter = 'all';        // all | fav | tag:<name>
+let query = '';
+let sortKey = lsGet('hv.sort') || 'opened';
+let current = null;        // file being viewed
+let token = '';            // per-open token to verify postMessage from the iframe
+let unlocked = false;      // hidden folders visible?
+
+function lsGet(k){ try { return localStorage.getItem(k); } catch { return null; } }
+function lsSet(k, v){ try { localStorage.setItem(k, v); } catch {} }
+function lsDel(k){ try { localStorage.removeItem(k); } catch {} }
+function lsJson(k){ try { return JSON.parse(lsGet(k)); } catch { return null; } }
+
+const $ = id => document.getElementById(id);
+
+// ---------- i18n（日本語 / English） ----------
+// 文言は日本語の原文をキーにし、英語表示のときだけ EN から引く。{name} などは vars で置き換える。
+const EN = {
+  '未表示': 'Not opened',
+  'ホーム': 'Home',
+  '「{name}」はこのフォルダに既にあります。上書きしますか？\n（キャンセルで別ファイルとして追加）': '"{name}" already exists in this folder. Overwrite it?\n(Cancel to add it as a separate file)',
+  '{name} はHTMLではありません': '{name} is not an HTML file',
+  '{n} 件追加しました': 'Added {n}',
+  '🏠 ホーム': '🏠 Home',
+  'このフォルダ': 'This folder',
+  'すべて {n}': 'All {n}',
+  '★ お気に入り': '★ Favorites',
+  '{n} 件（全フォルダ）': '{n} items (all folders)',
+  'フォルダ {a}・ファイル {b}': '{a} folders · {b} files',
+  'まだファイルがありません。': 'No files yet.',
+  '右下の ＋': 'Tap ＋ at the bottom right',
+  'から追加してください。': 'to add one.',
+  'おすすめの流れ': 'Suggested workflow',
+  'Claude アプリで HTML を「ファイルに保存」': 'In the Claude app, "Save to Files"',
+  '→ ＋ →「ファイルから追加」で選択': '→ ＋ → "Add from Files"',
+  'または コードをコピー → ＋ →「貼り付けて追加」': 'or copy the code → ＋ → "Paste HTML"',
+  '⚙︎ →「アカウントと同期」でログインすると': 'Sign in from ⚙︎ → "Account & Sync"',
+  'iPhone と iPad で自動同期されます。': 'to sync automatically across iPhone and iPad.',
+  '<br><br>隠しフォルダは右上の 🔒 から表示できます。': '<br><br>Tap 🔒 at the top right to show hidden items.',
+  '該当するファイルがありません': 'No matching files',
+  'このフォルダは空です。<br>＋ から追加できます。': 'This folder is empty.<br>Tap ＋ to add files.',
+  '<span class="badge hid">隠し</span>': '<span class="badge hid">Hidden</span>',
+  '{n} 件': '{n} items',
+  'フォルダの操作': 'Folder actions',
+  '<span class="badge pend">未送信</span>': '<span class="badge pend">Not synced</span>',
+  '操作': 'Actions',
+  '追加（{path}）': 'Add ({path})',
+  '📁 ファイルから追加': '📁 Add from Files',
+  '「ファイル」アプリ・iCloud Drive から .html を選択（複数可）': 'Pick .html files from the Files app or iCloud Drive (multiple allowed)',
+  '📋 貼り付けて追加': '📋 Paste HTML',
+  'Claude が出力した HTML コードを貼り付け': 'Paste HTML code generated by Claude',
+  '🗂 フォルダを作成': '🗂 New folder',
+  'このフォルダの中に作成します': 'Created inside this folder',
+  '貼り付けて追加': 'Paste HTML',
+  'ファイル名': 'File name',
+  '例: todo-app.html': 'e.g. todo-app.html',
+  'HTML コード': 'HTML code',
+  'クリップボードから': 'From clipboard',
+  '保存': 'Save',
+  '貼り付けできませんでした。入力欄を長押しして「ペースト」してください': 'Couldn\'t paste. Long-press the field and tap "Paste"',
+  'HTML を入力してください': 'Enter some HTML',
+  '追加しました': 'Added',
+  'フォルダを作成': 'New folder',
+  'フォルダ名を変更': 'Rename folder',
+  'フォルダ名': 'Folder name',
+  '例: プリセールス': 'e.g. Presales',
+  '作成先:': 'Location:',
+  'キャンセル': 'Cancel',
+  'フォルダ名を入力してください': 'Enter a folder name',
+  '▶︎ 開く': '▶︎ Open',
+  '✎ 名前を変更': '✎ Rename',
+  '↪︎ 別のフォルダへ移動': '↪︎ Move to another folder',
+  '👁 隠しフォルダを解除': '👁 Unhide folder',
+  '🔒 隠しフォルダにする': '🔒 Hide folder',
+  '親フォルダが隠しフォルダのため、すでに隠れています': 'Already hidden because its parent folder is hidden',
+  '通常のフォルダとして常に表示します': 'Always show it as a normal folder',
+  'Face ID（またはPIN）で解除するまで、一覧にも検索にも表示されません': 'Hidden from the list and search until unlocked with Face ID (or PIN)',
+  '🗑 フォルダを削除': '🗑 Delete folder',
+  '中身は1つ上のフォルダへ移動します': 'Its contents move up one level',
+  '移動先を選択': 'Choose a destination',
+  '（現在）': ' (current)',
+  '隠しフォルダへ移したファイルは、ロック中は表示されません。': 'Files moved into a hidden folder are not shown while locked.',
+  '「{name}」へ移動しました': 'Moved to "{name}"',
+  '☆ お気に入りから外す': '☆ Remove from favorites',
+  '★ お気に入りに追加': '★ Add to favorites',
+  '✎ 名前・タグを編集': '✎ Edit name & tags',
+  '↪︎ フォルダへ移動': '↪︎ Move to folder',
+  '現在: {path}（長押しでドラッグしても移動できます）': 'Now in: {path} (you can also long-press and drag)',
+  '👁 隠しファイルを解除': '👁 Unhide file',
+  '🔒 隠しファイルにする': '🔒 Hide file',
+  '常に表示します': 'Always show it',
+  '⇪ 共有 / 書き出し': '⇪ Share / export',
+  'AirDrop・メール・「ファイル」に保存など': 'AirDrop, Mail, Save to Files, and more',
+  '⟲ 保存データをリセット': '⟲ Reset saved data',
+  'このページが保存した設定・進捗（{n} 項目）を消去': 'Clear settings and progress saved by this page ({n} items)',
+  '🗑 削除': '🗑 Delete',
+  '<small>同期中の他の端末からも削除されます</small>': '<small>Also deleted from your other synced devices</small>',
+  '追加: {date}': 'Added: {date}',
+  'サイズ: {size}': 'Size: {size}',
+  '<br>⚠️ 本文はまだこの端末に届いていません（オンラインで自動取得）': '<br>⚠️ The content hasn\'t reached this device yet (it downloads automatically when online)',
+  '編集': 'Edit',
+  '表示タイトル（空欄で &lt;title&gt; を使用）': 'Display title (leave empty to use &lt;title&gt;)',
+  'タグ（スペース区切り）': 'Tags (space-separated)',
+  '例: 仕事 ツール': 'e.g. work tools',
+  '保存しました': 'Saved',
+  '設定': 'Settings',
+  'アカウントと同期': 'Account & Sync',
+  'ログインして同期する': 'Sign in to sync',
+  'iPhone・iPad など複数の端末で自動同期': 'Sync automatically across iPhone, iPad and more',
+  '隠しフォルダ': 'Hidden items',
+  '🔐 解除方法:': '🔐 Unlock with:',
+  '未設定': 'Not set',
+  '変更する': 'Change',
+  '隠しフォルダを使う前に設定してください': 'Set this up before hiding folders or files',
+  '🔒 今すぐロックする': '🔒 Lock now',
+  '🔓 ロックを解除する': '🔓 Unlock',
+  '表示': 'Display',
+  'テーマ': 'Theme',
+  '端末に合わせる': 'Match device',
+  'ライト': 'Light',
+  'ダーク': 'Dark',
+  '表示中のボタン位置': 'Viewer button position',
+  '右下': 'Bottom right',
+  '右上': 'Top right',
+  'バックアップ': 'Backup',
+  '⬇︎ すべてをバックアップ': '⬇︎ Back up everything',
+  '{n} 件 / {size} を1つの JSON に書き出し（隠しフォルダはロック解除中のみ含む）': 'Export {n} files / {size} as one JSON (hidden items only while unlocked)',
+  '⬆︎ バックアップから復元': '⬆︎ Restore from backup',
+  '同じ ID のファイルは上書き、それ以外は追加': 'Files with the same ID are overwritten; others are added',
+  'すべて削除': 'Delete everything',
+  '<small>同期中の他の端末とクラウドからも削除されます</small>': '<small>Also deleted from the cloud and your other synced devices</small>',
+  'この端末の使用量: {used} / 上限目安 {quota}': 'Storage on this device: {used} / about {quota} available',
+  '隠しフォルダを解除しました': 'Folder unhidden',
+  '先に解除方法（Face ID または PIN）を設定してください': 'Set up an unlock method (Face ID or PIN) first',
+  '隠しフォルダにしました（ロックすると見えなくなります）': 'Folder hidden (it disappears when you lock)',
+  '隠しファイルを解除しました': 'File unhidden',
+  '隠しファイルにしました（ロックすると見えなくなります）': 'File hidden (it disappears when you lock)',
+  'フォルダ「{name}」を削除しますか？\n中のファイルとフォルダは1つ上へ移動します。': 'Delete the folder "{name}"?\nIts files and folders move up one level.',
+  '削除しました': 'Deleted',
+  'このページの保存データ（localStorage）を消去しますか？': 'Clear this page\'s saved data (localStorage)?',
+  'リセットしました': 'Reset',
+  '「{name}」を削除しますか？': 'Delete "{name}"?',
+  'すべてのファイルとフォルダを削除します。元に戻せません。よろしいですか？': 'This deletes every file and folder and can\'t be undone. Continue?',
+  '本文がまだ届いていません': 'The content hasn\'t arrived yet',
+  '{n} 件復元しました': 'Restored {n}',
+  'バックアップファイルを読み込めませんでした': 'Couldn\'t read the backup file',
+  'HTML Viewer 隠しフォルダ': 'HTML Viewer hidden items',
+  'PIN を入力': 'Enter PIN',
+  'PIN が違います': 'Wrong PIN',
+  '新しい PIN（4〜8桁）': 'New PIN (4–8 digits)',
+  '4〜8桁の数字で入力してください': 'Enter 4–8 digits',
+  'もう一度入力': 'Enter it again',
+  'PIN が一致しません': 'PINs don\'t match',
+  '隠しフォルダの解除方法': 'Unlock method for hidden items',
+  'パスキーを作成します。iCloud キーチェーンで同期され、同じ Apple ID の iPad でも使えます': 'Creates a passkey. It syncs via iCloud Keychain, so it also works on iPads with the same Apple ID',
+  'この端末・ブラウザでは使えません': 'Not available on this device or browser',
+  '🔢 PIN（4〜8桁）': '🔢 PIN (4–8 digits)',
+  'この端末だけで有効です': 'Works on this device only',
+  '<button class="menu-btn danger" id="lsOff">解除方法を削除<small>隠しフォルダ・隠しファイルがある場合は使えません</small></button>': '<button class="menu-btn danger" id="lsOff">Remove unlock method<small>Not possible while hidden folders or files exist</small></button>',
+  '⚠️ 隠しフォルダは': '⚠️ Hiding',
+  '一覧や検索に表示しない': 'keeps items out of the list and search',
+  'ための機能です。端末内やクラウド上のデータそのものは暗号化されていません。機密情報の保管には使わないでください。': 'only. The data itself is not encrypted on the device or in the cloud, so don\'t use it for confidential information.',
+  'Face ID で解除できるようになりました': 'You can now unlock with Face ID',
+  'キャンセルされました': 'Cancelled',
+  'パスキーを作成できませんでした': 'Couldn\'t create the passkey',
+  'PIN を設定しました': 'PIN set',
+  '先に隠しフォルダ・隠しファイルをすべて解除してください': 'Unhide all hidden folders and files first',
+  '解除方法を削除しました': 'Unlock method removed',
+  'Face ID を使えませんでした': 'Couldn\'t use Face ID',
+  'この端末で解除方法を設定してください': 'Set up an unlock method on this device',
+  '🔓 ロックを解除しました': '🔓 Unlocked',
+  '🔒 ロックしました': '🔒 Locked',
+  '接続先が未設定です': 'Cloud connection isn\'t configured',
+  'ログインしていません': 'Not signed in',
+  '再ログインが必要です': 'Please sign in again',
+  'オフライン': 'Offline',
+  '（未送信 {n} 件）': ' ({n} not synced)',
+  '同期エラー: ': 'Sync error: ',
+  '最終同期 {date} {time}': 'Last synced {date} {time}',
+  '未同期': 'Not synced yet',
+  'ローカルのみ': 'Local only',
+  '同期中…': 'Syncing…',
+  'オフライン・未送信{n}': 'Offline · {n} pending',
+  '同期エラー': 'Sync error',
+  '未送信 {n}': '{n} pending',
+  '同期済み': 'Synced',
+  'Supabase で schema.sql を再実行してください（列の追加が必要です）': 'Re-run schema.sql in Supabase (a column needs to be added)',
+  'ログインの有効期限が切れました。再ログインしてください': 'Your session expired. Please sign in again',
+  '前回とは別のアカウントです。この端末のファイルをこのアカウントにもアップロードしますか？\n（キャンセルするとログインを中止します）': 'This is a different account from last time. Upload this device\'s files to this account too?\n(Cancel to stop signing in)',
+  'ログインを中止しました': 'Sign-in cancelled',
+  '今すぐ同期': 'Sync now',
+  'ログアウト': 'Sign out',
+  'オフラインでも閲覧・追加・編集できます。変更はつながったときに自動で送られます。ログアウトしても、この端末のファイルは残ります。': 'You can view, add and edit offline; changes are sent automatically when you\'re back online. Signing out keeps the files on this device.',
+  '同期しました': 'Synced',
+  'ログアウトしますか？（この端末のファイルは残ります）': 'Sign out? (Files on this device are kept)',
+  'ログアウトしました': 'Signed out',
+  '同期にはクラウド（Supabase）の接続先が必要です。下の「接続先の設定」に入力してください。': 'Sync needs a cloud (Supabase) connection. Enter it under "Connection settings" below.',
+  'メールアドレス': 'Email',
+  'パスワード（6文字以上）': 'Password (6+ characters)',
+  '新規登録': 'Sign up',
+  'ログイン': 'Sign in',
+  '接続先の設定': 'Connection settings',
+  '接続先を保存': 'Save connection',
+  '接続先は config.js に書いておけば、どの端末でも入力不要になります。': 'Put the connection in config.js and no device needs to enter it.',
+  'メールアドレスと6文字以上のパスワードを入力してください': 'Enter your email and a password of 6+ characters',
+  '確認メールを送りました。メールのリンクを開いてからログインしてください': 'Confirmation email sent. Open the link in it, then sign in',
+  'ログインしました': 'Signed in',
+  'メールアドレスかパスワードが違います': 'Wrong email or password',
+  'URL（https://〜）とキーを入力してください': 'Enter the URL (https://…) and key',
+  '接続先を保存しました': 'Connection saved',
+  '本文を取得しています…': 'Downloading content…',
+  '本文がまだこの端末に届いていません。オンラインで開いてください': 'The content hasn\'t reached this device yet. Open it while online',
+  '再読み込みしました': 'Reloaded',
+  '<div class="empty">この環境ではデータを保存できません（プライベートブラウズでは使えない場合があります）。</div>': '<div class="empty">Data can\'t be saved in this environment (Private Browsing may not be supported).</div>',
+  '同期の状態': 'Sync status',
+  'すべてのフォルダから検索': 'Search all folders',
+  '並び順': 'Sort order',
+  '最近開いた順': 'Recently opened',
+  '追加日順': 'Date added',
+  '名前順': 'Name',
+  'サイズ順': 'Size',
+  '追加': 'Add',
+  '戻る': 'Back',
+  '再読み込み': 'Reload',
+  'メニュー': 'Menu',
+  'ここにドロップして追加': 'Drop files here to add'
+};
+const langPref = () => lsGet('hv.lang') || 'auto';     // 'auto' | 'ja' | 'en'
+const lang = () => { const p = langPref(); return p === 'auto' ? (/^ja\b/i.test(navigator.language || '') ? 'ja' : 'en') : p; };
+const locale = () => lang() === 'ja' ? 'ja-JP' : 'en-US';
+function t(s, vars){
+  let out = lang() === 'en' && EN[s] !== undefined ? EN[s] : s;
+  if (vars) out = out.replace(/\{(\w+)\}/g, (m, k) => k in vars ? vars[k] : m);
+  return out;
+}
+// HTML に直接書いてある文言（ヘッダー・ボタンのラベルなど）
+function applyStaticText(){
+  document.documentElement.lang = lang();
+  $('syncPill').setAttribute('aria-label', t('同期の状態'));
+  $('btnLock').setAttribute('aria-label', t('隠しフォルダ'));
+  $('btnSettings').setAttribute('aria-label', t('設定'));
+  $('search').placeholder = t('すべてのフォルダから検索');
+  $('sort').setAttribute('aria-label', t('並び順'));
+  [['opened', '最近開いた順'], ['added', '追加日順'], ['name', '名前順'], ['size', 'サイズ順']]
+    .forEach(([v, label]) => { $('sort').querySelector(`option[value="${v}"]`).textContent = t(label); });
+  $('btnAdd').setAttribute('aria-label', t('追加'));
+  $('vBack').setAttribute('aria-label', t('戻る'));
+  $('vReload').setAttribute('aria-label', t('再読み込み'));
+  $('vMenu').setAttribute('aria-label', t('メニュー'));
+  $('drop').textContent = t('ここにドロップして追加');
+}
+
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+function toast(msg){
+  const el = $('toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), 2400);
+}
+function fmtSize(n){ return n < 1024 ? n + ' B' : n < 1048576 ? (n/1024).toFixed(1) + ' KB' : (n/1048576).toFixed(1) + ' MB'; }
+function fmtDate(ts){
+  if (!ts) return t('未表示');
+  const d = new Date(ts), now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  return sameDay ? d.toLocaleTimeString(locale(), {hour:'2-digit', minute:'2-digit'})
+                 : d.toLocaleDateString(locale(), {year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric', month:'numeric', day:'numeric'});
+}
+function hue(s){ let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
+function hashStr(s){
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(16) + '-' + s.length;
+}
+
+// ---------- parsing ----------
+function analyze(html){
+  let title = '', text = '';
+  try {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    title = (doc.title || '').trim();
+    doc.querySelectorAll('script,style,noscript,template').forEach(n => n.remove());
+    text = (doc.body ? doc.body.textContent : '').replace(/\s+/g, ' ').trim().slice(0, 4000);
+  } catch {}
+  return { title, text };
+}
+
+// ---------- folders ----------
+const folderById = id => folders.find(f => f.id === id && !f.deleted);
+function ancestors(id){            // [self, parent, ...]
+  const out = []; let f = folderById(id), guard = 0;
+  while (f && guard++ < 64){ out.push(f); f = f.parentId ? folderById(f.parentId) : null; }
+  return out;
+}
+const homeOf = f => folderById(f.folderId) ? f.folderId : null;   // 親フォルダが消えていればホーム扱い
+const inHidden = folderId => !!folderId && ancestors(folderId).some(f => f.hidden);
+const folderVisible = f => !f.deleted && (unlocked || !inHidden(f.id));
+const fileVisible = f => !f.deleted && (unlocked || (!f.hidden && !inHidden(f.folderId)));
+const pathText = folderId => folderId ? ancestors(folderId).reverse().map(f => f.name).join(' / ') : t('ホーム');
+const hasHidden = () => folders.some(f => !f.deleted && f.hidden) || files.some(f => !f.deleted && f.hidden);
+function descendants(id){
+  const out = [];
+  (function walk(pid){ folders.filter(f => !f.deleted && f.parentId === pid).forEach(f => { out.push(f); walk(f.id); }); })(id);
+  return out;
+}
+
+// ---------- local mutations (mark dirty → sync) ----------
+// bump=false は「開いた日時」だけの変更。他の端末での編集を上書きしないよう、更新日時を進めない
+async function saveFile(f, { html = false, quiet = false, bump = true } = {}){
+  if (bump) f.updatedAt = Date.now();
+  f.dirty = true; if (html) f.dirtyHtml = true;
+  await FS.put(f);
+  if (!quiet) render();
+  scheduleSync();
+}
+async function saveFolder(fo){
+  fo.updatedAt = Date.now(); fo.dirty = true;
+  await DS.put(fo);
+  render(); scheduleSync();
+}
+async function removeFile(f){
+  if (!f.synced){ files = files.filter(x => x !== f); await FS.del(f.id); render(); return; }
+  Object.assign(f, { deleted: true, html: '', text: '', kv: {} });
+  await saveFile(f, { html: true });
+}
+async function removeFolder(fo){
+  // 中身は1つ上のフォルダへ移す
+  for (const f of files.filter(x => !x.deleted && x.folderId === fo.id)){ f.folderId = fo.parentId || null; await saveFile(f, { quiet: true }); }
+  for (const c of folders.filter(x => !x.deleted && x.parentId === fo.id)){ c.parentId = fo.parentId || null; c.updatedAt = Date.now(); c.dirty = true; await DS.put(c); }
+  if (!fo.synced){ folders = folders.filter(x => x !== fo); await DS.del(fo.id); }
+  else { fo.deleted = true; await saveFolder(fo); }
+  if (cwd === fo.id) cwd = fo.parentId || null;
+  render(); scheduleSync();
+}
+
+// ---------- add / import ----------
+async function addHtml(name, html, opts = {}){
+  name = (name || '').trim() || 'untitled.html';
+  const { title, text } = analyze(html);
+  const folderId = opts.folderId !== undefined ? opts.folderId : cwd;
+  const existing = files.find(f => !f.deleted && f.name === name && (f.folderId || null) === (folderId || null));
+  const size = new Blob([html]).size, hash = hashStr(html);
+  if (existing && !opts.forceNew){
+    if (confirm(t('「{name}」はこのフォルダに既にあります。上書きしますか？\n（キャンセルで別ファイルとして追加）', { name }))){
+      Object.assign(existing, { html, title, text, size, hash, needHtml: false });
+      await saveFile(existing, { html: true, quiet: true });
+      return existing;
+    }
+  }
+  const now = Date.now();
+  const rec = {
+    id: uid(), name, title, text, html, size, hash, folderId: folderId || null,
+    addedAt: now, updatedAt: now, openedAt: 0, tags: opts.tags || [], fav: false, kv: {},
+    deleted: false, synced: false, dirty: true, dirtyHtml: true
+  };
+  files.push(rec);
+  await FS.put(rec);
+  scheduleSync();
+  return rec;
+}
+
+async function importFiles(list){
+  let n = 0;
+  for (const f of list){
+    if (/\.json$/i.test(f.name)) { await restoreBackup(f); continue; }
+    if (!/\.html?$/i.test(f.name) && f.type !== 'text/html') { toast(t('{name} はHTMLではありません', { name: f.name })); continue; }
+    await addHtml(f.name, await f.text());
+    n++;
+  }
+  if (n) toast(t('{n} 件追加しました', { n }));
+  render();
+}
+
+// ---------- rendering ----------
+function allTags(){
+  const m = new Map();
+  files.filter(fileVisible).forEach(f => f.tags.forEach(tag => m.set(tag, (m.get(tag) || 0) + 1)));
+  return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], 'ja'));
+}
+const cmp = {
+  opened: (a, b) => (b.openedAt || b.addedAt) - (a.openedAt || a.addedAt),
+  added:  (a, b) => b.addedAt - a.addedAt,
+  name:   (a, b) => (a.title || a.name).localeCompare(b.title || b.name, 'ja'),
+  size:   (a, b) => b.size - a.size,
+};
+const flatMode = () => !!query || filter !== 'all';
+
+function visibleFiles(){
+  const q = query.toLowerCase();
+  return files.filter(f => {
+    if (!fileVisible(f)) return false;
+    if (!flatMode()) return homeOf(f) === cwd;
+    if (filter === 'fav' && !f.fav) return false;
+    if (filter.startsWith('tag:') && !f.tags.includes(filter.slice(4))) return false;
+    if (!q) return true;
+    return (f.name + '\n' + f.title + '\n' + f.tags.join(' ') + '\n' + f.text + '\n' + pathText(f.folderId)).toLowerCase().includes(q);
+  }).sort(cmp[sortKey]);
+}
+function visibleFolders(){
+  if (flatMode()) return [];
+  return folders.filter(f => folderVisible(f) && (folderById(f.parentId) ? f.parentId : null) === cwd).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+}
+function countIn(folderId){
+  const ids = new Set([folderId, ...descendants(folderId).map(f => f.id)]);
+  return files.filter(f => fileVisible(f) && ids.has(f.folderId)).length;
+}
+
+function renderCrumbs(){
+  if (cwd && !folderVisible(folderById(cwd) || { deleted: true, id: cwd })) cwd = null;
+  const chain = cwd ? ancestors(cwd).reverse() : [];
+  let html = `<button data-cd="" class="${cwd ? '' : 'cur'}">${t('🏠 ホーム')}</button>`;
+  chain.forEach((f, i) => {
+    html += `<span>›</span><button data-cd="${f.id}" class="${i === chain.length - 1 ? 'cur' : ''}">${f.hidden ? '🔒 ' : ''}${esc(f.name)}</button>`;
+  });
+  $('crumbs').innerHTML = html;
+  $('crumbs').style.display = flatMode() ? 'none' : '';
+}
+
+function render(){
+  renderCrumbs();
+  const tags = allTags();
+  if (filter.startsWith('tag:') && !tags.some(([tag]) => 'tag:' + tag === filter)) filter = 'all';
+  const total = files.filter(fileVisible).length;
+  const chips = [['all', cwd ? t('このフォルダ') : t('すべて {n}', { n: total })], ['fav', t('★ お気に入り')], ...tags.map(([tag, n]) => ['tag:' + tag, `#${tag} ${n}`])];
+  $('filters').innerHTML = chips.map(([k, l]) => `<button class="chip${filter === k ? ' on' : ''}" data-f="${esc(k)}">${esc(l)}</button>`).join('');
+  $('sort').value = sortKey;
+  $('btnLock').hidden = !hasHidden();
+  $('btnLock').textContent = unlocked ? '🔓' : '🔒';
+
+  const fv = visibleFolders(), v = visibleFiles();
+  $('count').textContent = flatMode() ? t('{n} 件（全フォルダ）', { n: v.length }) : t('フォルダ {a}・ファイル {b}', { a: fv.length, b: v.length });
+
+  if (!files.some(f => !f.deleted) && !folders.some(f => !f.deleted)){
+    $('list').innerHTML = `<div class="empty">
+      ${t('まだファイルがありません。')}<br><b>${t('右下の ＋')}</b> ${t('から追加してください。')}<br><br>
+      <b>${t('おすすめの流れ')}</b><br>
+      ${t('Claude アプリで HTML を「ファイルに保存」')}<br>${t('→ ＋ →「ファイルから追加」で選択')}<br>
+      ${t('または コードをコピー → ＋ →「貼り付けて追加」')}<br><br>
+      ${t('⚙︎ →「アカウントと同期」でログインすると')}<br>${t('iPhone と iPad で自動同期されます。')}</div>`;
+    return;
+  }
+  if (!fv.length && !v.length){
+    const hint = !unlocked && hasHidden() ? t('<br><br>隠しフォルダは右上の 🔒 から表示できます。') : '';
+    $('list').innerHTML = `<div class="empty">${flatMode() ? t('該当するファイルがありません') : t('このフォルダは空です。<br>＋ から追加できます。')}${hint}</div>`;
+    return;
+  }
+  let html = '';
+  if (fv.length){
+    html += fv.map(f => {
+      const hid = inHidden(f.id);
+      return `<div class="item folder" data-folder="${f.id}">
+        <div class="thumb fold${hid ? ' hid' : ''}">${hid ? '🔒' : '📁'}</div>
+        <div class="meta">
+          <div class="t">${esc(f.name)}${f.hidden ? t('<span class="badge hid">隠し</span>') : ''}</div>
+          <div class="s">${t('{n} 件', { n: countIn(f.id) })}</div>
+        </div>
+        <button class="more" data-fmore="${f.id}" aria-label="${t('フォルダの操作')}">⋯</button>
+      </div>`;
+    }).join('');
+  }
+  html += v.map(f => {
+    const label = f.title || f.name.replace(/\.html?$/i, '');
+    const initial = [...label][0] || '?';
+    const sub = flatMode() ? `${esc(pathText(f.folderId))} · ` : '';
+    return `<div class="item" data-id="${f.id}">
+      <div class="thumb" style="background:hsl(${hue(f.name)} 55% 45%)">${esc(initial)}</div>
+      <div class="meta">
+        <div class="t">${f.fav ? '<span class="star">★</span> ' : ''}${esc(label)}${f.hidden ? t('<span class="badge hid">隠し</span>') : ''}${f.dirty && session ? t('<span class="badge pend">未送信</span>') : ''}</div>
+        <div class="s">${sub}${esc(f.name)} · ${fmtSize(f.size)} · ${fmtDate(f.openedAt)}</div>
+        ${f.tags.length ? `<div class="tags">${f.tags.map(tag => `<span>#${esc(tag)}</span>`).join('')}</div>` : ''}
+      </div>
+      <button class="more" data-more="${f.id}" aria-label="${t('操作')}">⋯</button>
+    </div>`;
+  }).join('');
+  $('list').innerHTML = html;
+}
+
+// ---------- sheets ----------
+function openSheet(html){
+  $('sheet').innerHTML = '<div class="grab"></div>' + html;
+  $('backdrop').classList.add('show');
+  requestAnimationFrame(() => $('sheet').classList.add('show'));
+}
+function closeSheet(){
+  $('sheet').classList.remove('show');
+  $('backdrop').classList.remove('show');
+}
+$('backdrop').onclick = closeSheet;
+
+function sheetAdd(){
+  openSheet(`<h2>${t('追加（{path}）', { path: esc(pathText(cwd)) })}</h2>
+    <button class="menu-btn" data-act="pick">${t('📁 ファイルから追加')}<small>${t('「ファイル」アプリ・iCloud Drive から .html を選択（複数可）')}</small></button>
+    <button class="menu-btn" data-act="paste">${t('📋 貼り付けて追加')}<small>${t('Claude が出力した HTML コードを貼り付け')}</small></button>
+    <button class="menu-btn" data-act="newfolder">${t('🗂 フォルダを作成')}<small>${t('このフォルダの中に作成します')}</small></button>`);
+}
+
+function sheetPaste(){
+  openSheet(`<h2>${t('貼り付けて追加')}</h2>
+    <label class="f">${t('ファイル名')}</label>
+    <input class="inp" id="pName" placeholder="${t('例: todo-app.html')}">
+    <label class="f">${t('HTML コード')}</label>
+    <textarea class="inp" id="pCode" placeholder="<!DOCTYPE html> ..."></textarea>
+    <div class="row">
+      <button class="btn" id="pClip">${t('クリップボードから')}</button>
+      <button class="btn primary" id="pSave">${t('保存')}</button>
+    </div>`);
+  const autoName = () => {
+    if ($('pName').value) return;
+    const title = analyze($('pCode').value).title;
+    if (title) $('pName').value = title.replace(/[\\/:*?"<>|]/g, '').slice(0, 60) + '.html';
+  };
+  $('pClip').onclick = async () => {
+    try { $('pCode').value = await navigator.clipboard.readText(); autoName(); }
+    catch { toast(t('貼り付けできませんでした。入力欄を長押しして「ペースト」してください')); }
+  };
+  $('pCode').addEventListener('input', autoName);
+  $('pSave').onclick = async () => {
+    const code = $('pCode').value;
+    if (!code.trim()) return toast(t('HTML を入力してください'));
+    let name = $('pName').value.trim() || 'pasted-' + new Date().toISOString().slice(0, 10) + '.html';
+    if (!/\.html?$/i.test(name)) name += '.html';
+    await addHtml(name, code);
+    closeSheet(); render(); toast(t('追加しました'));
+  };
+}
+
+function sheetFolderName(fo){
+  const isNew = !fo;
+  openSheet(`<h2>${isNew ? t('フォルダを作成') : t('フォルダ名を変更')}</h2>
+    <label class="f">${t('フォルダ名')}</label>
+    <input class="inp" id="fdName" value="${isNew ? '' : esc(fo.name)}" placeholder="${t('例: プリセールス')}">
+    ${isNew ? `<p class="note">${t('作成先:')} ${esc(pathText(cwd))}</p>` : ''}
+    <div class="row"><button class="btn" id="fdCancel">${t('キャンセル')}</button><button class="btn primary" id="fdSave">${t('保存')}</button></div>`);
+  setTimeout(() => $('fdName') && $('fdName').focus(), 250);
+  $('fdCancel').onclick = closeSheet;
+  $('fdSave').onclick = async () => {
+    const name = $('fdName').value.trim().replace(/[\/]/g, '／');
+    if (!name) return toast(t('フォルダ名を入力してください'));
+    if (isNew){
+      const rec = { id: uid(), name, parentId: cwd, hidden: false, deleted: false, synced: false, updatedAt: 0, dirty: true };
+      folders.push(rec); await saveFolder(rec);
+    } else { fo.name = name; await saveFolder(fo); }
+    closeSheet();
+  };
+}
+
+function sheetFolder(id){
+  const fo = folderById(id); if (!fo) return;
+  const n = countIn(id);
+  const parentHidden = fo.parentId && inHidden(fo.parentId);
+  openSheet(`<h2>${fo.hidden ? '🔒 ' : '📁 '}${esc(fo.name)}</h2>
+    <button class="menu-btn" data-act="cd" data-id="${id}">${t('▶︎ 開く')}<small>${t('{n} 件', { n })}</small></button>
+    <button class="menu-btn" data-act="renamefolder" data-id="${id}">${t('✎ 名前を変更')}</button>
+    <button class="menu-btn" data-act="movefolder" data-id="${id}">${t('↪︎ 別のフォルダへ移動')}</button>
+    <button class="menu-btn" data-act="togglehide" data-id="${id}" ${parentHidden ? 'disabled' : ''}>${fo.hidden ? t('👁 隠しフォルダを解除') : t('🔒 隠しフォルダにする')}<small>${parentHidden ? t('親フォルダが隠しフォルダのため、すでに隠れています') : fo.hidden ? t('通常のフォルダとして常に表示します') : t('Face ID（またはPIN）で解除するまで、一覧にも検索にも表示されません')}</small></button>
+    <button class="menu-btn danger" data-act="delfolder" data-id="${id}">${t('🗑 フォルダを削除')}<small>${t('中身は1つ上のフォルダへ移動します')}</small></button>`);
+}
+
+// 移動先フォルダの選択（file または folder）
+function sheetMove(kind, id){
+  const target = kind === 'file' ? files.find(f => f.id === id) : folderById(id);
+  if (!target) return;
+  const cur = kind === 'file' ? (target.folderId || null) : (target.parentId || null);
+  const banned = kind === 'folder' ? new Set([id, ...descendants(id).map(f => f.id)]) : new Set();
+  const rows = [];
+  (function walk(pid, depth){
+    folders.filter(f => folderVisible(f) && (f.parentId || null) === pid).sort((a, b) => a.name.localeCompare(b.name, 'ja')).forEach(f => {
+      if (banned.has(f.id)) return;
+      rows.push({ f, depth }); walk(f.id, depth + 1);
+    });
+  })(null, 0);
+  openSheet(`<h2>${t('移動先を選択')}</h2>
+    <button class="menu-btn${cur === null ? ' sel' : ''}" data-dest="">${t('🏠 ホーム')}${cur === null ? t('（現在）') : ''}</button>
+    ${rows.map(({ f, depth }) => `<button class="menu-btn${cur === f.id ? ' sel' : ''}" data-dest="${f.id}" style="padding-left:${14 + depth * 18}px">${inHidden(f.id) ? '🔒' : '📁'} ${esc(f.name)}${cur === f.id ? t('（現在）') : ''}</button>`).join('')}
+    <p class="note">${t('隠しフォルダへ移したファイルは、ロック中は表示されません。')}</p>`);
+  $('sheet').querySelectorAll('[data-dest]').forEach(b => b.onclick = async () => {
+    const dest = b.dataset.dest || null;
+    if (kind === 'file'){ target.folderId = dest; await saveFile(target); }
+    else { target.parentId = dest; await saveFolder(target); }
+    closeSheet(); toast(t('「{name}」へ移動しました', { name: dest ? folderById(dest).name : t('ホーム') }));
+  });
+}
+
+function sheetItem(id){
+  const f = files.find(x => x.id === id); if (!f) return;
+  openSheet(`<h2>${esc(f.title || f.name)}</h2>
+    <button class="menu-btn" data-act="open" data-id="${id}">${t('▶︎ 開く')}</button>
+    <button class="menu-btn" data-act="fav" data-id="${id}">${f.fav ? t('☆ お気に入りから外す') : t('★ お気に入りに追加')}</button>
+    <button class="menu-btn" data-act="edit" data-id="${id}">${t('✎ 名前・タグを編集')}</button>
+    <button class="menu-btn" data-act="move" data-id="${id}">${t('↪︎ フォルダへ移動')}<small>${t('現在: {path}（長押しでドラッグしても移動できます）', { path: esc(pathText(f.folderId)) })}</small></button>
+    <button class="menu-btn" data-act="togglehidefile" data-id="${id}">${f.hidden ? t('👁 隠しファイルを解除') : t('🔒 隠しファイルにする')}<small>${f.hidden ? t('常に表示します') : t('Face ID（またはPIN）で解除するまで、一覧にも検索にも表示されません')}</small></button>
+    <button class="menu-btn" data-act="share" data-id="${id}">${t('⇪ 共有 / 書き出し')}<small>${t('AirDrop・メール・「ファイル」に保存など')}</small></button>
+    <button class="menu-btn" data-act="resetkv" data-id="${id}">${t('⟲ 保存データをリセット')}<small>${t('このページが保存した設定・進捗（{n} 項目）を消去', { n: Object.keys(f.kv || {}).length })}</small></button>
+    <button class="menu-btn danger" data-act="del" data-id="${id}">${t('🗑 削除')}${session ? t('<small>同期中の他の端末からも削除されます</small>') : ''}</button>
+    <p class="note">${t('追加: {date}', { date: new Date(f.addedAt).toLocaleString(locale()) })}<br>${t('サイズ: {size}', { size: fmtSize(f.size) })}${f.needHtml ? t('<br>⚠️ 本文はまだこの端末に届いていません（オンラインで自動取得）') : ''}</p>`);
+}
+
+function sheetEdit(id){
+  const f = files.find(x => x.id === id); if (!f) return;
+  const known = allTags().map(([tag]) => tag);
+  openSheet(`<h2>${t('編集')}</h2>
+    <label class="f">${t('ファイル名')}</label><input class="inp" id="eName" value="${esc(f.name)}">
+    <label class="f">${t('表示タイトル（空欄で &lt;title&gt; を使用）')}</label><input class="inp" id="eTitle" value="${esc(f.title)}">
+    <label class="f">${t('タグ（スペース区切り）')}</label><input class="inp" id="eTags" value="${esc(f.tags.join(' '))}" placeholder="${t('例: 仕事 ツール')}">
+    ${known.length ? `<div class="filters">${known.map(tag => `<button class="chip" data-addtag="${esc(tag)}">#${esc(tag)}</button>`).join('')}</div>` : ''}
+    <div class="row"><button class="btn" id="eCancel">${t('キャンセル')}</button><button class="btn primary" id="eSave">${t('保存')}</button></div>`);
+  $('sheet').querySelectorAll('[data-addtag]').forEach(b => b.onclick = () => {
+    const cur = $('eTags').value.split(/\s+/).filter(Boolean);
+    if (!cur.includes(b.dataset.addtag)) $('eTags').value = [...cur, b.dataset.addtag].join(' ');
+  });
+  $('eCancel').onclick = closeSheet;
+  $('eSave').onclick = async () => {
+    f.name = $('eName').value.trim() || f.name;
+    f.title = $('eTitle').value.trim() || analyze(f.html || '').title;
+    f.tags = [...new Set($('eTags').value.split(/[\s,、#]+/).filter(Boolean))];
+    await saveFile(f); closeSheet(); toast(t('保存しました'));
+  };
+}
+
+function sheetSettings(){
+  const theme = lsGet('hv.theme') || 'auto';
+  const live = files.filter(f => !f.deleted);
+  const total = live.reduce((s, f) => s + f.size, 0);
+  const method = lockMethod();
+  openSheet(`<h2>${t('設定')}</h2>
+    <h3>${t('アカウントと同期')}</h3>
+    <button class="menu-btn" data-act="account">☁️ ${session ? esc(session.user.email) : t('ログインして同期する')}<small>${session ? syncSummary() : t('iPhone・iPad など複数の端末で自動同期')}</small></button>
+
+    <h3>${t('隠しフォルダ')}</h3>
+    <button class="menu-btn" data-act="locksetup">${t('🔐 解除方法:')} ${method === 'passkey' ? 'Face ID / Touch ID' : method === 'pin' ? 'PIN' : t('未設定')}<small>${method ? t('変更する') : t('隠しフォルダを使う前に設定してください')}</small></button>
+    ${hasHidden() ? `<button class="menu-btn" data-act="${unlocked ? 'lock' : 'unlock'}">${unlocked ? t('🔒 今すぐロックする') : t('🔓 ロックを解除する')}</button>` : ''}
+
+    <h3>${t('表示')}</h3>
+    <label class="f">${lang() === 'ja' ? '言語 / Language' : 'Language / 言語'}</label>
+    <select class="inp" id="sLang"><option value="auto">${t('端末に合わせる')}</option><option value="ja">日本語</option><option value="en">English</option></select>
+    <label class="f">${t('テーマ')}</label>
+    <select class="inp" id="sTheme">
+      <option value="auto">${t('端末に合わせる')}</option><option value="light">${t('ライト')}</option><option value="dark">${t('ダーク')}</option>
+    </select>
+    <label class="f">${t('表示中のボタン位置')}</label>
+    <select class="inp" id="sBar"><option value="bottom">${t('右下')}</option><option value="top">${t('右上')}</option></select>
+
+    <h3>${t('バックアップ')}</h3>
+    <button class="menu-btn" data-act="backup">${t('⬇︎ すべてをバックアップ')}<small>${t('{n} 件 / {size} を1つの JSON に書き出し（隠しフォルダはロック解除中のみ含む）', { n: live.length, size: fmtSize(total) })}</small></button>
+    <button class="menu-btn" data-act="restore">${t('⬆︎ バックアップから復元')}<small>${t('同じ ID のファイルは上書き、それ以外は追加')}</small></button>
+    <button class="menu-btn danger" data-act="wipe">${t('すべて削除')}${session ? t('<small>同期中の他の端末とクラウドからも削除されます</small>') : ''}</button>
+    <p class="note" id="sQuota"></p>`);
+  $('sLang').value = langPref();
+  $('sLang').onchange = e => { lsSet('hv.lang', e.target.value); applyStaticText(); render(); updateStatus(); sheetSettings(); };
+  $('sTheme').value = theme;
+  $('sTheme').onchange = e => { lsSet('hv.theme', e.target.value); applyTheme(); };
+  $('sBar').value = lsGet('hv.bar') || 'bottom';
+  $('sBar').onchange = e => { lsSet('hv.bar', e.target.value); applyBar(); };
+  if (navigator.storage && navigator.storage.estimate){
+    navigator.storage.estimate().then(({usage, quota}) => {
+      const el = $('sQuota'); if (el) el.textContent = t('この端末の使用量: {used} / 上限目安 {quota}', { used: fmtSize(usage || 0), quota: fmtSize(quota || 0) });
+    });
+  }
+}
+
+// ---------- actions ----------
+async function act(a, id){
+  const f = id && files.find(x => x.id === id);
+  const fo = id && folderById(id);
+  switch (a){
+    case 'pick': closeSheet(); $('filePick').click(); break;
+    case 'paste': sheetPaste(); break;
+    case 'newfolder': sheetFolderName(null); break;
+    case 'cd': closeSheet(); navigate(id); break;
+    case 'renamefolder': sheetFolderName(fo); break;
+    case 'movefolder': sheetMove('folder', id); break;
+    case 'move': sheetMove('file', id); break;
+    case 'togglehide':
+      if (fo.hidden){
+        if (!unlocked && !(await unlock())) return;
+        fo.hidden = false; await saveFolder(fo); closeSheet(); toast(t('隠しフォルダを解除しました'));
+      } else {
+        if (!lockMethod()){ toast(t('先に解除方法（Face ID または PIN）を設定してください')); sheetLockSetup(); return; }
+        fo.hidden = true; unlocked = true; await saveFolder(fo); closeSheet();
+        toast(t('隠しフォルダにしました（ロックすると見えなくなります）'));
+      }
+      break;
+    case 'togglehidefile':
+      if (f.hidden){ f.hidden = false; await saveFile(f); closeSheet(); toast(t('隠しファイルを解除しました')); }
+      else {
+        if (!lockMethod()){ toast(t('先に解除方法（Face ID または PIN）を設定してください')); sheetLockSetup(); return; }
+        f.hidden = true; unlocked = true; await saveFile(f); closeSheet();
+        toast(t('隠しファイルにしました（ロックすると見えなくなります）'));
+      }
+      break;
+    case 'delfolder':
+      if (confirm(t('フォルダ「{name}」を削除しますか？\n中のファイルとフォルダは1つ上へ移動します。', { name: fo.name }))){ await removeFolder(fo); closeSheet(); toast(t('削除しました')); }
+      break;
+    case 'open': closeSheet(); openViewer(id); break;
+    case 'fav': f.fav = !f.fav; await saveFile(f); closeSheet(); break;
+    case 'edit': sheetEdit(id); break;
+    case 'share': await shareFile(f); break;
+    case 'resetkv':
+      if (confirm(t('このページの保存データ（localStorage）を消去しますか？'))){ f.kv = {}; await saveFile(f); closeSheet(); toast(t('リセットしました')); }
+      break;
+    case 'del':
+      if (confirm(t('「{name}」を削除しますか？', { name: f.title || f.name }))){ await removeFile(f); closeSheet(); toast(t('削除しました')); }
+      break;
+    case 'account': sheetAccount(); break;
+    case 'locksetup': sheetLockSetup(); break;
+    case 'lock': lock(); closeSheet(); break;
+    case 'unlock': if (await unlock()) closeSheet(); break;
+    case 'backup': await backup(); break;
+    case 'restore': closeSheet(); $('backupPick').click(); break;
+    case 'wipe':
+      if (confirm(t('すべてのファイルとフォルダを削除します。元に戻せません。よろしいですか？'))){
+        for (const x of files.filter(x => !x.deleted)) await removeFile(x);
+        for (const x of folders.filter(x => !x.deleted)){
+          if (!x.synced){ folders = folders.filter(y => y !== x); await DS.del(x.id); }
+          else { x.deleted = true; x.updatedAt = Date.now(); x.dirty = true; await DS.put(x); }
+        }
+        cwd = null; closeSheet(); render(); scheduleSync();
+      }
+      break;
+  }
+}
+
+async function shareOrDownload(name, data, type){
+  const file = new File([data], name, { type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })){
+    try { await navigator.share({ files: [file] }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(file); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+const shareFile = f => f.needHtml ? toast(t('本文がまだ届いていません')) : shareOrDownload(f.name, f.html, 'text/html');
+
+const pick = (o, keys) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]]));
+const FILE_KEYS = ['id','name','title','text','html','size','hash','tags','fav','kv','folderId','hidden','addedAt','updatedAt','openedAt'];
+const FOLDER_KEYS = ['id','name','parentId','hidden','updatedAt'];
+
+async function backup(){
+  const data = JSON.stringify({
+    app: 'html-viewer', version: 2, exportedAt: Date.now(),
+    folders: folders.filter(folderVisible).map(f => pick(f, FOLDER_KEYS)),
+    files: files.filter(fileVisible).map(f => pick(f, FILE_KEYS)),
+  });
+  await shareOrDownload(`html-viewer-backup-${new Date().toISOString().slice(0, 10)}.json`, data, 'application/json');
+}
+async function restoreBackup(file){
+  try {
+    const j = JSON.parse(await file.text());
+    if (j.app !== 'html-viewer' || !Array.isArray(j.files)) throw new Error('format');
+    for (const r of (j.folders || [])){
+      if (!r.id) continue;
+      const rec = { name: '', parentId: null, hidden: false, ...pick(r, FOLDER_KEYS), deleted: false, synced: false, dirty: true };
+      const i = folders.findIndex(x => x.id === rec.id);
+      if (i >= 0){ rec.synced = folders[i].synced; folders[i] = rec; } else folders.push(rec);
+      rec.updatedAt = Date.now(); await DS.put(rec);
+    }
+    for (const r of j.files){
+      if (!r.id || typeof r.html !== 'string') continue;
+      const rec = { tags: [], fav: false, kv: {}, openedAt: 0, folderId: null, hidden: false, ...pick(r, FILE_KEYS), deleted: false, synced: false, dirty: true, dirtyHtml: true };
+      rec.hash = hashStr(rec.html); rec.size = rec.size || new Blob([rec.html]).size;
+      const i = files.findIndex(x => x.id === rec.id);
+      if (i >= 0){ rec.synced = files[i].synced; files[i] = rec; } else files.push(rec);
+      rec.updatedAt = Date.now(); await FS.put(rec);
+    }
+    toast(t('{n} 件復元しました', { n: j.files.length })); render(); scheduleSync();
+  } catch { toast(t('バックアップファイルを読み込めませんでした')); }
+}
+
+// =========================================================================
+// 隠しフォルダのロック（Face ID / Touch ID = パスキー、または PIN）
+// ※ 表示を隠す仕組みで、端末内・クラウド上のデータ自体は暗号化していない
+// =========================================================================
+const lockMethod = () => lsGet('hv.lock.method');   // 'passkey' | 'pin' | null
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+async function sha256(s){ return b64u(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))); }
+
+async function passkeyAvailable(){
+  try { return !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); }
+  catch { return false; }
+}
+async function registerPasskey(){
+  const userId = crypto.getRandomValues(new Uint8Array(16));
+  const cred = await navigator.credentials.create({ publicKey: {
+    challenge: crypto.getRandomValues(new Uint8Array(32)),
+    rp: { name: 'HTML Viewer' },
+    user: { id: userId, name: t('HTML Viewer 隠しフォルダ'), displayName: t('HTML Viewer 隠しフォルダ') },
+    pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+    authenticatorSelection: { authenticatorAttachment: 'platform', residentKey: 'required', userVerification: 'required' },
+    timeout: 60000,
+  }});
+  lsSet('hv.lock.cred', b64u(cred.rawId));
+}
+async function verifyPasskey(){
+  const pk = { challenge: crypto.getRandomValues(new Uint8Array(32)), userVerification: 'required', timeout: 60000 };
+  const id = lsGet('hv.lock.cred');
+  // この端末で登録したパスキーがあればそれを使う。無ければ iCloud キーチェーンで同期されたパスキーを探す
+  if (id) pk.allowCredentials = [{ type: 'public-key', id: unb64u(id) }];
+  const cred = await navigator.credentials.get({ publicKey: pk });
+  if (!cred || cred.response.authenticatorData === undefined) return false;
+  // UV（本人確認）フラグを確認
+  const flags = new Uint8Array(cred.response.authenticatorData)[32];
+  if (!(flags & 0x04)) return false;
+  if (!id) lsSet('hv.lock.cred', b64u(cred.rawId));
+  return true;
+}
+
+function askPin(title){
+  return new Promise(resolve => {
+    openSheet(`<h2>${esc(title)}</h2>
+      <input class="inp pin" id="pinIn" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="••••">
+      <div class="row"><button class="btn" id="pinCancel">${t('キャンセル')}</button><button class="btn primary" id="pinOk">OK</button></div>`);
+    setTimeout(() => $('pinIn') && $('pinIn').focus(), 250);
+    const done = v => { closeSheet(); resolve(v); };
+    $('pinCancel').onclick = () => done(null);
+    $('pinOk').onclick = () => done($('pinIn').value);
+    $('pinIn').addEventListener('keydown', e => { if (e.key === 'Enter') done($('pinIn').value); });
+  });
+}
+async function checkPin(){
+  const pin = await askPin(t('PIN を入力'));
+  if (pin == null) return false;
+  const ok = (await sha256(lsGet('hv.lock.salt') + pin)) === lsGet('hv.lock.pin');
+  if (!ok) toast(t('PIN が違います'));
+  return ok;
+}
+async function setPin(){
+  const p1 = await askPin(t('新しい PIN（4〜8桁）'));
+  if (p1 == null) return false;
+  if (!/^\d{4,8}$/.test(p1)){ toast(t('4〜8桁の数字で入力してください')); return false; }
+  const p2 = await askPin(t('もう一度入力'));
+  if (p1 !== p2){ toast(t('PIN が一致しません')); return false; }
+  const salt = b64u(crypto.getRandomValues(new Uint8Array(16)));
+  lsSet('hv.lock.salt', salt); lsSet('hv.lock.pin', await sha256(salt + p1));
+  return true;
+}
+
+async function sheetLockSetup(){
+  const pkOk = await passkeyAvailable();
+  const method = lockMethod();
+  openSheet(`<h2>${t('隠しフォルダの解除方法')}</h2>
+    <button class="menu-btn${method === 'passkey' ? ' sel' : ''}" id="lsPass" ${pkOk ? '' : 'disabled'}>🙂 Face ID / Touch ID<small>${pkOk ? t('パスキーを作成します。iCloud キーチェーンで同期され、同じ Apple ID の iPad でも使えます') : t('この端末・ブラウザでは使えません')}</small></button>
+    <button class="menu-btn${method === 'pin' ? ' sel' : ''}" id="lsPin">${t('🔢 PIN（4〜8桁）')}<small>${t('この端末だけで有効です')}</small></button>
+    ${method ? t('<button class="menu-btn danger" id="lsOff">解除方法を削除<small>隠しフォルダ・隠しファイルがある場合は使えません</small></button>') : ''}
+    <div class="card" style="margin-top:12px">${t('⚠️ 隠しフォルダは')}<b>${t('一覧や検索に表示しない')}</b>${t('ための機能です。端末内やクラウド上のデータそのものは暗号化されていません。機密情報の保管には使わないでください。')}</div>`);
+  if ($('lsPass')) $('lsPass').onclick = async () => {
+    try { await registerPasskey(); lsSet('hv.lock.method', 'passkey'); unlocked = true; closeSheet(); render(); toast(t('Face ID で解除できるようになりました')); }
+    catch (e){ toast(e.name === 'NotAllowedError' ? t('キャンセルされました') : t('パスキーを作成できませんでした')); }
+  };
+  $('lsPin').onclick = async () => { if (await setPin()){ lsSet('hv.lock.method', 'pin'); unlocked = true; render(); toast(t('PIN を設定しました')); } };
+  if ($('lsOff')) $('lsOff').onclick = () => {
+    if (hasHidden()) return toast(t('先に隠しフォルダ・隠しファイルをすべて解除してください'));
+    ['hv.lock.method','hv.lock.cred','hv.lock.pin','hv.lock.salt'].forEach(lsDel);
+    closeSheet(); toast(t('解除方法を削除しました'));
+  };
+}
+
+async function unlock(){
+  const m = lockMethod();
+  let ok = false;
+  if (m === 'passkey'){
+    try { ok = await verifyPasskey(); }
+    catch (e){
+      if (e.name !== 'NotAllowedError'){ toast(t('Face ID を使えませんでした')); }
+      else if (lsGet('hv.lock.pin')) ok = await checkPin();
+    }
+  } else if (m === 'pin') ok = await checkPin();
+  else {
+    // 他の端末で隠しフォルダが作られ、この端末にはまだ解除方法が無い
+    if (await passkeyAvailable()){
+      try { ok = await verifyPasskey(); if (ok) lsSet('hv.lock.method', 'passkey'); } catch {}
+    }
+    if (!ok){ toast(t('この端末で解除方法を設定してください')); sheetLockSetup(); return false; }
+  }
+  if (ok){ unlocked = true; render(); toast(t('🔓 ロックを解除しました')); }
+  return ok;
+}
+function lock(){
+  unlocked = false;
+  if (current && (current.hidden || inHidden(current.folderId))) closeViewer(true);
+  render(); toast(t('🔒 ロックしました'));
+}
+// アプリを離れて1分以上たったら自動でロック
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) hiddenAt = Date.now();
+  else {
+    if (unlocked && hiddenAt && Date.now() - hiddenAt > 60000) lock();
+    scheduleSync(300);
+  }
+});
+
+// =========================================================================
+// クラウド同期（Supabase: Auth + PostgREST を fetch で直接呼ぶ）
+// =========================================================================
+const cfg = () => {
+  const o = lsJson('hv.cfg') || {}, c = window.HV_CONFIG || {};
+  return { url: (o.url || c.supabaseUrl || '').replace(/\/+$/, ''), key: o.key || c.supabaseAnonKey || '' };
+};
+let session = lsJson('hv.session');
+let syncState = { busy: false, again: false, error: '', lastAt: +lsGet('hv.lastSync') || 0, timer: 0 };
+
+function setSession(j){
+  session = j ? {
+    access_token: j.access_token, refresh_token: j.refresh_token,
+    expires_at: j.expires_at || Math.floor(Date.now() / 1000) + (j.expires_in || 3600),
+    user: { id: j.user.id, email: j.user.email },
+  } : null;
+  session ? lsSet('hv.session', JSON.stringify(session)) : lsDel('hv.session');
+}
+async function api(path, { method = 'GET', body, auth = true, prefer } = {}){
+  const c = cfg();
+  if (!c.url || !c.key) throw new Error(t('接続先が未設定です'));
+  const headers = { apikey: c.key, 'Content-Type': 'application/json' };
+  if (auth){ await ensureFresh(); headers.Authorization = 'Bearer ' + session.access_token; }
+  if (prefer) headers.Prefer = prefer;
+  const r = await fetch(c.url + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  const txt = await r.text();
+  let j = null; try { j = txt ? JSON.parse(txt) : null; } catch {}
+  if (!r.ok){
+    const e = new Error((j && (j.msg || j.message || j.error_description || j.error)) || ('HTTP ' + r.status));
+    e.status = r.status; throw e;
+  }
+  return j;
+}
+async function ensureFresh(){
+  if (!session) throw Object.assign(new Error(t('ログインしていません')), { status: 401 });
+  if (Date.now() / 1000 < session.expires_at - 60) return;
+  try {
+    setSession(await api('/auth/v1/token?grant_type=refresh_token', { method: 'POST', auth: false, body: { refresh_token: session.refresh_token } }));
+  } catch (e){
+    if (e.status === 400 || e.status === 401){ setSession(null); throw Object.assign(new Error(t('再ログインが必要です')), { status: 401 }); }
+    throw e;
+  }
+}
+const cursorKey = () => 'hv.cursor.' + (session ? session.user.id : '');
+const pendingCount = () => files.filter(f => f.dirty).length + folders.filter(f => f.dirty).length;
+
+function syncSummary(){
+  if (!session) return '';
+  const p = pendingCount();
+  if (!navigator.onLine) return t('オフライン') + (p ? t('（未送信 {n} 件）', { n: p }) : '');
+  if (syncState.error) return t('同期エラー: ') + syncState.error;
+  return (syncState.lastAt ? t('最終同期 {date} {time}', { date: fmtDate(syncState.lastAt), time: new Date(syncState.lastAt).toLocaleTimeString(locale(), {hour:'2-digit', minute:'2-digit'}) }) : t('未同期')) + (p ? t('（未送信 {n} 件）', { n: p }) : '');
+}
+function updateStatus(){
+  const pill = $('syncPill'), p = pendingCount();
+  let cls = '', text = t('ローカルのみ');
+  if (session){
+    if (syncState.busy){ cls = 'busy'; text = t('同期中…'); }
+    else if (!navigator.onLine){ cls = 'warn'; text = p ? t('オフライン・未送信{n}', { n: p }) : t('オフライン'); }
+    else if (syncState.error){ cls = 'err'; text = t('同期エラー'); }
+    else if (p){ cls = 'warn'; text = t('未送信 {n}', { n: p }); }
+    else { cls = 'ok'; text = t('同期済み'); }
+  }
+  pill.className = 'sync ' + cls; $('syncText').textContent = text;
+}
+function scheduleSync(delay = 1500){
+  updateStatus();
+  if (!session) return;
+  clearTimeout(syncState.timer);
+  syncState.timer = setTimeout(syncNow, delay);
+}
+
+const toFileRow = (f, withHtml) => {
+  const r = { user_id: session.user.id, id: f.id, name: f.name, title: f.title || '', text: f.text || '', size: f.size || 0, hash: f.hash || '',
+    tags: f.tags || [], fav: !!f.fav, kv: f.kv || {}, folder_id: f.folderId || null, added_at: f.addedAt || 0,
+    updated_at: f.updatedAt || 0, opened_at: f.openedAt || 0, deleted: !!f.deleted, hidden: !!f.hidden };
+  if (withHtml) r.html = f.html || '';
+  return r;
+};
+const toFolderRow = f => ({ user_id: session.user.id, id: f.id, name: f.name, parent_id: f.parentId || null,
+  hidden: !!f.hidden, updated_at: f.updatedAt || 0, deleted: !!f.deleted });
+const FILE_COLS = 'id,name,title,text,size,hash,tags,fav,kv,folder_id,added_at,updated_at,opened_at,deleted,hidden,server_updated_at';
+
+async function pullTable(table, cols, since){
+  const out = [];
+  for (let offset = 0; ; offset += 500){
+    const rows = await api(`/rest/v1/${table}?select=${cols}&server_updated_at=gt.${encodeURIComponent(since)}&order=server_updated_at.asc,id.asc&limit=500&offset=${offset}`);
+    out.push(...rows);
+    if (rows.length < 500) return out;
+  }
+}
+async function pull(){
+  const cur = lsGet(cursorKey()) || '1970-01-01T00:00:00.000Z';
+  const since = new Date(new Date(cur).getTime() - 5000).toISOString();   // 書き込みの順序ずれに備えて少し巻き戻す
+  let maxTs = cur, changed = false;
+  const bump = ts => { if (new Date(ts) > new Date(maxTs)) maxTs = ts; };
+
+  for (const r of await pullTable('hv_folders', 'id,name,parent_id,hidden,updated_at,deleted,server_updated_at', since)){
+    bump(r.server_updated_at);
+    const l = folders.find(x => x.id === r.id);
+    if (l && l.dirty && l.updatedAt > r.updated_at) continue;              // 端末側が新しい → 後で送る
+    if (l && !l.dirty && l.updatedAt === r.updated_at && l.deleted === r.deleted) continue;
+    changed = true;
+    if (r.deleted){ if (l){ folders = folders.filter(x => x !== l); await DS.del(l.id); } continue; }
+    const rec = Object.assign(l || {}, { id: r.id, name: r.name, parentId: r.parent_id, hidden: r.hidden, updatedAt: +r.updated_at,
+      deleted: false, synced: true, dirty: false });
+    if (!l) folders.push(rec);
+    await DS.put(rec);
+  }
+
+  const needHtml = [];
+  for (const r of await pullTable('hv_files', FILE_COLS, since)){
+    bump(r.server_updated_at);
+    const l = files.find(x => x.id === r.id);
+    if (l && l.dirty && l.updatedAt > r.updated_at) continue;
+    if (l && !l.dirty && l.updatedAt === +r.updated_at && !l.needHtml) continue;
+    changed = true;
+    if (r.deleted){ if (l){ files = files.filter(x => x !== l); await FS.del(l.id); } continue; }
+    const sameBody = l && l.hash === r.hash && !l.needHtml && typeof l.html === 'string';
+    const rec = Object.assign(l || {}, {
+      id: r.id, name: r.name, title: r.title, text: r.text, size: r.size, hash: r.hash, tags: r.tags || [], fav: r.fav,
+      kv: r.kv || {}, folderId: r.folder_id, hidden: !!r.hidden, addedAt: +r.added_at, updatedAt: +r.updated_at, openedAt: +r.opened_at,
+      deleted: false, synced: true, dirty: false, dirtyHtml: false,
+    });
+    if (!sameBody){ rec.needHtml = true; if (typeof rec.html !== 'string') rec.html = ''; needHtml.push(rec); }
+    if (!l) files.push(rec);
+    await FS.put(rec);
+  }
+  if (changed) render();
+  await fetchBodies(needHtml);
+  lsSet(cursorKey(), maxTs);
+}
+async function fetchBodies(list){
+  for (let i = 0; i < list.length; i += 8){
+    const chunk = list.slice(i, i + 8);
+    const rows = await api(`/rest/v1/hv_files?select=id,html,hash&id=in.(${chunk.map(f => f.id).join(',')})`);
+    for (const r of rows){
+      const f = files.find(x => x.id === r.id);
+      if (!f || f.dirtyHtml) continue;
+      f.html = r.html; f.hash = r.hash; f.needHtml = false;
+      await FS.put(f);
+    }
+  }
+}
+async function push(){
+  const df = folders.filter(f => f.dirty);
+  if (df.length){
+    await api('/rest/v1/hv_folders?on_conflict=user_id,id', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal', body: df.map(toFolderRow) });
+    for (const f of df){
+      f.dirty = false; f.synced = true;
+      if (f.deleted){ folders = folders.filter(x => x !== f); await DS.del(f.id); } else await DS.put(f);
+    }
+  }
+  const dirty = files.filter(f => f.dirty);
+  const withBody = dirty.filter(f => f.dirtyHtml), metaOnly = dirty.filter(f => !f.dirtyHtml);
+  const done = async f => {
+    f.dirty = false; f.dirtyHtml = false; f.synced = true;
+    if (f.deleted){ files = files.filter(x => x !== f); await FS.del(f.id); } else await FS.put(f);
+  };
+  for (const f of withBody){     // 本文つきは1件ずつ（大きいので）
+    const snapshot = f.updatedAt;
+    await api('/rest/v1/hv_files?on_conflict=user_id,id', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal', body: [toFileRow(f, true)] });
+    if (f.updatedAt === snapshot) await done(f);
+  }
+  for (let i = 0; i < metaOnly.length; i += 50){
+    const chunk = metaOnly.slice(i, i + 50), snaps = chunk.map(f => f.updatedAt);
+    await api('/rest/v1/hv_files?on_conflict=user_id,id', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal', body: chunk.map(f => toFileRow(f, false)) });
+    for (let k = 0; k < chunk.length; k++) if (chunk[k].updatedAt === snaps[k]) await done(chunk[k]);
+  }
+}
+async function syncNow(){
+  if (!session || !navigator.onLine || !cfg().url){ updateStatus(); return; }
+  if (syncState.busy){ syncState.again = true; return; }
+  syncState.busy = true; updateStatus();
+  try {
+    await pull();
+    await push();
+    syncState.error = ''; syncState.lastAt = Date.now(); lsSet('hv.lastSync', syncState.lastAt);
+  } catch (e){
+    syncState.error = /hidden/.test(e.message || '') ? t('Supabase で schema.sql を再実行してください（列の追加が必要です）') : (e.message || String(e));
+    if (e.status === 401) toast(t('ログインの有効期限が切れました。再ログインしてください'));
+  } finally {
+    syncState.busy = false; updateStatus(); render();
+    if (syncState.again){ syncState.again = false; scheduleSync(500); }
+  }
+}
+addEventListener('online', () => scheduleSync(300));
+addEventListener('offline', updateStatus);
+setInterval(() => { if (!document.hidden) scheduleSync(0); }, 60000);
+
+async function signIn(email, password, isSignUp){
+  if (isSignUp){
+    const j = await api('/auth/v1/signup', { method: 'POST', auth: false, body: { email, password } });
+    if (!j.access_token) return 'confirm';     // メール確認が有効なプロジェクト
+    await afterLogin(j); return 'ok';
+  }
+  await afterLogin(await api('/auth/v1/token?grant_type=password', { method: 'POST', auth: false, body: { email, password } }));
+  return 'ok';
+}
+async function afterLogin(j){
+  const prevOwner = lsGet('hv.owner');
+  if (prevOwner && prevOwner !== j.user.id && files.some(f => !f.deleted)){
+    if (!confirm(t('前回とは別のアカウントです。この端末のファイルをこのアカウントにもアップロードしますか？\n（キャンセルするとログインを中止します）'))) throw new Error(t('ログインを中止しました'));
+  }
+  setSession(j);
+  if (prevOwner !== j.user.id){
+    // 端末内のデータをすべて新しいアカウントへ送る
+    for (const f of files){ f.synced = false; f.dirty = true; f.dirtyHtml = true; await FS.put(f); }
+    for (const f of folders){ f.synced = false; f.dirty = true; await DS.put(f); }
+    lsDel(cursorKey());
+  }
+  lsSet('hv.owner', j.user.id);
+  syncState.error = '';
+  render(); await syncNow();
+}
+async function signOut(){
+  try { await api('/auth/v1/logout', { method: 'POST' }); } catch {}
+  setSession(null); syncState.error = ''; updateStatus(); render();
+}
+
+function sheetAccount(){
+  const c = cfg();
+  const conf = c.url && c.key;
+  if (session){
+    openSheet(`<h2>${t('アカウントと同期')}</h2>
+      <div class="card">☁️ <b>${esc(session.user.email)}</b><br>${esc(syncSummary())}</div>
+      <div class="row"><button class="btn primary" id="aSync">${t('今すぐ同期')}</button></div>
+      <div class="row"><button class="btn" id="aOut">${t('ログアウト')}</button></div>
+      <p class="note">${t('オフラインでも閲覧・追加・編集できます。変更はつながったときに自動で送られます。ログアウトしても、この端末のファイルは残ります。')}</p>`);
+    $('aSync').onclick = async () => { await syncNow(); closeSheet(); toast(syncState.error ? t('同期エラー: ') + syncState.error : t('同期しました')); };
+    $('aOut').onclick = async () => { if (confirm(t('ログアウトしますか？（この端末のファイルは残ります）'))){ await signOut(); closeSheet(); toast(t('ログアウトしました')); } };
+    return;
+  }
+  openSheet(`<h2>${t('アカウントと同期')}</h2>
+    ${conf ? '' : `<div class="card">${t('同期にはクラウド（Supabase）の接続先が必要です。下の「接続先の設定」に入力してください。')}</div>`}
+    <label class="f">${t('メールアドレス')}</label><input class="inp" id="aEmail" type="email" autocomplete="username" inputmode="email">
+    <label class="f">${t('パスワード（6文字以上）')}</label><input class="inp" id="aPass" type="password" autocomplete="current-password">
+    <div class="row"><button class="btn" id="aUp" ${conf ? '' : 'disabled'}>${t('新規登録')}</button><button class="btn primary" id="aIn" ${conf ? '' : 'disabled'}>${t('ログイン')}</button></div>
+    <h3>${t('接続先の設定')}</h3>
+    <label class="f">Project URL</label><input class="inp" id="aUrl" value="${esc(c.url)}" placeholder="https://xxxx.supabase.co" autocapitalize="off">
+    <label class="f">anon / publishable key</label><input class="inp" id="aKey" value="${esc(c.key)}" autocapitalize="off">
+    <div class="row"><button class="btn" id="aCfg">${t('接続先を保存')}</button></div>
+    <p class="note">${t('接続先は config.js に書いておけば、どの端末でも入力不要になります。')}</p>`);
+  const go = async isUp => {
+    const email = $('aEmail').value.trim(), pass = $('aPass').value;
+    if (!email || pass.length < 6) return toast(t('メールアドレスと6文字以上のパスワードを入力してください'));
+    try {
+      const r = await signIn(email, pass, isUp);
+      closeSheet();
+      toast(r === 'confirm' ? t('確認メールを送りました。メールのリンクを開いてからログインしてください') : t('ログインしました'));
+    } catch (e){ toast(/Invalid login/i.test(e.message) ? t('メールアドレスかパスワードが違います') : e.message); }
+  };
+  $('aIn').onclick = () => go(false);
+  $('aUp').onclick = () => go(true);
+  $('aCfg').onclick = () => {
+    const url = $('aUrl').value.trim(), key = $('aKey').value.trim();
+    if (!/^https:\/\//.test(url) || !key) return toast(t('URL（https://〜）とキーを入力してください'));
+    lsSet('hv.cfg', JSON.stringify({ url, key })); toast(t('接続先を保存しました')); sheetAccount();
+  };
+}
+
+// ---------- viewer ----------
+// サンドボックス iframe（allow-same-origin なし）で表示するため、表示する HTML は
+// ビューア本体のデータに触れない。その代わり localStorage が使えなくなるので、
+// ファイルごとの保存領域を持つ互換シムを先頭に差し込み、変更を postMessage で受け取って保存する。
+function shimFor(f){
+  const init = JSON.stringify(f.kv || {}).replace(/</g, '\\u003c');
+  return `<script>(function(){
+var T=${JSON.stringify(token)},D=${init},M={};
+function mk(store,persist){
+  var api={
+    getItem:function(k){k=String(k);return Object.prototype.hasOwnProperty.call(store,k)?store[k]:null;},
+    setItem:function(k,v){store[String(k)]=String(v);persist&&sync();},
+    removeItem:function(k){delete store[String(k)];persist&&sync();},
+    clear:function(){for(var k in store)delete store[k];persist&&sync();},
+    key:function(i){var ks=Object.keys(store);return i<ks.length?ks[i]:null;}
+  };
+  return new Proxy(api,{
+    get:function(t,p){if(p==='length')return Object.keys(store).length;if(p in t)return t[p];return typeof p==='string'?api.getItem(p):undefined;},
+    set:function(t,p,v){api.setItem(p,v);return true;},
+    deleteProperty:function(t,p){api.removeItem(p);return true;},
+    has:function(t,p){return Object.prototype.hasOwnProperty.call(store,p);},
+    ownKeys:function(){return Object.keys(store);},
+    getOwnPropertyDescriptor:function(t,p){if(Object.prototype.hasOwnProperty.call(store,p))return{value:store[p],enumerable:true,configurable:true,writable:true};}
+  });
+}
+var q=null;function sync(){clearTimeout(q);q=setTimeout(function(){parent.postMessage({hv:T,kv:D},'*');},150);}
+function blocked(n){try{window[n].getItem('_');return false;}catch(e){return true;}}
+try{if(blocked('localStorage'))Object.defineProperty(window,'localStorage',{value:mk(D,true),configurable:true});}catch(e){}
+try{if(blocked('sessionStorage'))Object.defineProperty(window,'sessionStorage',{value:mk(M,false),configurable:true});}catch(e){}
+})();<\/script>`;
+}
+function withShim(html, shim){
+  const head = html.match(/<head(\s[^>]*)?>/i);
+  if (head) return html.slice(0, head.index + head[0].length) + shim + html.slice(head.index + head[0].length);
+  const doctype = html.match(/^\s*<!doctype[^>]*>/i);   // doctype より前に入れると quirks モードになる
+  if (doctype) return doctype[0] + shim + html.slice(doctype[0].length);
+  return shim + html;
+}
+
+async function openViewer(id, fromHistory){
+  const f = files.find(x => x.id === id);
+  if (!f || !fileVisible(f)) return;
+  if (f.needHtml){
+    if (session && navigator.onLine){ toast(t('本文を取得しています…')); try { await fetchBodies([f]); } catch {} }
+    if (f.needHtml){ toast(t('本文がまだこの端末に届いていません。オンラインで開いてください')); return; }
+  }
+  current = f;
+  token = uid() + uid();
+  $('frame').srcdoc = withShim(f.html, shimFor(f));
+  $('viewer').classList.add('show');
+  document.title = f.title || f.name;
+  f.openedAt = Date.now(); saveFile(f, { quiet: true, bump: false });
+  if (!fromHistory) history.pushState({ view: id }, '', '#view=' + id);
+  dimSoon();
+}
+function closeViewer(replace){
+  if (!current) return;
+  $('viewer').classList.remove('show');
+  $('frame').srcdoc = '';
+  current = null; token = '';
+  document.title = 'HTML Viewer';
+  if (replace) history.replaceState({ folder: cwd }, '', cwd ? '#folder=' + cwd : location.pathname);
+  render();
+}
+
+window.addEventListener('message', e => {
+  if (!current || e.source !== $('frame').contentWindow) return;
+  const d = e.data;
+  if (!d || d.hv !== token || typeof d.kv !== 'object') return;
+  current.kv = d.kv; saveFile(current, { quiet: true });
+});
+
+window.addEventListener('popstate', () => {
+  const v = location.hash.match(/^#view=(.+)$/), fo = location.hash.match(/^#folder=(.+)$/);
+  if (v) return openViewer(v[1], true);
+  cwd = fo ? fo[1] : null;
+  if (current) closeViewer(); else render();
+});
+
+// ---------- folder navigation (history に積むので、Safari の「戻る」スワイプでも親へ戻れる) ----------
+function navigate(id, { replace = false } = {}){
+  id = id || null;
+  if (id === cwd && !replace) return;
+  cwd = id;
+  const url = id ? '#folder=' + id : location.pathname;
+  replace ? history.replaceState({ folder: id }, '', url) : history.pushState({ folder: id }, '', url);
+  render();
+}
+function goUp(){
+  if (!cwd) return;
+  const fo = folderById(cwd);
+  navigate(fo && fo.parentId && folderById(fo.parentId) ? fo.parentId : null);
+}
+
+// 右スワイプで親フォルダへ（ホーム画面アプリには「戻る」ジェスチャーが無いため）
+const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+let sw = null;
+function resetSwipe(){ sw = null; $('list').classList.remove('swiping'); $('list').style.transform = ''; }
+document.addEventListener('touchstart', e => {
+  if (current || drag.active || $('sheet').classList.contains('show') || e.touches.length !== 1 || !cwd || flatMode()) return;
+  const pt = e.touches[0];
+  if (!standalone && pt.clientX < 24) return;   // ブラウザの端スワイプ（標準の「戻る」）に任せる
+  sw = { x: pt.clientX, y: pt.clientY, on: false };
+}, { passive: true });
+document.addEventListener('touchmove', e => {
+  if (!sw || drag.active) return;
+  const pt = e.touches[0], dx = pt.clientX - sw.x, dy = pt.clientY - sw.y;
+  if (!sw.on){
+    if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)){ sw = null; return; }
+    if (dx > 12 && dx > Math.abs(dy) * 1.5) sw.on = true; else return;
+  }
+  $('list').classList.add('swiping');
+  $('list').style.transform = `translateX(${Math.max(0, dx) * 0.6}px)`;
+}, { passive: true });
+document.addEventListener('touchend', e => {
+  if (!sw) return;
+  const go = sw.on && e.changedTouches[0].clientX - sw.x > 70;
+  resetSwipe();
+  if (go) goUp();
+});
+document.addEventListener('touchcancel', resetSwipe);
+
+// ---------- 長押し → ドラッグでフォルダへ移動 ----------
+const drag = { timer: 0, active: false, kind: '', id: '', x0: 0, y0: 0, el: null, target: null, suppressClick: false, scrollV: 0 };
+function dropTargetAt(x, y){
+  const el = document.elementFromPoint(x, y);
+  if (!el) return null;
+  const fold = el.closest('#list [data-folder]'), crumb = el.closest('#crumbs [data-cd]');
+  const node = fold || crumb;
+  if (!node) return null;
+  const dest = (fold ? fold.dataset.folder : crumb.dataset.cd) || null;
+  if (drag.kind === 'file'){
+    const f = files.find(x => x.id === drag.id);
+    if (!f || homeOf(f) === dest) return null;
+  } else {
+    const fo = folderById(drag.id);
+    if (!fo || dest === fo.id || (fo.parentId || null) === dest) return null;
+    if (dest && descendants(fo.id).some(d => d.id === dest)) return null;
+  }
+  return { node, dest };
+}
+function startDrag(x, y){
+  drag.active = true; drag.timer = 0;
+  drag.el.classList.add('dragging');
+  const label = drag.el.querySelector('.t').textContent;
+  const g = $('ghost'); g.textContent = (drag.kind === 'folder' ? '📁 ' : '📄 ') + label; g.style.display = 'block';
+  if (navigator.vibrate) navigator.vibrate(10);
+  moveDrag(x, y);
+  (function auto(){                       // 画面の端で自動スクロール
+    if (!drag.active) return;
+    if (drag.scrollV) scrollBy(0, drag.scrollV);
+    requestAnimationFrame(auto);
+  })();
+}
+function moveDrag(x, y){
+  const g = $('ghost'); g.style.left = x + 'px'; g.style.top = y + 'px';
+  const hit = dropTargetAt(x, y);
+  if (drag.target && (!hit || hit.node !== drag.target.node)) drag.target.node.classList.remove('drop-ok');
+  if (hit) hit.node.classList.add('drop-ok');
+  drag.target = hit;
+  drag.scrollV = y < 140 ? -8 : y > innerHeight - 70 ? 8 : 0;
+}
+async function endDrag(commit){
+  if (!drag.active) return;
+  const hit = drag.target;
+  drag.active = false; drag.suppressClick = true; drag.scrollV = 0;
+  $('ghost').style.display = 'none';
+  drag.el && drag.el.classList.remove('dragging');
+  if (hit) hit.node.classList.remove('drop-ok');
+  drag.target = null;
+  setTimeout(() => { drag.suppressClick = false; }, 400);
+  if (!commit || !hit) return;
+  const name = hit.dest ? folderById(hit.dest).name : t('ホーム');
+  if (drag.kind === 'file'){ const f = files.find(x => x.id === drag.id); f.folderId = hit.dest; await saveFile(f); }
+  else { const fo = folderById(drag.id); fo.parentId = hit.dest; await saveFolder(fo); }
+  toast(t('「{name}」へ移動しました', { name }));
+}
+$('list').addEventListener('pointerdown', e => {
+  const item = e.target.closest('.item');
+  if (!item || e.target.closest('.more') || e.button > 0) return;
+  drag.x0 = e.clientX; drag.y0 = e.clientY; drag.el = item;
+  drag.kind = item.dataset.folder ? 'folder' : 'file';
+  drag.id = item.dataset.folder || item.dataset.id;
+  clearTimeout(drag.timer);
+  drag.timer = setTimeout(() => startDrag(drag.x0, drag.y0), 450);
+});
+addEventListener('pointermove', e => {
+  if (drag.active){ if (e.pointerType !== 'touch') moveDrag(e.clientX, e.clientY); return; }
+  if (drag.timer && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 10){ clearTimeout(drag.timer); drag.timer = 0; }
+});
+// タッチ中はスクロールを止めて指に追従させる
+document.addEventListener('touchmove', e => {
+  if (!drag.active) return;
+  e.preventDefault();
+  const pt = e.touches[0]; moveDrag(pt.clientX, pt.clientY);
+}, { passive: false });
+addEventListener('pointerup', () => { clearTimeout(drag.timer); drag.timer = 0; endDrag(true); });
+addEventListener('pointercancel', () => { clearTimeout(drag.timer); drag.timer = 0; if (drag.active && !('ontouchstart' in window)) endDrag(false); });
+document.addEventListener('touchend', () => { if (drag.active) endDrag(true); });
+$('list').addEventListener('contextmenu', e => { if (e.target.closest('.item')) e.preventDefault(); });
+
+$('vBack').onclick = () => { if (history.state && history.state.view) history.back(); else closeViewer(true); };
+$('vReload').onclick = () => { if (current) openViewer(current.id, true); toast(t('再読み込みしました')); };
+$('vMenu').onclick = () => current && sheetItem(current.id);
+
+function dimSoon(){ const b = $('vbar'); b.classList.remove('dim'); clearTimeout(dimSoon._t); dimSoon._t = setTimeout(() => b.classList.add('dim'), 2500); }
+$('vbar').addEventListener('pointerdown', dimSoon);
+
+// ---------- theme / prefs ----------
+function applyTheme(){
+  const theme = lsGet('hv.theme');
+  if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+  else delete document.documentElement.dataset.theme;
+}
+function applyBar(){ $('vbar').classList.toggle('top', lsGet('hv.bar') === 'top'); }
+
+// ---------- events ----------
+$('btnAdd').onclick = sheetAdd;
+$('btnSettings').onclick = sheetSettings;
+$('syncPill').onclick = sheetAccount;
+$('btnLock').onclick = () => unlocked ? lock() : unlock();
+$('search').addEventListener('input', e => { query = e.target.value.trim(); render(); });
+$('sort').onchange = e => { sortKey = e.target.value; lsSet('hv.sort', sortKey); render(); };
+$('filePick').onchange = e => { importFiles([...e.target.files]); e.target.value = ''; };
+$('backupPick').onchange = e => { if (e.target.files[0]) restoreBackup(e.target.files[0]); e.target.value = ''; };
+
+$('crumbs').addEventListener('click', e => {
+  const b = e.target.closest('[data-cd]'); if (!b) return;
+  navigate(b.dataset.cd || null);
+});
+$('filters').addEventListener('click', e => {
+  const b = e.target.closest('[data-f]'); if (!b) return;
+  filter = b.dataset.f; render();
+});
+$('list').addEventListener('click', e => {
+  if (drag.suppressClick){ drag.suppressClick = false; return; }
+  const fm = e.target.closest('[data-fmore]');
+  if (fm) return sheetFolder(fm.dataset.fmore);
+  const more = e.target.closest('[data-more]');
+  if (more) return sheetItem(more.dataset.more);
+  const fold = e.target.closest('[data-folder]');
+  if (fold){ navigate(fold.dataset.folder); scrollTo(0, 0); return; }
+  const item = e.target.closest('.item');
+  if (item) openViewer(item.dataset.id);
+});
+$('sheet').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (b) act(b.dataset.act, b.dataset.id);
+});
+
+// デスクトップ・iPad 用: ドラッグ&ドロップで追加
+let dragDepth = 0;
+addEventListener('dragenter', e => { if (e.dataTransfer.types.includes('Files')){ dragDepth++; $('drop').classList.add('show'); } });
+addEventListener('dragleave', () => { if (--dragDepth <= 0){ dragDepth = 0; $('drop').classList.remove('show'); } });
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', e => {
+  e.preventDefault(); dragDepth = 0; $('drop').classList.remove('show');
+  if (e.dataTransfer.files.length) importFiles([...e.dataTransfer.files]);
+});
+
+// ---------- boot ----------
+(async () => {
+  applyTheme(); applyBar(); applyStaticText();
+  try {
+    files = (await FS.all()).map(f => {
+      const r = { tags: [], fav: false, kv: {}, openedAt: 0, folderId: null, deleted: false, hidden: false, ...f };
+      if (r.synced === undefined){ r.synced = false; r.dirty = true; r.dirtyHtml = true; }   // v1 からの移行
+      if (!r.updatedAt) r.updatedAt = r.addedAt || Date.now();
+      if (!r.hash && typeof r.html === 'string') r.hash = hashStr(r.html);
+      return r;
+    });
+    folders = (await DS.all()).map(f => ({ parentId: null, hidden: false, deleted: false, ...f }));
+  } catch {
+    $('list').innerHTML = t('<div class="empty">この環境ではデータを保存できません（プライベートブラウズでは使えない場合があります）。</div>');
+    return;
+  }
+  render(); updateStatus();
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  const m = location.hash.match(/^#view=(.+)$/), fo = location.hash.match(/^#folder=(.+)$/);
+  if (m && files.some(f => f.id === m[1] && fileVisible(f))) openViewer(m[1], true);
+  else if (fo && folderById(fo[1]) && folderVisible(folderById(fo[1]))){ cwd = fo[1]; history.replaceState({ folder: cwd }, '', location.hash); render(); }
+  else if (m || fo) history.replaceState({ folder: null }, '', location.pathname);
+  else history.replaceState({ folder: null }, '', location.pathname);
+  scheduleSync(200);
+})();
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
