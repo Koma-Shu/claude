@@ -66,3 +66,6 @@ create policy "own files" on public.hv_files for all to authenticated
 
 grant select, insert, update, delete on public.hv_folders to authenticated;
 grant select, insert, update, delete on public.hv_files   to authenticated;
+
+-- v2: 隠しファイル（既存のプロジェクトでは、このファイル全体をもう一度実行すれば追加される）
+alter table public.hv_files add column if not exists hidden boolean not null default false;

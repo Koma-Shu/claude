@@ -1,6 +1,6 @@
 // HTML Viewer — オフライン用 Service Worker
 // 常にネットワーク優先（更新がすぐ反映される）、オフライン時はキャッシュから表示。
-const CACHE = 'html-viewer-v2';
+const CACHE = 'html-viewer-v3';
 const BASE = self.location.pathname.replace(/sw\.js$/, '');
 const FILES = ['', 'index.html', 'config.js', 'viewer.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'].map(f => BASE + f);
 
