@@ -77,6 +77,7 @@ ARCADE とは**別の Supabase プロジェクト**を使い、Supabase Auth + R
 6. `supabase_migrate_v6.sql` — **english_progress テーブル（ENGLISH の学習データをユーザごとにクラウド同期するのに必須）**
 
 7. `supabase_migrate_v7_security.sql` — **セキュリティの根本対策（必須）**。全テーブルの「誰でも全操作可」をやめ、本人・友達・管理者だけが読み書きできるようにする
+8. `supabase_migrate_v8_cleanup.sql` — （任意）personal-tools へ移転した ENGLISH / STUDY の学習データ用テーブルを削除する
 
 ### セキュリティの仕組み（v7 以降）
 
