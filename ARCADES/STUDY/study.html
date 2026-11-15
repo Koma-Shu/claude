@@ -301,7 +301,7 @@ const L = {
     greetNew:'ようこそ。まずは1分、始めてみましょう。',
     greetStreak:n=>`<b>${n}日連続</b>で学習中です。この調子！`,
     greetBack:'おかえりなさい。今日も少しずつ。',
-    guest:'ゲストモードです。進捗はこの端末にのみ保存されます。<a href="login.html?next=study.html">ログイン</a>すると、どの端末でも記録が引き継がれます。',
+    guest:'ゲストモードです。進捗はこの端末にのみ保存されます。<a href="../../login.html?next=ARCADES/STUDY/study.html">ログイン</a>すると、どの端末でも記録が引き継がれます。',
     heroH:'今日の復習', dueUnit:'問',
     heroDue:n=>`忘却曲線に基づき、ちょうど復習すべき問題が <span class="hl">${n}問</span> あります。`,
     heroNone:'今日復習すべき問題はありません。新しい分野に挑戦しましょう。',
@@ -337,7 +337,7 @@ const L = {
     greetNew:'Welcome. Start with just one minute.',
     greetStreak:n=>`<b>${n}-day streak</b> — keep it up!`,
     greetBack:'Welcome back. A little every day goes a long way.',
-    guest:'Guest mode — progress is saved on this device only. <a href="login.html?next=study.html">Log in</a> to sync across devices.',
+    guest:'Guest mode — progress is saved on this device only. <a href="../../login.html?next=ARCADES/STUDY/study.html">Log in</a> to sync across devices.',
     heroH:"Today's reviews", dueUnit:'cards',
     heroDue:n=>`Based on your forgetting curve, <span class="hl">${n} cards</span> are due right now.`,
     heroNone:'Nothing due today. Try learning a new area!',
@@ -378,7 +378,7 @@ function renderAuth(){
   const u = getUser();
   $('auth-area').innerHTML = u
     ? `<a href="../../profile.html" class="top-btn primary">@${u.username}</a>`
-    : `<a href="login.html?next=study.html" class="top-btn">${T('login')}</a><a href="../../register.html" class="top-btn primary">${T('register')}</a>`;
+    : `<a href="../../login.html?next=ARCADES/STUDY/study.html" class="top-btn">${T('login')}</a><a href="../../register.html" class="top-btn primary">${T('register')}</a>`;
 }
 function applyChrome(){
   document.documentElement.lang = lang;

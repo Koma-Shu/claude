@@ -90,7 +90,9 @@ document.getElementById('login-btn').addEventListener('click',async()=>{
     const user=res.user;
     localStorage.setItem('arcade_user',JSON.stringify({id:user.id,username:user.username,full_name:user.full_name,is_admin:!!user.is_admin,token:res.token}));
     msg.className='msg ok';msg.textContent=T('ok');
-    const next=new URLSearchParams(location.search).get('next')||'index.html';
+    // next は同じサイト内の相対パスだけ許可する（javascript: や外部サイトへの転送を防ぐ）
+    const rawNext=new URLSearchParams(location.search).get('next')||'';
+    const next=/^[A-Za-z0-9_\-./]+\.html(?:[?#][^\s]*)?$/.test(rawNext)&&!rawNext.startsWith('/')&&!rawNext.includes('..')?rawNext:'index.html';
     setTimeout(()=>location.href=next,900);
   }catch(e){msg.className='msg err';msg.textContent=T('errServer');document.getElementById('login-btn').disabled=false;}
 });

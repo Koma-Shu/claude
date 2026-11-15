@@ -519,7 +519,7 @@ let user = getUser();
 // uses to show the card, now also enforced on the page itself.
 function isAdmin(){
   try{ if (sessionStorage.getItem('arcade_admin')==='1') return true; }catch(_){}
-  const u = getUser(); return !!(u && u.username==='admin');
+  const u = getUser(); return !!(u && u.is_admin);
 }
 function rootKey(){ return 'eng_v1_' + (user ? user.id : 'guest'); }
 const DEF_CFG = { dailyMinutes:20, newPerDay:2, studyDaysPerWeek:5, courseOrder:['adv2','cv','bp'] };
@@ -855,13 +855,13 @@ function buildPlan(){
 const L = {
   ja:{
     subtitle:'PROGRIT 口頭英作文 ・ 学習マネージャー', home:'← HOME', login:'ログイン', register:'登録',
-    gateH:'admin 専用ページです', gateLogin:'admin でログイン',
+    gateH:'admin 専用ページです', gateLogin:'admin でログイン', gateStandalone:'ホーム画面から開いたアプリは Safari とログイン状態が別なので、ここで一度ログインしてください（次回からは不要です）。',
     gateP:'ENGLISH（口頭英作文マネージャー）は管理者（admin）専用の個人ツールです。admin アカウントでログインすると利用できます。',
     navDiary:'📓 日記',
     greetNew:'はじめまして。まずは今日の1レッスンから、軽く再開しましょう。',
     greetStreak:n=>`<b>${n}日連続</b>で学習中。いいリズムです！`,
     greetBack:'おかえりなさい。今日もコツコツいきましょう。',
-    guest:'ゲストモードです。記録はこの端末にのみ保存されます。<a href="login.html?next=english.html">ログイン</a>するとアカウントに紐づきます（バックアップのエクスポート推奨）。',
+    guest:'ゲストモードです。記録はこの端末にのみ保存されます。<a href="../../login.html?next=ARCADES/ENGLISH/english.html">ログイン</a>するとアカウントに紐づきます（バックアップのエクスポート推奨）。',
     heroH:'📅 今日のプラン', hRev:'復習', hPin:'ピン', hNew:'新規', hMin:'目安', min:'分',
     heroNone:'今日の必須の復習はありません。新しいレッスンに進むか、軽く流し復習を。',
     heroBoth:(r,n,m)=>`忘却曲線にちょうど乗った復習 <span class="hl">${r}</span> レッスンと、新規 <span class="hl">${n}</span> レッスン（計 約${m}分）がおすすめです。`,
@@ -927,13 +927,13 @@ const L = {
   },
   en:{
     subtitle:'PROGRIT Oral Composition · Study Manager', home:'← HOME', login:'LOGIN', register:'REGISTER',
-    gateH:'Admin only', gateLogin:'Log in as admin',
+    gateH:'Admin only', gateLogin:'Log in as admin', gateStandalone:'The home-screen app keeps its own sign-in separate from Safari, so sign in here once (you won\'t need to again).',
     gateP:'ENGLISH (the oral-composition manager) is an admin-only personal tool. Log in with the admin account to use it.',
     navDiary:'📓 Diary',
     greetNew:'Welcome. Ease back in with just one lesson today.',
     greetStreak:n=>`<b>${n}-day streak</b> — great rhythm!`,
     greetBack:'Welcome back. A little every day.',
-    guest:'Guest mode — saved on this device only. <a href="login.html?next=english.html">Log in</a> to tie it to your account (export a backup to be safe).',
+    guest:'Guest mode — saved on this device only. <a href="../../login.html?next=ARCADES/ENGLISH/english.html">Log in</a> to tie it to your account (export a backup to be safe).',
     heroH:"📅 Today's plan", hRev:'Review', hPin:'Pins', hNew:'New', hMin:'≈', min:'min',
     heroNone:'No required reviews today. Move on to new lessons or do a light review.',
     heroBoth:(r,n,m)=>`Recommended: <span class="hl">${r}</span> reviews (right on the forgetting curve) + <span class="hl">${n}</span> new lessons (~${m} min).`,
@@ -1007,7 +1007,7 @@ function renderAuth(){
   const u = getUser();
   $('auth-area').innerHTML = u
     ? `<a href="../../profile.html" class="top-btn primary">@${u.username}</a>`
-    : `<a href="login.html?next=english.html" class="top-btn">${T('login')}</a><a href="../../register.html" class="top-btn primary">${T('register')}</a>`;
+    : `<a href="../../login.html?next=ARCADES/ENGLISH/english.html" class="top-btn">${T('login')}</a><a href="../../register.html" class="top-btn primary">${T('register')}</a>`;
 }
 function applyChrome(){
   document.documentElement.lang = lang;
@@ -1724,8 +1724,8 @@ function renderGate(){
   renderAuth();
   $('app-wrap').classList.add('hidden');
   const u = getUser();
-  const loginBtn = (u && u.username==='admin') ? ''
-    : `<a class="btn" style="border-color:var(--accent);color:var(--accent);" href="login.html?next=english.html">${T('gateLogin')}</a>`;
+  const loginBtn = (u && u.is_admin) ? ''
+    : `<a class="btn" style="border-color:var(--accent);color:var(--accent);" href="../../login.html?next=ARCADES/ENGLISH/english.html">${T('gateLogin')}</a>`;
   const g = $('gate'); g.classList.remove('hidden');
   g.innerHTML = `
     <h1>ENGLISH</h1>
@@ -1734,6 +1734,7 @@ function renderGate(){
       <div class="gate-ico">🔒</div>
       <div class="gate-h">${T('gateH')}</div>
       <div class="gate-p">${T('gateP')}</div>
+      ${(navigator.standalone || matchMedia('(display-mode: standalone)').matches) && !u ? `<div class="gate-p" style="font-size:.72rem">${T('gateStandalone')}</div>` : ''}
       <div class="gate-actions">
         <a class="btn" href="../../index.html">${T('home')}</a>
         ${loginBtn}

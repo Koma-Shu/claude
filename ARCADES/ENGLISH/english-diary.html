@@ -253,7 +253,7 @@ const $ = id => document.getElementById(id);
 function getUser(){ try{ return JSON.parse(localStorage.getItem('arcade_user')||'null'); }catch(_){ return null; } }
 function isAdmin(){
   try{ if (sessionStorage.getItem('arcade_admin')==='1') return true; }catch(_){}
-  const u = getUser(); return !!(u && u.username==='admin');
+  const u = getUser(); return !!(u && u.is_admin);
 }
 
 let lang = localStorage.getItem('lang') || 'ja';
@@ -473,7 +473,7 @@ function renderAuth(){
   const u = getUser();
   $('auth-area').innerHTML = u
     ? `<a href="../../profile.html" class="top-btn primary">@${u.username}</a>`
-    : `<a href="login.html?next=english-diary.html" class="top-btn">${T('login')}</a><a href="../../register.html" class="top-btn primary">${T('register')}</a>`;
+    : `<a href="../../login.html?next=ARCADES/ENGLISH/english-diary.html" class="top-btn">${T('login')}</a><a href="../../register.html" class="top-btn primary">${T('register')}</a>`;
 }
 // お題（writing prompt）: 自動生成（🎲）＋ インライン編集／自由記述 ＋ マイお題リスト
 function topicPool(){
@@ -651,8 +651,8 @@ function renderGate(){
   renderAuth();
   $('app-wrap').classList.add('hidden');
   const u = getUser();
-  const loginBtn = (u && u.username==='admin') ? ''
-    : `<a class="btn" style="border-color:var(--accent);color:var(--accent);" href="login.html?next=english-diary.html">${lang==='ja'?'admin でログイン':'Log in as admin'}</a>`;
+  const loginBtn = (u && u.is_admin) ? ''
+    : `<a class="btn" style="border-color:var(--accent);color:var(--accent);" href="../../login.html?next=ARCADES/ENGLISH/english-diary.html">${lang==='ja'?'admin でログイン':'Log in as admin'}</a>`;
   const g = $('gate'); g.classList.remove('hidden');
   g.innerHTML = `
     <h1>${T('title')}</h1>
