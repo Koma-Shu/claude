@@ -6,8 +6,8 @@
 */
 (function(w){'use strict';
 
-const SB_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
-const SB_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+const SB_URL=ARCADE_SB.url;
+const SB_KEY=ARCADE_SB.key;
 
 const game=(location.pathname.split('/').pop()||'').replace(/\.html$/,'');
 const SKIP=['','index','arcade','login','register','profile','admin','chat','friends'];

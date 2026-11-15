@@ -1,4 +1,4 @@
-/* sbauth.js — ARCADE のログインセッションを Supabase へのリクエストに付ける共通スクリプト。
+/* sbauth.js — ARCADE の Supabase 接続先（ARCADE_SB）と、ログインセッションをリクエストに付ける共通スクリプト。
    誰が何を読み書きできるかはサーバー側（RLS, supabase_migrate_v7_security.sql）が判定する。
    各ページの fetch ヘルパーを個別に書き換えずに済むよう、Supabase 宛ての fetch にだけ
    x-arcade-session ヘッダーを足す。どのページでも、他のスクリプトより先に読み込むこと。 */
@@ -6,6 +6,8 @@
   'use strict';
   var SB_URL = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
   var SB_KEY = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+  // ARCADE の Supabase 接続先はここだけで定義し、各ページは ARCADE_SB を参照する
+  w.ARCADE_SB = { url: SB_URL, key: SB_KEY };
 
   function current() {
     try { return JSON.parse(localStorage.getItem('arcade_user') || 'null'); } catch (e) { return null; }

@@ -12,7 +12,8 @@ GitHub Pages で配信される PWA。公開URL: **https://koma-shu.github.io/cl
 ├── login/register/profile/friends/chat.html
 ├── admin.html           管理者画面（登録ユーザ・利用回数・利用時間など）
 ├── sw.js manifest.json icon-192/512.png
-├── sound.js track.js nav.js cards.js netplay.js   ← アプリ横断の共有ライブラリ
+├── sbauth.js ratings.js sound.js track.js nav.js cards.js netplay.js   ← アプリ横断の共有ライブラリ
+│     （sbauth.js: Supabase 接続先 ARCADE_SB とセッション付与 / ratings.js: ゲームの評価・コメント欄）
 │
 ├── ARCADES/
 │   ├── ARCADE/          arcade.html＋ゲーム20本

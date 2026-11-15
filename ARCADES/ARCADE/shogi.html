@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
 <script src="../../sbauth.js"></script>
+<script src="../../ratings.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>SHOGI</title>
   <style>
@@ -230,8 +231,8 @@ document.getElementById('lang-btn').addEventListener('click',()=>{
 });
 let difficulty='weak';
 document.querySelectorAll('.dbtn').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.d;document.querySelectorAll('.dbtn').forEach(x=>x.classList.toggle('active',x===b));if(!gameOver)startGame();}));
-const SUPABASE_URL = 'https://qveznkwqfjjtjxqxdyls.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+const SUPABASE_URL = ARCADE_SB.url;
+const SUPABASE_KEY = ARCADE_SB.key;
 const GAME = 'shogi';
 
 const canvas = document.getElementById('c');
@@ -861,37 +862,13 @@ async function sb(path,opts={}){
   if(!r.ok&&r.status!==201) throw new Error(await r.text());
   const t=await r.text(); return t?JSON.parse(t):null;
 }
-async function loadRatings(){
-  try{const rows=await sb(`/rest/v1/ratings?game=eq.${GAME}&order=created_at.desc&limit=20`);renderR(rows||[]);avgBadge(rows||[]);}catch(e){renderR([]);}
-}
-async function subRating(stars,cmt){
-  const me=JSON.parse(localStorage.getItem('arcade_user')||'null');
-  const body={game:GAME,stars,comment:cmt||null};
-  if(me){body.user_id=me.id;body.username=me.username;}
-  await sb('/rest/v1/ratings',{method:'POST',body:JSON.stringify(body)});loadRatings();
-}
-function renderR(list){
-  const el=document.getElementById('rlist');
-  if(!list.length){el.innerHTML=`<div style="color:#333;text-align:center;font-size:0.72rem;padding:8px">${T('noRatings')}</div>`;return;}
-  el.innerHTML=list.map(r=>`<div class="ri"><span class="rs">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</span>${r.username?`<span class="rd" style="color:#00d4aa">@${r.username.replace(/</g,'&lt;')}</span>`:''}<span class="rd">${new Date(r.created_at).toLocaleDateString('ja-JP')}</span>${r.comment?`<p class="rc">${r.comment.replace(/</g,'&lt;')}</p>`:''}</div>`).join('');
-}
-function avgBadge(list){
-  const el=document.getElementById('avg-d');
-  if(!list.length){el.textContent='';return;}
-  const avg=(list.reduce((s,r)=>s+r.stars,0)/list.length).toFixed(1);
-  el.innerHTML=`<span>${'★'.repeat(Math.round(avg))}</span> ${avg} (${list.length}件)`;
-}
-let sel=0;
-document.getElementById('rtoggle').addEventListener('click',()=>document.getElementById('rform').classList.toggle('open'));
-document.querySelectorAll('.star').forEach(s=>s.addEventListener('click',()=>{sel=+s.dataset.v;document.querySelectorAll('.star').forEach((st,i)=>st.classList.toggle('active',i<sel));}));
-document.getElementById('rsub').addEventListener('click',async()=>{if(!sel){alert(lang==='ja'?'星を選んでください':'Please select a star rating');return;}await subRating(sel,document.getElementById('cmt').value.trim());sel=0;document.querySelectorAll('.star').forEach(s=>s.classList.remove('active'));document.getElementById('cmt').value='';document.getElementById('rform').classList.remove('open');});
+initRatings({ game: GAME, sb, t: T, lang: () => lang });
 document.getElementById('help-toggle').addEventListener('click',()=>document.getElementById('help-panel').classList.toggle('open'));
 
 resize();
 window.addEventListener('resize',()=>{resize();draw();});
 applyLang();
 startGame();
-loadRatings();
 const hash=location.hash.slice(1);
 if(hash.length===6){document.getElementById('code-input').value=hash;document.getElementById('btn-online').click();}
 </script>

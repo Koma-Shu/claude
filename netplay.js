@@ -4,8 +4,8 @@
 */
 (function(w){'use strict';
 
-const SB_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
-const SB_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+const SB_URL=ARCADE_SB.url;
+const SB_KEY=ARCADE_SB.key;
 
 async function sb(path,opts={}){
   let r;

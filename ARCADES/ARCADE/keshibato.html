@@ -319,8 +319,8 @@ function genCode(){
 // messages through an append-only `room_messages` log (see migrate v5): each
 // side INSERTs its messages and polls for new rows. No write conflicts, works
 // on any network (plain HTTPS, same backend as login). Host is authoritative.
-const SB_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
-const SB_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
+const SB_URL=ARCADE_SB.url;
+const SB_KEY=ARCADE_SB.key;
 let RM_ROOM=null, RM_ME=null, RM_SEQ=0, RM_TID=null;
 async function sbReq(path,opts={}){
   const r=await fetch(SB_URL+path,{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,
