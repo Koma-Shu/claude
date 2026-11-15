@@ -438,12 +438,30 @@ html[data-theme=dark]{
   .seq .actors>div{font-size:11.5px}
   .fieldtable{font-size:11px}
   .fieldtable th{width:36%}
+  /* 列の多い比較表が画面からはみ出さないよう、見出しも折り返し、長いアドレスは途中で改行する */
+  .fieldtable th{white-space:normal}
+  .fieldtable th,.fieldtable td,table.cmp th,table.cmp td{overflow-wrap:anywhere}
   .dis-hex{font-size:10.5px;line-height:1.85;padding:12px 8px}
   .acl-rule{flex-wrap:wrap}
   .mapt{font-size:12px}
+  /* 全体地図: スマホでは3列の表を横スクロールさせず、1行ずつ「要素→役割→詳しく読む」の縦積みにする */
+  .mapt{min-width:0}
+  .mapt thead{display:none}
+  .mapt,.mapt tbody,.mapt tr,.mapt td{display:block;width:auto}
+  .mapt tbody tr{border-bottom:1px solid var(--line);padding:8px 0}
+  .mapt tbody tr:last-child{border-bottom:none}
+  .mapt td{border-bottom:none;padding:2px 14px}
+  .mapt td.el{white-space:normal}
+  .mapt .lay td{padding:9px 14px}
+  .mapt td:nth-child(3)::before{content:"→ ";color:var(--sub)}
   .hctl button{padding:4px 9px;font-size:11px}
 }
 .fld,.dis-hex b{cursor:pointer}
+/* ページ内リンクで飛んだ見出しが、上部の固定ヘッダーに隠れないようにする */
+[id]{scroll-margin-top:64px}
+/* それでも収まらない表は、表の中だけ横にスクロールさせる（ページ全体は横に動かさない） */
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+.tbl-scroll>table{margin:0}
 </style>
 </head>
 <body>
@@ -3464,6 +3482,38 @@ window.SEC_EN=[
   });
 })();
 
+</script>
+<script>
+/* ページ内リンク（#…）は、その場でスクロールして移動する。
+   HTML Viewer などの iframe(srcdoc) 内で開いたときも、リンク先が親ページの URL に
+   解決されてページごと置き換わらないようにするため。 */
+document.addEventListener('click',function(e){
+  var a=e.target.closest&&e.target.closest('a[href^="#"]');
+  if(!a||e.defaultPrevented)return;
+  var id=decodeURIComponent(a.getAttribute('href').slice(1));
+  var t=id?document.getElementById(id):document.body;
+  if(!t)return;
+  e.preventDefault();
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  t.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});
+  try{history.replaceState(null,'','#'+id);}catch(_){}
+});
+/* 画面幅に収まらない表だけを、横スクロールできる枠で包む */
+(function(){
+  function fit(){
+    document.querySelectorAll('table').forEach(function(t){
+      var ps=getComputedStyle(t.parentElement).overflowX;
+      if(t.parentElement.classList.contains('tbl-scroll')||ps==='auto'||ps==='scroll')return;   // すでにスクロール枠の中
+      var box=t.parentElement.getBoundingClientRect();
+      if(t.getBoundingClientRect().width>box.width+1){
+        var w=document.createElement('div');w.className='tbl-scroll';
+        t.parentNode.insertBefore(w,t);w.appendChild(t);
+      }
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fit);else fit();
+  window.addEventListener('load',fit);
+})();
 </script>
 </body>
 </html>
