@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<script src="sbauth.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 個人用ページ: 検索エンジンにインデックスさせない（未掲載＝アンリスト運用） -->
 <meta name="robots" content="noindex,nofollow,noarchive">
@@ -132,9 +133,8 @@ td.mono{font-family:'Courier New',monospace;}
   <div class="auth-box">
     <div class="auth-logo">ARCADE</div>
     <div class="auth-sub">ADMIN DASHBOARD</div>
-    <input type="password" id="admin-pw" placeholder="管理者パスワード" autocomplete="off">
-    <button id="auth-btn" onclick="checkAuth()">ログイン</button>
-    <div class="auth-err" id="auth-err"></div>
+    <div class="auth-err" id="auth-err" style="margin:14px 0;line-height:1.8">管理者アカウントでログインしてください</div>
+    <button id="auth-btn" onclick="location.href='login.html?next=admin.html'">ログイン画面へ</button>
     <a href="index.html" style="display:inline-block;margin-top:18px;color:var(--dim2);font-size:.7rem;letter-spacing:3px;text-decoration:none;">← HOME</a>
   </div>
 </div>
@@ -403,8 +403,6 @@ td.mono{font-family:'Courier New',monospace;}
 <script>
 const SB_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SB_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
-// SHA-256 of admin passphrase — change this hash to update the password
-const ADMIN_HASH='8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // "admin"
 
 const GAME_NAMES={
   snake:'SNAKE',symbiont:'SYMBIONT',reversi:'REVERSI',gomoku:'GOMOKU',
@@ -415,56 +413,20 @@ const GAME_NAMES={
 };
 const gname=g=>GAME_NAMES[g]||g||'–';
 
-// ── Auth (with lockout after repeated failures) ──────────────────
-const MAX_TRIES=5,LOCK_MS=60000;
-async function hashPw(pw){
-  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-function lockedUntil(){return parseInt(sessionStorage.getItem('adm_lock')||'0');}
-async function checkAuth(){
-  const err=document.getElementById('auth-err');
-  const now=Date.now();
-  if(now<lockedUntil()){
-    err.textContent=`試行回数超過。${Math.ceil((lockedUntil()-now)/1000)}秒後に再試行できます`;
-    return;
-  }
-  const pw=document.getElementById('admin-pw').value;
-  const h=await hashPw(pw);
-  if(h===ADMIN_HASH){
-    sessionStorage.setItem('arcade_admin','1');
-    sessionStorage.removeItem('adm_fails');sessionStorage.removeItem('adm_lock');
-    openDashboard();
-  }else{
-    const fails=parseInt(sessionStorage.getItem('adm_fails')||'0')+1;
-    sessionStorage.setItem('adm_fails',fails);
-    if(fails>=MAX_TRIES){
-      sessionStorage.setItem('adm_lock',now+LOCK_MS);
-      sessionStorage.setItem('adm_fails','0');
-      err.textContent='試行回数超過。60秒間ロックされます';
-    }else{
-      err.textContent=`パスワードが正しくありません（残り${MAX_TRIES-fails}回）`;
-    }
-    document.getElementById('admin-pw').value='';
-  }
-}
-document.getElementById('admin-pw').addEventListener('keydown',e=>{if(e.key==='Enter')checkAuth();});
-function logout(){sessionStorage.removeItem('arcade_admin');location.reload();}
-
+// ── Auth ────────────────────────────────────────────────────────
+// 管理者フラグ（users.is_admin）を持つアカウントでログインしている時だけ開く。
+// 画面の表示判定はここで行うが、データを読めるかどうかはサーバー側（RLS）が判定する。
+function loggedInUser(){try{return JSON.parse(localStorage.getItem('arcade_user')||'null');}catch{return null;}}
+async function logout(){await arcadeLogout();location.href='index.html';}
 function openDashboard(){
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('dashboard').style.display='block';
   startClock();loadAll();
 }
-// Grant access automatically when the MENU-logged-in user is "admin"
-// (in addition to the password gate, which remains for direct access).
-function loggedInUser(){try{return JSON.parse(localStorage.getItem('arcade_user')||'null');}catch{return null;}}
 (function(){
   const u=loggedInUser();
-  if(sessionStorage.getItem('arcade_admin')==='1' || (u&&u.username==='admin')){
-    sessionStorage.setItem('arcade_admin','1');
-    openDashboard();
-  }
+  if(u&&u.token&&u.is_admin) setTimeout(openDashboard);   // 下の定義（fetch ヘルパー等）が読み込まれてから開く
+  else if(u&&u.token) document.getElementById('auth-err').textContent='このアカウントには管理者権限がありません';
 })();
 
 function startClock(){
@@ -932,7 +894,7 @@ function toggleAutoRef(){
   b.classList.toggle('on',autoRef);
 }
 setInterval(()=>{
-  if(autoRef&&sessionStorage.getItem('arcade_admin')==='1')loadAll();
+  if(autoRef&&(loggedInUser()||{}).is_admin)loadAll();
 },60000);
 </script>
 </body>

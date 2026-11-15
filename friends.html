@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+<script src="sbauth.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- 個人用ページ: 検索エンジンにインデックスさせない（未掲載＝アンリスト運用） -->
   <meta name="robots" content="noindex,nofollow,noarchive">
@@ -277,7 +278,7 @@ function init() {
     const umap = {};
     if (needIds.size > 0) {
       const ids = [...needIds].join(',');
-      const users = await sbGet('/rest/v1/users?id=in.(' + ids + ')&select=id,username,full_name') || [];
+      const users = await sbGet('/rest/v1/profiles?id=in.(' + ids + ')&select=id,username,full_name') || [];
       users.forEach(u => { umap[u.id] = u; });
     }
 
@@ -377,7 +378,7 @@ function init() {
     flash('flash-search', T('searching'), 'inf');
     document.getElementById('list-search').innerHTML = '';
 
-    const rows = await sbGet('/rest/v1/users?username=ilike.*' + encodeURIComponent(q) + '*&select=id,username,full_name&limit=20') || [];
+    const rows = await sbGet('/rest/v1/profiles?username=ilike.*' + encodeURIComponent(q) + '*&select=id,username,full_name&limit=20') || [];
     const list = rows.filter(u => u.id !== me.id);
 
     document.getElementById('flash-search').textContent = '';

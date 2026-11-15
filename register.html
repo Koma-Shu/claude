@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+<script src="sbauth.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>アカウント登録 | ARCADE</title>
   <!-- EmailJS SDK -->
@@ -216,10 +217,6 @@ document.getElementById('lang-btn').addEventListener('click', () => {
 });
 applyLang();
 
-async function hashPw(pw) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
 async function sb(path, opts={}) {
   const r = await fetch(SUPABASE_URL+path, {
     headers: {'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,
@@ -304,15 +301,14 @@ document.getElementById('reg-btn').addEventListener('click', async () => {
   btn.innerHTML = `<span class="spinner"></span>${T('sending')}`;
 
   try {
-    const existing   = await sb(`/rest/v1/users?username=eq.${encodeURIComponent(uid)}&select=id`);
-    if (existing && existing.length > 0) { msg.className='msg err'; msg.textContent=T('errTaken'); btn.disabled=false; btn.textContent=T('btnNext'); return; }
-    const existEmail = await sb(`/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=id`);
-    if (existEmail && existEmail.length > 0) { msg.className='msg err'; msg.textContent=T('errEmailTaken'); btn.disabled=false; btn.textContent=T('btnNext'); return; }
+    const avail = await sb('/rest/v1/rpc/arcade_check_available', {method:'POST', body:JSON.stringify({p_username:uid, p_email:email})}) || {};
+    if (avail.username_taken) { msg.className='msg err'; msg.textContent=T('errTaken'); btn.disabled=false; btn.textContent=T('btnNext'); return; }
+    if (avail.email_taken)    { msg.className='msg err'; msg.textContent=T('errEmailTaken'); btn.disabled=false; btn.textContent=T('btnNext'); return; }
 
     const otp     = genOtp();
     const expires = new Date(Date.now() + 10*60*1000).toISOString();
-    const hash    = await hashPw(pw);
-    pendingData   = { fn, birth, uid, email, hash, otp, expires };
+    // パスワードはこの端末のメモリにだけ保持し、登録時にサーバー側で bcrypt にする
+    pendingData   = { fn, birth, uid, email, pw, otp, expires };
 
     await sendOtpEmail(email, uid, otp);
 
@@ -391,14 +387,20 @@ document.getElementById('verify-btn').addEventListener('click', async () => {
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner"></span>`;
   try {
-    await sb('/rest/v1/users', {method:'POST', body:JSON.stringify({
-      username:       pendingData.uid,
-      full_name:      pendingData.fn,
-      birth_date:     pendingData.birth,
-      email:          pendingData.email,
-      email_verified: true,
-      password_hash:  pendingData.hash
+    const res = await sb('/rest/v1/rpc/arcade_register', {method:'POST', body:JSON.stringify({
+      p_username:  pendingData.uid,
+      p_full_name: pendingData.fn,
+      p_birth:     pendingData.birth,
+      p_email:     pendingData.email,
+      p_password:  pendingData.pw
     })});
+    if (!res || !res.ok) {
+      const code = res && res.message;
+      msg.className = 'msg err';
+      msg.textContent = code === 'username_taken' ? T('errTaken') : code === 'email_taken' ? T('errEmailTaken') : T('errServer');
+      btn.disabled = false; btn.textContent = T('btnVerify'); return;
+    }
+    pendingData = null;
     if (resendTimer) clearInterval(resendTimer);
     msg.className = 'msg ok'; msg.textContent = T('ok');
     setTimeout(() => location.href = 'login.html', 1800);

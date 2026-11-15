@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+<script src="sbauth.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MENU | Koma-Shu Apps</title>
   <link rel="manifest" href="manifest.json">
@@ -146,9 +147,9 @@ function renderAuth(){
   area.innerHTML = u
     ? `<a href="profile.html" class="auth-btn primary">@${u.username}</a>`
     : `<a href="login.html" class="auth-btn">${T('login')}</a><a href="register.html" class="auth-btn primary">${T('register')}</a>`;
-  // ADMIN / ENGLISH のカードは "admin" ユーザーにのみ表示する（個人ツールなので
+  // ADMIN / ENGLISH のカードは管理者（users.is_admin）にのみ表示する（個人ツールなので
   // 公開ポータルには出さない）。いずれも直リンク・ブックマークからは引き続き到達可能。
-  const adminOnly = (u && u.username === 'admin');
+  const adminOnly = !!(u && u.is_admin);
   for (const id of ['admin-card', 'english-card']) {
     const el = document.getElementById(id);
     if (el) el.style.display = adminOnly ? 'flex' : 'none';

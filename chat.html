@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+<script src="sbauth.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- 個人用ページ: 検索エンジンにインデックスさせない（未掲載＝アンリスト運用） -->
   <meta name="robots" content="noindex,nofollow,noarchive">
@@ -240,7 +241,7 @@ if(!me){
     const friendIds=[...(sent||[]).map(r=>r.addressee_id),...(recv||[]).map(r=>r.requester_id)];
     if(friendIds.length>0){
       const ids=friendIds.join(',');
-      friends=await sb(`/rest/v1/users?id=in.(${ids})&select=id,username,full_name`)||[];
+      friends=await sb(`/rest/v1/profiles?id=in.(${ids})&select=id,username,full_name`)||[];
     }else{friends=[];}
     if(currentTab==='dm') renderConvList();
   }
@@ -292,7 +293,7 @@ if(!me){
   async function getUser(id){
     if(id===me.id)return me;
     if(userCache[id])return userCache[id];
-    const rows=await sb(`/rest/v1/users?id=eq.${id}&select=id,username,full_name`);
+    const rows=await sb(`/rest/v1/profiles?id=eq.${id}&select=id,username,full_name`);
     if(rows&&rows[0]){userCache[id]=rows[0];return rows[0];}
     return {username:'?',full_name:''};
   }

@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+<script src="sbauth.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ログイン | ARCADE</title>
   <style>
@@ -49,8 +50,8 @@ const SUPABASE_URL='https://qveznkwqfjjtjxqxdyls.supabase.co';
 const SUPABASE_KEY='sb_publishable_Eu8ppaJ-BxQvwGyj1UlNjw_vyywq8ge';
 
 const T_={
-  ja:{title:'LOGIN',sub:'アカウントにサインイン',lUid:'ユーザID',lPw:'パスワード',btn:'ログイン',linkReg:'アカウント登録はこちら',back:'← HOME',errEmpty:'ユーザIDとパスワードを入力してください',errInvalid:'ユーザIDまたはパスワードが正しくありません',ok:'ログイン成功！',errServer:'エラーが発生しました'},
-  en:{title:'LOGIN',sub:'SIGN IN TO YOUR ACCOUNT',lUid:'User ID',lPw:'Password',btn:'LOGIN',linkReg:'Create an account',back:'← HOME',errEmpty:'Please enter your user ID and password',errInvalid:'Invalid user ID or password',ok:'Logged in!',errServer:'An error occurred'}
+  ja:{title:'LOGIN',sub:'アカウントにサインイン',lUid:'ユーザID',lPw:'パスワード',btn:'ログイン',linkReg:'アカウント登録はこちら',back:'← HOME',errEmpty:'ユーザIDとパスワードを入力してください',errInvalid:'ユーザIDまたはパスワードが正しくありません',ok:'ログイン成功！',errServer:'エラーが発生しました',errLocked:'ログインに何度も失敗したため、15分間ロックされています'},
+  en:{title:'LOGIN',sub:'SIGN IN TO YOUR ACCOUNT',lUid:'User ID',lPw:'Password',btn:'LOGIN',linkReg:'Create an account',back:'← HOME',errEmpty:'Please enter your user ID and password',errInvalid:'Invalid user ID or password',ok:'Logged in!',errServer:'An error occurred',errLocked:'Too many failed attempts. Try again in 15 minutes'}
 };
 let lang=localStorage.getItem('lang')||'ja';
 function T(k){return T_[lang][k]||T_.ja[k]||k;}
@@ -68,11 +69,6 @@ function applyLang(){
 document.getElementById('lang-btn').addEventListener('click',()=>{lang=lang==='ja'?'en':'ja';localStorage.setItem('lang',lang);applyLang();});
 applyLang();
 
-async function hashPw(pw){
-  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
 async function sb(path,opts={}){
   const r=await fetch(SUPABASE_URL+path,{headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json',...(opts.headers||{})},...opts});
   const t=await r.text();return t?JSON.parse(t):null;
@@ -87,11 +83,12 @@ document.getElementById('login-btn').addEventListener('click',async()=>{
   if(!uid||!pw){msg.className='msg err';msg.textContent=T('errEmpty');return;}
   document.getElementById('login-btn').disabled=true;
   try{
-    const hash=await hashPw(pw);
-    const rows=await sb(`/rest/v1/users?username=eq.${encodeURIComponent(uid)}&password_hash=eq.${hash}&select=id,username,full_name`);
-    if(!rows||rows.length===0){msg.className='msg err';msg.textContent=T('errInvalid');document.getElementById('login-btn').disabled=false;return;}
-    const user=rows[0];
-    localStorage.setItem('arcade_user',JSON.stringify({id:user.id,username:user.username,full_name:user.full_name}));
+    // パスワードの照合とセッション発行はサーバー側（arcade_login）で行う
+    const res=await sb('/rest/v1/rpc/arcade_login',{method:'POST',body:JSON.stringify({p_username:uid,p_password:pw})});
+    if(res&&res.message==='locked'){msg.className='msg err';msg.textContent=T('errLocked');document.getElementById('login-btn').disabled=false;return;}
+    if(!res||!res.token){msg.className='msg err';msg.textContent=T('errInvalid');document.getElementById('login-btn').disabled=false;return;}
+    const user=res.user;
+    localStorage.setItem('arcade_user',JSON.stringify({id:user.id,username:user.username,full_name:user.full_name,is_admin:!!user.is_admin,token:res.token}));
     msg.className='msg ok';msg.textContent=T('ok');
     const next=new URLSearchParams(location.search).get('next')||'index.html';
     setTimeout(()=>location.href=next,900);

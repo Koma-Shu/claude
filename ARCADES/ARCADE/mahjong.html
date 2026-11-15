@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<script src="../../sbauth.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>麻雀 | ARCADE</title>
 <script src="../../sound.js"></script>
@@ -494,7 +495,7 @@ async function loadFriendsForLobby(){
   ]);
   const ids=[...(sent||[]).map(r=>r.addressee_id),...(recv||[]).map(r=>r.requester_id)];
   if(!ids.length)return;
-  const users=await sb(`/rest/v1/users?id=in.(${ids.join(',')})&select=id,username,full_name`)||[];
+  const users=await sb(`/rest/v1/profiles?id=in.(${ids.join(',')})&select=id,username,full_name`)||[];
   if(!users.length)return;
   const code=roomId.substring(0,6).toUpperCase();
   const fl=document.getElementById('lobby-friend-list');fl.innerHTML='';
