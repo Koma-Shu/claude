@@ -2,7 +2,9 @@
 
 Claude が作った HTML ファイルを iPhone（Safari / ホーム画面アプリ）で保存・整理・閲覧するための PWA。
 
-公開URL: **https://koma-shu.github.io/html-viewer/**
+公開URL: **https://koma-shu.github.io/claude/Tools/html-viewer/**
+
+（2026年11月に `Koma-Shu/html-viewer` リポジトリからこのリポジトリへ移動。旧URLは新URLへ自動転送される）
 
 ## 使い方
 
@@ -39,7 +41,3 @@ Claude が作った HTML ファイルを iPhone（Safari / ホーム画面アプ
 6. ⚙︎ →「アカウントと同期」で「新規登録」→ 2台目以降の端末は同じメールアドレスで「ログイン」
 
 無料枠の注意: 7日間まったく使わないとプロジェクトが一時停止する（データは残り、Supabase の管理画面から再開できる）。
-
-## 公開設定（初回のみ）
-
-GitHub の Settings → Pages → Source を「Deploy from a branch」、Branch を `main` / `(root)` にして保存。

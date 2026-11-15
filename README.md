@@ -18,8 +18,11 @@ GitHub Pages で配信される PWA。公開URL: **https://koma-shu.github.io/cl
 │   ├── ARCADE/          arcade.html＋ゲーム20本
 │   └── ENGLISH/         english.html / english-diary.html＋データ・専用PWAアセット
 │
-└── Network/
-    └── packet-journey/  パケットの旅（ネットワーク通信の教育サイト・単一HTML）
+├── Network/
+│   └── packet-journey/  パケットの旅（ネットワーク通信の教育サイト・単一HTML）
+│
+└── Tools/
+    └── html-viewer/     HTML Viewer（Claude 作成の HTML を iPhone / iPad で管理・閲覧する個人用 PWA）
 ```
 
 各アプリはユーザー視点で独立していますが、ログインアカウント
@@ -44,6 +47,13 @@ GitHub Pages で配信される PWA。公開URL: **https://koma-shu.github.io/cl
 **旧URLの互換**: ディレクトリ分割前の `english.html` / `english-diary.html` / `arcade.html`
 はルートに**リダイレクト用の小さなHTML**を残してあり、既存のブックマークや
 ホーム画面に追加した PWA から開いても新しい場所へ自動転送されます。
+
+## HTML Viewer（個人用ツール）
+
+`Tools/html-viewer/` は、Claude が作った HTML ファイルを iPhone / iPad で保存・整理・閲覧する PWA。
+公開URL: https://koma-shu.github.io/claude/Tools/html-viewer/ （ポータル未掲載・noindex）。
+ARCADE とは**別の Supabase プロジェクト**を使い、Supabase Auth + RLS で本人のデータだけを読み書きする。
+詳細は [Tools/html-viewer/README.md](Tools/html-viewer/README.md)。
 
 ## ARCADE
 
