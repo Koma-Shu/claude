@@ -255,6 +255,13 @@ const $ = id => document.getElementById(id);
 // ---------- i18n（日本語 / English） ----------
 // 文言は日本語の原文をキーにし、英語表示のときだけ EN から引く。{name} などは vars で置き換える。
 const EN = {
+  '自動ロックまでの時間': 'Auto-lock after',
+  'アプリを離れたらすぐ': 'Immediately after leaving',
+  '手動でロックするまで': 'Only when I lock it',
+  '1時間': '1 hour',
+  '{n}分': '{n} min',
+  'アプリを離れていた時間がこれを超えると、隠しフォルダ・隠しファイルを再びロックします。': 'Hidden folders and files lock again when you have been away longer than this.',
+  '自動ロック: {v}': 'Auto-lock: {v}',
   '未表示': 'Not opened',
   'ホーム': 'Home',
   '「{name}」はこのフォルダに既にあります。上書きしますか？\n（キャンセルで別ファイルとして追加）': '"{name}" already exists in this folder. Overwrite it?\n(Cancel to add it as a separate file)',
@@ -867,6 +874,9 @@ function sheetSettings(){
 
     <h3>${t('隠しフォルダ')}</h3>
     <button class="menu-btn" data-act="locksetup">${t('🔐 解除方法:')} ${method === 'passkey' ? 'Face ID / Touch ID' : method === 'pin' ? 'PIN' : t('未設定')}<small>${method ? t('変更する') : t('隠しフォルダを使う前に設定してください')}</small></button>
+    <label class="f">${t('自動ロックまでの時間')}</label>
+    <select class="inp" id="sLockTime">${LOCK_CHOICES.map(m => `<option value="${m}">${lockLabel(m)}</option>`).join('')}</select>
+    <p class="note" style="margin-top:4px">${t('アプリを離れていた時間がこれを超えると、隠しフォルダ・隠しファイルを再びロックします。')}</p>
     ${hasHidden() ? `<button class="menu-btn" data-act="${unlocked ? 'lock' : 'unlock'}">${unlocked ? t('🔒 今すぐロックする') : t('🔓 ロックを解除する')}</button>` : ''}
 
     <h3>${t('表示')}</h3>
@@ -884,6 +894,8 @@ function sheetSettings(){
     <button class="menu-btn" data-act="restore">${t('⬆︎ バックアップから復元')}<small>${t('同じ ID のファイルは上書き、それ以外は追加')}</small></button>
     <button class="menu-btn danger" data-act="wipe">${t('すべて削除')}${session ? t('<small>同期中の他の端末とクラウドからも削除されます</small>') : ''}</button>
     <p class="note" id="sQuota"></p>`);
+  $('sLockTime').value = String(lockMinutes());
+  $('sLockTime').onchange = e => { lsSet('hv.lock.timeout', e.target.value); toast(t('自動ロック: {v}', { v: lockLabel(+e.target.value) })); };
   $('sLang').value = langPref();
   $('sLang').onchange = e => { lsSet('hv.lang', e.target.value); applyStaticText(); render(); updateStatus(); sheetSettings(); };
   $('sTheme').value = theme;
@@ -915,7 +927,7 @@ async function act(a, id){
         fo.hidden = false; await saveFolder(fo); closeSheet(); toast(t('隠しフォルダを解除しました'));
       } else {
         if (!lockMethod()){ toast(t('先に解除方法（Face ID または PIN）を設定してください')); sheetLockSetup(); return; }
-        fo.hidden = true; unlocked = true; await saveFolder(fo); closeSheet();
+        fo.hidden = true; setUnlocked(true); await saveFolder(fo); closeSheet();
         toast(t('隠しフォルダにしました（ロックすると見えなくなります）'));
       }
       break;
@@ -923,7 +935,7 @@ async function act(a, id){
       if (f.hidden){ f.hidden = false; await saveFile(f); closeSheet(); toast(t('隠しファイルを解除しました')); }
       else {
         if (!lockMethod()){ toast(t('先に解除方法（Face ID または PIN）を設定してください')); sheetLockSetup(); return; }
-        f.hidden = true; unlocked = true; await saveFile(f); closeSheet();
+        f.hidden = true; setUnlocked(true); await saveFile(f); closeSheet();
         toast(t('隠しファイルにしました（ロックすると見えなくなります）'));
       }
       break;
@@ -1085,10 +1097,10 @@ async function sheetLockSetup(){
     ${method ? t('<button class="menu-btn danger" id="lsOff">解除方法を削除<small>隠しフォルダ・隠しファイルがある場合は使えません</small></button>') : ''}
     <div class="card" style="margin-top:12px">${t('⚠️ 隠しフォルダは')}<b>${t('一覧や検索に表示しない')}</b>${t('ための機能です。端末内やクラウド上のデータそのものは暗号化されていません。機密情報の保管には使わないでください。')}</div>`);
   if ($('lsPass')) $('lsPass').onclick = async () => {
-    try { await registerPasskey(); lsSet('hv.lock.method', 'passkey'); unlocked = true; closeSheet(); render(); toast(t('Face ID で解除できるようになりました')); }
+    try { await registerPasskey(); lsSet('hv.lock.method', 'passkey'); setUnlocked(true); closeSheet(); render(); toast(t('Face ID で解除できるようになりました')); }
     catch (e){ toast(e.name === 'NotAllowedError' ? t('キャンセルされました') : t('パスキーを作成できませんでした')); }
   };
-  $('lsPin').onclick = async () => { if (await setPin()){ lsSet('hv.lock.method', 'pin'); unlocked = true; render(); toast(t('PIN を設定しました')); } };
+  $('lsPin').onclick = async () => { if (await setPin()){ lsSet('hv.lock.method', 'pin'); setUnlocked(true); render(); toast(t('PIN を設定しました')); } };
   if ($('lsOff')) $('lsOff').onclick = () => {
     if (hasHidden()) return toast(t('先に隠しフォルダ・隠しファイルをすべて解除してください'));
     ['hv.lock.method','hv.lock.cred','hv.lock.pin','hv.lock.salt'].forEach(lsDel);
@@ -1113,23 +1125,51 @@ async function unlock(){
     }
     if (!ok){ toast(t('この端末で解除方法を設定してください')); sheetLockSetup(); return false; }
   }
-  if (ok){ unlocked = true; render(); toast(t('🔓 ロックを解除しました')); }
+  if (ok){
+    setUnlocked(true); render(); toast(t('🔓 ロックを解除しました'));
+    // ロックで閉じたファイルがあれば、前回の位置で開き直す
+    const resume = ssGet('hv.resume'); ssDel('hv.resume');
+    if (resume && files.some(f => f.id === resume && fileVisible(f))) openViewer(resume);
+  }
   return ok;
 }
-function lock(){
-  unlocked = false;
-  if (current && (current.hidden || inHidden(current.folderId))) closeViewer(true);
+function lock(auto){
+  if (current && (current.hidden || inHidden(current.folderId))){
+    if (auto) ssSet('hv.resume', current.id);
+    closeViewer(true);
+  }
+  setUnlocked(false);
   render(); toast(t('🔒 ロックしました'));
 }
-// アプリを離れて1分以上たったら自動でロック
-let hiddenAt = 0;
+
+// ── 自動ロック ──
+// アプリを離れていた時間が設定値を超えたらロックする。iPhone がページを再読み込みしても、
+// 設定時間内なら解除状態を引き継ぐ（最後に見ていた時刻を localStorage に残す）。
+const LOCK_CHOICES = [0, 1, 5, 15, 60, -1];          // 分。0=すぐ、-1=手動でロックするまで
+const lockMinutes = () => { const v = parseInt(lsGet('hv.lock.timeout'), 10); return LOCK_CHOICES.includes(v) ? v : 15; };
+const lockLabel = m => m === 0 ? t('アプリを離れたらすぐ') : m === -1 ? t('手動でロックするまで') : m === 60 ? t('1時間') : t('{n}分', { n: m });
+function ssGet(k){ try { return sessionStorage.getItem(k); } catch { return null; } }
+function ssSet(k, v){ try { sessionStorage.setItem(k, v); } catch {} }
+function ssDel(k){ try { sessionStorage.removeItem(k); } catch {} }
+function setUnlocked(v){
+  unlocked = v;
+  v ? lsSet('hv.lock.seen', String(Date.now())) : lsDel('hv.lock.seen');
+}
+function expired(since){
+  const m = lockMinutes();
+  return m !== -1 && Date.now() - since > m * 60000;
+}
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) hiddenAt = Date.now();
+  if (document.hidden){ if (unlocked) lsSet('hv.lock.seen', String(Date.now())); }
   else {
-    if (unlocked && hiddenAt && Date.now() - hiddenAt > 60000) lock();
+    const seen = +lsGet('hv.lock.seen') || 0;
+    if (unlocked && seen && expired(seen)) lock(true);
+    else if (unlocked) lsSet('hv.lock.seen', String(Date.now()));
     scheduleSync(300);
   }
 });
+addEventListener('pagehide', () => { if (unlocked) lsSet('hv.lock.seen', String(Date.now())); });
+setInterval(() => { if (unlocked && !document.hidden) lsSet('hv.lock.seen', String(Date.now())); }, 30000);
 
 // =========================================================================
 // クラウド同期（Supabase: Auth + PostgREST を fetch で直接呼ぶ）
@@ -1399,8 +1439,9 @@ function sheetAccount(){
 // また srcdoc 内の「#見出し」リンクは親ページの URL に解決されてページごと置き換わるため、その場でスクロールさせる。
 function shimFor(f){
   const init = JSON.stringify(f.kv || {}).replace(/</g, '\\u003c');
+  const pos = +lsGet('hv.pos.' + f.id) || 0;
   return `<script>(function(){
-var T=${JSON.stringify(token)},D=${init},M={};
+var T=${JSON.stringify(token)},D=${init},M={},P0=${pos},moved=false;
 function mk(store,persist){
   var api={
     getItem:function(k){k=String(k);return Object.prototype.hasOwnProperty.call(store,k)?store[k]:null;},
@@ -1422,6 +1463,10 @@ var q=null;function sync(){clearTimeout(q);q=setTimeout(function(){parent.postMe
 function blocked(n){try{window[n].getItem('_');return false;}catch(e){return true;}}
 try{if(blocked('localStorage'))Object.defineProperty(window,'localStorage',{value:mk(D,true),configurable:true});}catch(e){}
 try{if(blocked('sessionStorage'))Object.defineProperty(window,'sessionStorage',{value:mk(M,false),configurable:true});}catch(e){}
+function restore(){if(P0>0&&!moved)window.scrollTo(0,P0);}
+['touchstart','wheel','keydown'].forEach(function(n){window.addEventListener(n,function(){moved=true;},{passive:true,once:true});});
+document.addEventListener('DOMContentLoaded',restore);window.addEventListener('load',function(){restore();setTimeout(restore,400);});
+var sp=null;window.addEventListener('scroll',function(){clearTimeout(sp);sp=setTimeout(function(){parent.postMessage({hv:T,pos:Math.round(window.scrollY)},'*');},300);},{passive:true});
 document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[href^="#"]');if(!a||e.defaultPrevented)return;var id=decodeURIComponent(a.getAttribute('href').slice(1)),t=id?document.getElementById(id)||document.getElementsByName(id)[0]:document.body;if(!t)return;e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});});
 })();<\/script>`;
 }
@@ -1433,6 +1478,14 @@ function withShim(html, shim){
   return shim + html;
 }
 
+// 表示枠（iframe）は開くたびに新しいものへ取り替える。同じ枠の srcdoc を書き換えると、
+// その遷移がブラウザの履歴に積まれ、「戻る」が一覧ではなく前に開いていたページへ戻ってしまうため。
+function mountFrame(html){
+  const old = $('frame'), fr = document.createElement('iframe');
+  ['id', 'title', 'sandbox', 'allow'].forEach(a => fr.setAttribute(a, old.getAttribute(a)));
+  if (html != null) fr.srcdoc = html;
+  old.replaceWith(fr);
+}
 async function openViewer(id, fromHistory){
   const f = files.find(x => x.id === id);
   if (!f || !fileVisible(f)) return;
@@ -1442,7 +1495,7 @@ async function openViewer(id, fromHistory){
   }
   current = f;
   token = uid() + uid();
-  $('frame').srcdoc = withShim(f.html, shimFor(f));
+  mountFrame(withShim(f.html, shimFor(f)));
   $('viewer').classList.add('show');
   document.title = f.title || f.name;
   f.openedAt = Date.now(); saveFile(f, { quiet: true, bump: false });
@@ -1452,7 +1505,7 @@ async function openViewer(id, fromHistory){
 function closeViewer(replace){
   if (!current) return;
   $('viewer').classList.remove('show');
-  $('frame').srcdoc = '';
+  mountFrame(null);
   current = null; token = '';
   document.title = 'HTML Viewer';
   if (replace) history.replaceState({ folder: cwd }, '', cwd ? '#folder=' + cwd : location.pathname);
@@ -1462,7 +1515,9 @@ function closeViewer(replace){
 window.addEventListener('message', e => {
   if (!current || e.source !== $('frame').contentWindow) return;
   const d = e.data;
-  if (!d || d.hv !== token || typeof d.kv !== 'object') return;
+  if (!d || d.hv !== token) return;
+  if (typeof d.pos === 'number'){ lsSet('hv.pos.' + current.id, String(d.pos)); return; }   // 読んでいた位置（この端末だけに保存）
+  if (typeof d.kv !== 'object') return;
   current.kv = d.kv; saveFile(current, { quiet: true });
 });
 
@@ -1669,13 +1724,20 @@ addEventListener('drop', e => {
     $('list').innerHTML = t('<div class="empty">この環境ではデータを保存できません（プライベートブラウズでは使えない場合があります）。</div>');
     return;
   }
+  const seen = +lsGet('hv.lock.seen') || 0;
+  if (seen && !expired(seen)) setUnlocked(true); else lsDel('hv.lock.seen');
   render(); updateStatus();
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   const m = location.hash.match(/^#view=(.+)$/), fo = location.hash.match(/^#folder=(.+)$/);
+  if (m && !unlocked && files.some(f => f.id === m[1] && !f.deleted && !fileVisible(f))) ssSet('hv.resume', m[1]);   // 解除後に再表示
+  const listY = +ssGet('hv.listY') || 0;
   if (m && files.some(f => f.id === m[1] && fileVisible(f))) openViewer(m[1], true);
   else if (fo && folderById(fo[1]) && folderVisible(folderById(fo[1]))){ cwd = fo[1]; history.replaceState({ folder: cwd }, '', location.hash); render(); }
   else if (m || fo) history.replaceState({ folder: null }, '', location.pathname);
   else history.replaceState({ folder: null }, '', location.pathname);
+  if (listY) requestAnimationFrame(() => scrollTo(0, listY));
+  let ly = null;
+  addEventListener('scroll', () => { if (current) return; clearTimeout(ly); ly = setTimeout(() => ssSet('hv.listY', String(Math.round(scrollY))), 300); }, { passive: true });
   scheduleSync(200);
 })();
 
