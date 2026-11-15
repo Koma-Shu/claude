@@ -1,9 +1,9 @@
-const CACHE = 'arcade-v3.45';
+const CACHE = 'arcade-v3.46';
 
 // Base path of the SW (e.g. '/claude/' on GitHub Pages, '/' on root)
 const BASE = self.location.pathname.replace(/sw\.js$/, '');
 
-// アプリごとにディレクトリ分割（ARCADES/{ARCADE,STUDY,ENGLISH}, Network/）。
+// アプリごとにディレクトリ分割（ARCADES/ARCADE, Network/, Tools/）。ENGLISH・STUDY は personal-tools へ移転済み。
 // ルートにはポータル・認証・共有ライブラリ・PWA アセットのみが残る。
 const GAME_FILES = [
   // --- root: portal / auth / shared libs / PWA ---
@@ -46,33 +46,7 @@ const GAME_FILES = [
   'ARCADES/ARCADE/oldmaid.html',
   'ARCADES/ARCADE/yacht.html',
 
-  // --- ARCADES/STUDY ---
-  'ARCADES/STUDY/study.html',
-  'ARCADES/STUDY/srs.js',
-  'ARCADES/STUDY/study-data.js',
-  'ARCADES/STUDY/study-data-spinum.js',
-  'ARCADES/STUDY/study-data-verbal.js',
-  'ARCADES/STUDY/study-data-calc.js',
-  'ARCADES/STUDY/study-data-open.js',
-  'ARCADES/STUDY/study-data-ext-spi.js',
-  'ARCADES/STUDY/study-data-ext-tama-num.js',
-  'ARCADES/STUDY/study-data-ext-tama-verb.js',
-  'ARCADES/STUDY/study-data-ext-tama-eng.js',
-  'ARCADES/STUDY/study-data-ext-tgweb-num.js',
-  'ARCADES/STUDY/study-data-ext-tgweb-verb.js',
-  'ARCADES/STUDY/study-data-ext-tgweb-eng.js',
-  'ARCADES/STUDY/study-data-ext-tgweb-num2.js',
-  'ARCADES/STUDY/study-data-ext-tama-num2.js',
 
-  // --- ARCADES/ENGLISH ---
-  'ARCADES/ENGLISH/english.html',
-  'ARCADES/ENGLISH/english-diary.html',
-  'ARCADES/ENGLISH/english-data.js',
-  'ARCADES/ENGLISH/english-sync.js',
-  'ARCADES/ENGLISH/english.webmanifest',
-  'ARCADES/ENGLISH/icon-eng-180.png',
-  'ARCADES/ENGLISH/icon-eng-192.png',
-  'ARCADES/ENGLISH/icon-eng-512.png',
 
   // --- Network ---
   'Network/packet-journey/index.html',
