@@ -165,6 +165,20 @@
     .rt-label{font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .rt-note{font-size:.62rem;color:var(--dim2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .rt.auto{cursor:default;}
+    /* ルーティン記録の手応え: 押下中に沈み、記録した瞬間に光ってチェックが弾む */
+    .rt{-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;}
+    .rt[data-rt]:active,.rt[data-task]:active{transform:scale(.96);background:#1c2433;}
+    .rt.flash{animation:rtFlash .7s ease-out;}
+    .rt.flash .rt-check{animation:rtPop .4s ease-out;}
+    .rt.flash-off{animation:rtFlashOff .5s ease-out;}
+    @keyframes rtFlash{0%{box-shadow:0 0 0 0 rgba(52,211,153,.7);background:rgba(52,211,153,.28);}100%{box-shadow:0 0 0 14px rgba(52,211,153,0);}}
+    @keyframes rtFlashOff{0%{background:rgba(148,163,184,.22);}100%{background:transparent;}}
+    @keyframes rtPop{0%{transform:scale(.4);}60%{transform:scale(1.35);}100%{transform:scale(1);}}
+    #rt-toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 76px);transform:translate(-50%,20px);z-index:60;
+      background:#0f2a20;border:1px solid #1d5c46;color:#a7f3d0;padding:10px 18px;border-radius:999px;font-size:.82rem;
+      box-shadow:0 8px 24px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;}
+    #rt-toast.show{opacity:1;transform:translate(-50%,0);}
+    #rt-toast.off{background:#1e1e2e;border-color:#444;color:#cbd5e1;}
     .rt-auto-tag{font-size:.58rem;color:var(--dim2);border:1px solid var(--line2);border-radius:20px;padding:2px 8px;}
     /* 「今日やること」先頭の固定タスクは1行フル幅のまま */
     .plan-list .rt{padding:11px 14px;gap:12px;}
@@ -1076,6 +1090,38 @@ function lessonLabelHTML(l){
   return `<span class="cn">${l.icon} ${l.courseName} · ${l.partName.replace(/^\d+\.\s*/,'')} ·</span> <b>L${l.n}</b>`;
 }
 
+// ── ルーティンの記録 ──────────────────────────────────────────────
+// 押した手応え（光る・弾む・振動・トースト）を出し、連打による「記録→取り消し」を防ぐ。
+const RT_GUARD_MS = 1200;
+let rtLast = { key:null, at:0 };
+function toggleRoutine(key){
+  const now = Date.now();
+  if (rtLast.key === key && now - rtLast.at < RT_GUARD_MS) return false;   // 直後の2度押しは無視
+  rtLast = { key, at:now };
+  const day = recordDay;
+  DB.routine[day] = DB.routine[day] || {};
+  const on = DB.routine[day][key] = !DB.routine[day][key];
+  save();
+  if (navigator.vibrate) navigator.vibrate(on ? 18 : [8, 50, 8]);
+  const it = ROUTINE.find(r=>r.key===key);
+  const name = key==='comp' ? T('rtComp') : (it ? it.label[lang] : key);
+  rtToast(on ? (lang==='ja' ? `✓ 「${name}」を記録しました` : `✓ Logged “${name}”`)
+             : (lang==='ja' ? `「${name}」の記録を取り消しました` : `Unchecked “${name}”`), on);
+  return true;
+}
+// 再描画後の要素に、今押した項目のアニメーションを付ける
+function flashRoutine(root){
+  if (!root || !rtLast.key || Date.now() - rtLast.at > 800) return;
+  const on = !!(DB.routine[recordDay] || {})[rtLast.key];
+  root.querySelectorAll(`[data-task="${rtLast.key}"],[data-rt="${rtLast.key}"]`).forEach(el => el.classList.add(on ? 'flash' : 'flash-off'));
+}
+function rtToast(msg, on){
+  let el = document.getElementById('rt-toast');
+  if (!el){ el = document.createElement('div'); el.id = 'rt-toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  el.textContent = msg; el.classList.toggle('off', !on); el.classList.add('show');
+  clearTimeout(rtToast._t); rtToast._t = setTimeout(()=>el.classList.remove('show'), 1800);
+}
+
 // 毎日の固定タスク（シャドーイング）を「今日やること」の先頭に表示。ルーティンの
 // 同名項目と状態を共有（routine[recordDay].shadow）するので、どちらで打っても連動。
 function dailyTaskHTML(){
@@ -1121,11 +1167,9 @@ function renderPlan(){
     html += partIds.map(pid => planPartGroup(pid, byPart[pid], firstPid)).join('');
   }
   wrap.innerHTML = html;
+  flashRoutine(wrap);
   wrap.querySelectorAll('[data-task]').forEach(el => el.onclick = ()=>{
-    const day = recordDay, key = el.dataset.task;
-    DB.routine[day] = DB.routine[day] || {};
-    DB.routine[day][key] = !DB.routine[day][key];
-    save(); renderAll();
+    if (toggleRoutine(el.dataset.task)) renderAll();
   });
   wrap.querySelectorAll('[data-fold]').forEach(el => el.onclick = ()=>{
     const pid = el.dataset.fold; expandedParts[pid] = !isPartOpen(pid, el.dataset.first); renderPlan();
@@ -1380,11 +1424,10 @@ function renderRoutine(){
     if (it.link) return `<a class="rt ${done?'done':''} auto" href="${it.link}">${inner}</a>`;
     return `<div class="rt ${done?'done':''} ${it.opt?'opt':''} ${it.auto?'auto':''}" ${it.auto?'':`data-rt="${it.key}"`}>${inner}</div>`;
   }).join('');
+  flashRoutine($('routine'));
   $('routine').querySelectorAll('[data-rt]').forEach(el => el.onclick = ()=>{
-    const key = el.dataset.rt; const day = recordDay;
-    DB.routine[day] = DB.routine[day] || {};
-    DB.routine[day][key] = !DB.routine[day][key];
-    save(); renderRoutine(); renderStats(); renderCalendar();   // routine affects streak + calendar
+    if (!toggleRoutine(el.dataset.rt)) return;
+    renderPlan(); renderRoutine(); renderStats(); renderCalendar();   // routine affects plan + streak + calendar
     $('greet').innerHTML = streak()>0 ? T('greetStreak')(streak()) : (ALL_IDS.some(isStudied)?T('greetBack'):T('greetNew'));
   });
 }
